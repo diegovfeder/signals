@@ -1,0 +1,19 @@
+# Prefect Workflow Orchestration
+prefect==2.14.0
+
+# Data Fetching
+yfinance==0.2.33
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.2
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+
+# Email Service
+resend==0.7.0
+
+# Utilities
+python-dotenv==1.0.0

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .signal-card-buy {
+    @apply border-l-4 border-buy bg-buy/5;
+  }
+
+  .signal-card-sell {
+    @apply border-l-4 border-sell bg-sell/5;
+  }
+
+  .signal-card-hold {
+    @apply border-l-4 border-neutral bg-neutral/5;
+  }
+}

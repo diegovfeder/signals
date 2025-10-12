@@ -1,0 +1,79 @@
+"""
+Pydantic Schemas
+
+Request and response models for API validation.
+"""
+
+from pydantic import BaseModel, EmailStr, Field
+from typing import List, Literal
+from datetime import datetime
+from decimal import Decimal
+
+# Signal Types
+SignalType = Literal["BUY", "SELL", "HOLD"]
+
+
+# Request Schemas
+class EmailSubscribeRequest(BaseModel):
+    """Request body for email subscription."""
+    email: EmailStr
+
+
+# Response Schemas
+class SignalResponse(BaseModel):
+    """Single signal response."""
+    id: str
+    symbol: str
+    timestamp: datetime
+    signal_type: SignalType
+    strength: float = Field(..., ge=0, le=100, description="Confidence score 0-100")
+    reasoning: List[str]
+    price_at_signal: float | None
+
+    class Config:
+        from_attributes = True
+
+
+class SignalListResponse(BaseModel):
+    """List of signals response."""
+    signals: List[SignalResponse]
+    total: int
+
+
+class MarketDataResponse(BaseModel):
+    """Market data response."""
+    symbol: str
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+
+    class Config:
+        from_attributes = True
+
+
+class IndicatorResponse(BaseModel):
+    """Indicator data response."""
+    symbol: str
+    timestamp: datetime
+    rsi: float | None
+    macd: float | None
+    macd_signal: float | None
+    macd_histogram: float | None
+
+    class Config:
+        from_attributes = True
+
+
+class EmailSubscribeResponse(BaseModel):
+    """Email subscription response."""
+    message: str
+    email: str
+
+
+class HealthCheckResponse(BaseModel):
+    """Health check response."""
+    status: str
+    database: str

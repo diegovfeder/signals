@@ -1,0 +1,338 @@
+# System Architecture
+
+## Overview
+
+Simple architecture for a solo dev MVP: Yahoo Finance → Prefect → Supabase → FastAPI → Next.js
+
+## High-Level Data Flow
+
+```mermaid
+graph LR
+    YF[Yahoo Finance API] -->|15m OHLCV| PREFECT[Prefect Flow]
+    PREFECT -->|Calculate| IND[RSI + EMA]
+    IND -->|Generate| SIG[Signals]
+    SIG -->|Save| DB[(Supabase)]
+    SIG -->|Email| RESEND[Resend API]
+    RESEND -->|Notify| USER[User]
+    DB -->|Read| API[FastAPI]
+    API -->|JSON| NEXT[Next.js]
+    NEXT -->|Display| USER
+```
+
+## Components
+
+### 1. Data Pipeline (Prefect)
+
+**Purpose**: Fetch data, calculate indicators, generate signals
+
+**Single Flow Approach**: Start with one flow that does everything, split later if needed
+
+**Flow Structure**:
+```
+generate_signals_flow():
+  1. Fetch 15m data from Yahoo Finance (BTC-USD, ETH-USD)
+  2. Calculate RSI (14-period) and EMA (12/26)
+  3. Apply signal rules (RSI < 30 = BUY, etc.)
+  4. Calculate strength score (0-100)
+  5. Save to Supabase
+  6. If strength >= 70, send email via Resend
+```
+
+**Schedule**: Every 15 minutes (`*/15 * * * *`)
+
+**Error Handling**:
+- Retry 3 times with exponential backoff (Prefect built-in)
+- Log errors to Prefect Cloud
+- Alert on 2 consecutive failures
+
+**Key Decisions**:
+- Fetch 15m data directly (no 5m → 15m resampling in MVP)
+- Single flow keeps it simple for solo dev
+- Use `@task` decorators for testable units
+- Prefect handles scheduling, retries, logging
+
+---
+
+### 2. Database (Supabase)
+
+**Purpose**: Store assets, OHLCV data, indicators, signals, and subscribers
+
+**Core Tables** (5 essential):
+
+1. **assets** - BTC-USD, ETH-USD tracking
+2. **ohlcv** - Raw 15-minute price data
+3. **indicators** - RSI, EMA-12, EMA-26 values
+4. **signals** - Generated BUY/HOLD signals with strength scores
+5. **email_subscribers** - Double opt-in subscribers with tokens
+
+**Key Design Decisions**:
+- Single `ohlcv` table (no 5m/15m split in MVP)
+- `UNIQUE(asset_id, timestamp)` prevents duplicates
+- Indexes on `(asset_id, timestamp DESC)` for fast time-series queries
+- `confirmed` flag on subscribers for double opt-in
+
+**Schema Location**: `db/schema.sql`
+
+**Seed Data**: `db/seeds/symbols.sql` (BTC-USD, ETH-USD)
+
+---
+
+### 3. Backend API (FastAPI)
+
+**Purpose**: Serve signals and market data to frontend
+
+**Core Endpoints** (Keep it minimal):
+
+- `GET /api/signals` - List recent signals (with pagination)
+- `GET /api/signals/{id}` - Single signal with OHLCV context
+- `POST /api/subscribe` - Start double opt-in flow
+- `GET /api/confirm` - Confirm email subscription
+- `GET /api/unsubscribe` - Unsubscribe from emails
+- `GET /api/health` - System health check
+
+**Key Patterns**:
+- Use Pydantic models for request/response validation
+- Supabase client for database queries
+- Async endpoints for better performance
+- CORS configured for frontend domain
+- Rate limiting: 100 req/min per IP
+
+**Tech Stack**:
+- FastAPI for routing and validation
+- SQLAlchemy for database queries (optional, can use Supabase client directly)
+- Resend for email sending
+- PostHog for analytics events
+
+---
+
+### 4. Frontend (Next.js)
+
+**Purpose**: Landing page and dashboard
+
+**Page Structure** (App Router):
+
+```
+app/
+├── page.tsx              # Landing page
+├── dashboard/page.tsx    # Signal list
+└── signal/[id]/page.tsx  # Signal detail with chart
+```
+
+**Key Components**:
+- `<SignalCard />` - Display signal summary
+- `<PriceChart />` - Chart with indicators overlaid
+- `<EmailSignup />` - Subscription form with validation
+- `<StrengthBadge />` - Color-coded strength indicator
+
+**Design System**:
+- TailwindCSS for styling
+- Dark theme inspired by Resend
+- Minimal, professional aesthetic
+- Responsive mobile-first design
+
+**Data Fetching Strategy**:
+- Server Components for initial page loads (SEO)
+- Consider TanStack Query for client-side data management (post-MVP)
+- Start with simple fetch, optimize later
+
+**State Management**:
+- Server Components reduce need for client state
+- React Context for theme/user preferences (if needed)
+- Keep it simple - avoid over-engineering
+
+---
+
+### 5. Email Service (Resend)
+
+**Purpose**: Send signal notifications
+
+**Email Flow**:
+1. User subscribes → Confirmation email sent
+2. User clicks link → Subscription confirmed → Welcome email
+3. Strong signal generated → Notification email sent
+4. User can unsubscribe via one-click link
+
+**Email Types**:
+- **Confirmation**: Double opt-in verification
+- **Welcome**: What to expect, how to read signals
+- **Signal Notification**: Plain English explanation with reasoning
+- **Digest** (Phase 2): Weekly summary
+
+**Configuration Requirements**:
+- DKIM/SPF/DMARC setup for domain
+- `List-Unsubscribe` header for compliance
+- Webhooks for tracking opens/bounces
+
+---
+
+## Data Flow Sequence
+
+### Every 15 Minutes (Automated)
+
+```mermaid
+sequenceDiagram
+    participant PREFECT as Prefect Flow
+    participant YF as Yahoo Finance
+    participant DB as Supabase
+    participant RESEND as Resend
+    participant USER as User
+
+    PREFECT->>YF: Fetch BTC/ETH 15m data
+    YF-->>PREFECT: OHLCV data
+    PREFECT->>PREFECT: Calculate RSI, EMA
+    PREFECT->>PREFECT: Generate signals
+    PREFECT->>DB: Save signals
+
+    alt Signal strength >= 70
+        PREFECT->>DB: Get confirmed subscribers
+        DB-->>PREFECT: Email list
+        PREFECT->>RESEND: Send notifications
+        RESEND-->>USER: Email delivered
+    end
+```
+
+### User Visits Dashboard
+
+```mermaid
+sequenceDiagram
+    participant USER as User Browser
+    participant NEXT as Next.js
+    participant API as FastAPI
+    participant DB as Supabase
+
+    USER->>NEXT: GET /dashboard
+    NEXT->>API: GET /api/signals
+    API->>DB: SELECT * FROM signals
+    DB-->>API: Signals data
+    API-->>NEXT: JSON response
+    NEXT->>NEXT: Render page (SSR)
+    NEXT-->>USER: HTML with signals
+```
+
+---
+
+## Technology Choices
+
+### Why Supabase?
+- You already know it
+- PostgreSQL (reliable, mature)
+- Free tier: 500MB storage, unlimited API requests
+- Built-in auth (for Phase 2)
+- Real-time subscriptions (for Phase 2)
+
+### Why Prefect?
+- Python-native (same as FastAPI)
+- Built-in scheduling (no cron needed)
+- Retry logic and error handling
+- Observability dashboard
+- Free tier: 20K task runs/month
+
+### Why FastAPI?
+- Fast (async support)
+- Auto-generated docs (Swagger UI)
+- Type safety (Pydantic)
+- Easy to learn coming from Node.js/NestJS
+- Share code with Prefect flows
+
+### Why Next.js?
+- Your core expertise
+- Server-side rendering (SEO)
+- Vercel deployment (free, instant)
+- React Server Components (less JS)
+- App Router with built-in patterns
+
+### Why Resend?
+- Simple API
+- High deliverability (DKIM/SPF/DMARC)
+- Free tier: 3K emails/month
+- Webhooks for tracking
+- Great developer experience
+
+---
+
+## Deployment
+
+### Vercel (Frontend + API)
+- Frontend: Automatic deployment from main branch
+- Backend: Deploy as Vercel Serverless Functions (or separate if preferred)
+- Environment variables configured in Vercel dashboard
+
+### Prefect Cloud (Pipeline)
+- Deploy flow with `prefect deploy`
+- Schedule configured in Prefect Cloud UI
+- Logs and monitoring built-in
+
+### Supabase (Database)
+- Create project at supabase.com
+- Run migrations via SQL editor
+- Connection string in environment variables
+
+---
+
+## Integration Points
+
+### Pipeline → Database
+Prefect flows write directly to Supabase using connection string.
+Use SQLAlchemy or Supabase Python client.
+
+### Database → API
+FastAPI reads from Supabase using async queries.
+Consider connection pooling for production.
+
+### API → Frontend
+Next.js fetches from FastAPI endpoints.
+Server Components for initial load, client fetching for interactivity.
+
+### Resend Integration
+Used in both Prefect (notifications) and FastAPI (confirmations).
+Same API key, different purposes.
+
+---
+
+## Security Considerations
+
+### API Security
+- Rate limiting: 100 req/min per IP
+- CORS: Whitelist frontend domain only
+- Input validation: Pydantic schemas on all endpoints
+- SQL injection: Use parameterized queries
+
+### Database Security
+- SSL/TLS connections required
+- Environment variables for credentials (never in code)
+- Row-level security in Supabase (Phase 2)
+
+### Email Security
+- Double opt-in prevents spam signups
+- Unsubscribe tokens: 32-byte random (cryptographically secure)
+- List-Unsubscribe header for RFC 8058 compliance
+- DKIM/SPF/DMARC prevents email spoofing
+
+---
+
+## Monitoring
+
+### Health Checks
+- Prefect Cloud: Flow run history, task durations
+- Supabase: Query performance, connection pool
+- Vercel: Page load times, API response times
+- PostHog: User events, funnels
+
+### Alerts (Set up after MVP works)
+- Prefect: Email on flow failure
+- Supabase: Monitor connection pool usage
+- Resend: Webhook for bounce rate spikes
+
+---
+
+## Next Steps
+
+1. Set up Supabase project and run migrations
+2. Implement Prefect flow locally (test with manual run)
+3. Build FastAPI endpoints (test with Swagger UI)
+4. Create Next.js pages (start with landing page)
+5. Deploy and test end-to-end
+
+For indicator details, see [DATA-SCIENCE.md](DATA-SCIENCE.md)
+
+For project scope, see [MVP.md](MVP.md)
