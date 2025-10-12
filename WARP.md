@@ -4,18 +4,22 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Trading Signals MVP
 
-An automated cryptocurrency trading signals system for Bitcoin and Ethereum. Analyzes technical indicators (RSI + EMA), generates high-confidence signals, and sends email alerts to subscribers.
+An automated trading signals system across multiple asset classes. Analyzes technical indicators (RSI + EMA) for crypto, stocks, ETFs, and forex, generates high-confidence signals, and sends email alerts to subscribers.
 
 **Solo dev MVP** - Start simple, learn incrementally, add complexity as needed.
 
 ## What It Does
 
 Every 15 minutes:
-1. Fetches BTC-USD and ETH-USD price data from Yahoo Finance (15-minute bars)
-2. Calculates RSI (14-period) and EMA (12/26 periods)
-3. Generates BUY/HOLD signals based on indicator values
+1. Fetches price data from Yahoo Finance (15-minute bars) for:
+   - **Crypto**: BTC-USD (Bitcoin)
+   - **Stocks**: AAPL (Apple)
+   - **ETF**: IVV (iShares Core S&P 500)
+   - **Forex**: BRL=X (Brazilian Real / US Dollar)
+2. Calculates RSI (14-period) and EMA (12/26 periods) for each asset
+3. Generates BUY/HOLD signals using same logic across all asset types
 4. Saves signals to Supabase (PostgreSQL)
-5. Emails subscribers if signal strength >= 70/100
+5. Emails subscribers if any signal strength >= 70/100
 
 ## Tech Stack
 
@@ -244,10 +248,10 @@ Weighted score (0-100) based on:
 
 **5 Core Tables**:
 
-1. `assets` - BTC-USD, ETH-USD
-2. `ohlcv` - 15-minute price data
-3. `indicators` - RSI, EMA-12, EMA-26 values
-4. `signals` - Generated signals with strength scores
+1. `assets` - BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+2. `ohlcv` - 15-minute price data for all assets
+3. `indicators` - RSI, EMA-12, EMA-26 values per asset
+4. `signals` - Generated signals with strength scores per asset
 5. `email_subscribers` - Double opt-in subscribers
 
 **Key Indexes**: `(asset_id, timestamp DESC)` on all tables for fast time-series queries.
@@ -370,14 +374,17 @@ npm run build
 ### MVP Scope
 
 **IN**:
-- BTC-USD and ETH-USD only
-- RSI + EMA indicators
+- 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+- RSI + EMA indicators (same logic for all asset types)
+- 24/7 operation (ignore market hours for stocks/ETFs)
 - Email notifications
 - Public dashboard
 
 **OUT** (Phase 2):
-- More cryptocurrencies
+- More assets per category
 - MACD, Bollinger Bands
+- Asset-specific strategies (different indicators per asset type)
+- Market hours handling
 - User authentication
 - Telegram notifications
 - Portfolio tracking

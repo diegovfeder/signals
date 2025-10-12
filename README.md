@@ -1,15 +1,24 @@
 # Trading Signals MVP
 
-Automated trading signals for Bitcoin and Ethereum. Get email alerts when technical indicators detect high-confidence opportunities.
+Automated trading signals across multiple asset classes. Get email alerts when technical indicators detect high-confidence opportunities in crypto, stocks, ETFs, and forex.
 
 ## What It Does
 
 Every 15 minutes, the system:
 
-1. Fetches BTC-USD and ETH-USD price data from Yahoo Finance
-2. Calculates RSI and EMA indicators
+1. Fetches price data from Yahoo Finance across 4 asset types
+2. Calculates RSI and EMA indicators for each asset
 3. Generates signals based on market conditions
 4. Sends email notifications for strong signals (>70/100 confidence)
+
+## MVP Asset Coverage
+
+Diversified across 4 major asset classes:
+
+- **Crypto**: BTC-USD (Bitcoin)
+- **Stocks**: AAPL (Apple)
+- **ETF**: IVV (iShares Core S&P 500)
+- **Forex**: BRL=X (Brazilian Real / US Dollar)
 
 ## Tech Stack
 
@@ -189,18 +198,20 @@ prefect deploy
 
 **In Scope:**
 
-- BTC-USD and ETH-USD only
+- 4 representative assets (1 per type: crypto, stock, ETF, forex)
 - RSI and EMA indicators
 - Email notifications
 - Public dashboard
+- Multi-asset signal comparison
 
 **Out of Scope (Phase 2):**
 
-- More cryptocurrencies
+- More assets per category
 - Additional indicators (MACD, Bollinger Bands)
 - User authentication
 - Telegram notifications
 - Portfolio tracking
+- Asset-specific strategies (different indicators per asset type)
 
 ## Success Metrics
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Trading Signals MVP - An automated system that monitors Bitcoin and Ethereum, calculates technical indicators (RSI + EMA), generates trading signals, and sends email notifications to subscribers.
+Trading Signals MVP - An automated system that monitors multiple asset classes (crypto, stocks, ETFs, forex), calculates technical indicators (RSI + EMA), generates trading signals, and sends email notifications to subscribers.
 
 **Solo dev project** designed for incremental learning and building. Start small, add complexity as you understand each piece.
 
@@ -105,10 +105,10 @@ python -c "from signals.signal_generator import generate_signal; print('Signal g
 
 **6 Core Tables** (see `db/schema.sql`):
 
-1. **symbols** - Assets we track (BTC-USD, ETH-USD)
-2. **market_data** - Raw OHLCV from Yahoo Finance
+1. **symbols** - Assets we track: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+2. **market_data** - Raw OHLCV from Yahoo Finance for all assets
 3. **indicators** - Calculated RSI, MACD (note: docs mention EMA, schema has MACD - use RSI+EMA for MVP)
-4. **signals** - Generated BUY/HOLD signals with strength scores
+4. **signals** - Generated BUY/HOLD signals with strength scores per asset
 5. **email_subscribers** - Users subscribed to notifications
 6. **sent_notifications** - Audit log of emails sent
 
@@ -245,15 +245,19 @@ resend.Emails.send({
 
 **What's IN** (build this first):
 
-- 2 assets: BTC-USD, ETH-USD only
+- 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
 - 2 indicators: RSI + EMA (skip MACD for now, despite schema having it)
+- Asset-agnostic approach: Same indicator logic for all asset types
+- 24/7 operation: Ignore market hours (even for stocks/ETFs that close on weekends)
 - 1 Prefect flow: Fetch → Calculate → Signal → Email (all in one)
 - Fetch 15m data directly from Yahoo Finance (no resampling)
 - Email notifications only (no Telegram)
 
 **What's OUT** (Phase 2):
 
-- More cryptocurrencies or stocks
+- More assets per category
+- Asset-specific strategies (different indicators per asset type)
+- Market hours handling (stocks/ETFs closed detection)
 - MACD, Bollinger Bands, or other indicators
 - User authentication
 - 5-minute to 15-minute resampling
@@ -392,9 +396,9 @@ When stuck, read docs in this order: MVP.md → ARCHITECTURE.md → DATA-SCIENCE
 
 ## Next Steps for Development
 
-1. **Week 1**: Set up Supabase, build basic Prefect flow to fetch and store data
-2. **Week 2**: Implement RSI+EMA calculations, generate signals, store in DB
+1. **Week 1**: Set up Supabase, build basic Prefect flow to fetch and store data for all 4 assets
+2. **Week 2**: Implement RSI+EMA calculations for each asset, generate signals, store in DB
 3. **Week 3**: Build FastAPI endpoints, test with Postman/curl
-4. **Week 4**: Build Next.js frontend, connect to API, add email signup
+4. **Week 4**: Build Next.js frontend with multi-asset dashboard, connect to API, add email signup
 
-Start simple: fetch data for 1 asset, calculate 1 indicator, store in DB. Then expand.
+Start simple: fetch data for 1 asset, calculate 1 indicator, store in DB. Then expand to all 4 assets with same logic.

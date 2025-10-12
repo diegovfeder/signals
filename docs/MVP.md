@@ -2,11 +2,11 @@
 
 ## What We're Building
 
-An automated trading signals system that helps busy professionals catch Bitcoin and Ethereum opportunities without watching charts 24/7.
+An automated trading signals system that helps busy professionals catch opportunities across multiple asset classes without watching charts 24/7.
 
 ## The One-Sentence Pitch
 
-"Get automated crypto trading signals explained in plain English, so you don't miss opportunities while you're at work."
+"Get automated trading signals across crypto, stocks, ETFs, and forex—explained in plain English, so you don't miss opportunities while you're at work."
 
 ## Target User
 
@@ -16,15 +16,15 @@ An automated trading signals system that helps busy professionals catch Bitcoin 
 
 - 32-year-old software engineer
 - Works 9am-7pm, often in meetings
-- Has $15K to invest in crypto
-- Overwhelmed by crypto Twitter
+- Has $15K to invest across crypto, stocks, and ETFs
+- Overwhelmed by multiple markets and conflicting advice
 
 **Pain Points:**
 
-- "I missed the BTC dip because I was in a meeting"
-- "I panic-sold ETH because I didn't understand why it was dropping"
-- "I don't know what RSI means"
-- "I don't trust myself to make trading decisions"
+- "I missed the BTC dip and AAPL earnings because I was in meetings"
+- "I can't track crypto, stocks, ETFs, and forex all at once"
+- "I don't know what RSI means or how indicators work"
+- "I don't trust myself to make trading decisions across different markets"
 
 **What She Needs:**
 
@@ -37,8 +37,8 @@ An automated trading signals system that helps busy professionals catch Bitcoin 
 
 ### 1. Signal Generation
 
-- Monitor BTC-USD and ETH-USD every 15 minutes
-- Calculate RSI and EMA indicators
+- Monitor 4 assets across different classes every 15 minutes
+- Calculate RSI and EMA indicators (same logic for all assets)
 - Generate BUY/HOLD signals based on simple rules
 - Score signal strength (0-100)
 - Only send emails for strong signals (>70)
@@ -69,11 +69,13 @@ An automated trading signals system that helps busy professionals catch Bitcoin 
 
 ### ✅ In Scope
 
-**Assets:**
+**Assets (4 diversified types):**
 
-- BTC-USD (Bitcoin)
-- ETH-USD (Ethereum)
-- 15-minute candles only
+- **Crypto**: BTC-USD (Bitcoin)
+- **Stocks**: AAPL (Apple)
+- **ETF**: IVV (iShares Core S&P 500)
+- **Forex**: BRL=X (Brazilian Real / US Dollar)
+- 15-minute candles for all assets
 
 **Indicators:**
 
@@ -101,9 +103,10 @@ An automated trading signals system that helps busy professionals catch Bitcoin 
 
 **Not Building Yet:**
 
-- More cryptocurrencies (SOL, BNB, etc.)
-- Stock markets (TSLA, AAPL, etc.)
+- More assets per category (expand after validation)
 - Additional indicators (MACD, Bollinger Bands)
+- Asset-specific strategies (different indicators per asset type)
+- Market hours handling (stocks/ETFs closed on weekends)
 - Telegram/SMS notifications
 - User authentication/accounts
 - Portfolio tracking
@@ -115,25 +118,25 @@ An automated trading signals system that helps busy professionals catch Bitcoin 
 
 ### User Flow
 
-1. **Discovery**: Maria visits landing page, sees latest BTC signal
+1. **Discovery**: Maria visits landing page, sees latest signals across multiple assets
 2. **Signup**: Enters email, receives confirmation link
 3. **Activation**: Clicks confirmation, receives welcome email
-4. **Engagement**: Gets email when strong signal occurs
-5. **Action**: Clicks through to dashboard, sees detailed chart
-6. **Learning**: Reads explanation, builds intuition
+4. **Engagement**: Gets email when strong signal occurs (any asset)
+5. **Action**: Clicks through to dashboard, compares signals across asset types
+6. **Learning**: Reads explanations, builds intuition across markets
 
 ### Technical Flow
 
 ```text
 Every 15 minutes:
 1. Prefect flow triggers
-2. Fetch BTC/ETH data from Yahoo Finance (15m bars)
-3. Calculate RSI and EMA indicators
-4. Apply signal rules (RSI < 30 = BUY, etc.)
-5. Calculate signal strength (0-100)
-6. Save to Supabase
-7. If strength > 70, send email via Resend
-8. Track event in PostHog
+2. Fetch data for all 4 assets from Yahoo Finance (15m bars)
+3. Calculate RSI and EMA indicators for each asset
+4. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all
+5. Calculate signal strength (0-100) per asset
+6. Save all signals to Supabase
+7. If any signal has strength > 70, send email via Resend
+8. Track events in PostHog
 ```
 
 ## Signal Rules (Simplified)
@@ -218,19 +221,19 @@ Every 15 minutes:
 
 ### Week 1-2: Friends & Family
 
-- Personal outreach to 20 crypto-interested friends
+- Personal outreach to friends interested in investing (not just crypto)
 - Seed list who agreed to test
 - Goal: 20 signups, 5 active users
 
 ### Week 3-4: Niche Communities
 
-- Post on r/CryptoCurrency, r/BitcoinBeginners
+- Post on r/CryptoCurrency, r/StockMarket, r/ETFs
 - Personal Twitter/LinkedIn posts
 - Goal: 80+ signups, 20+ active users
 
 ### Month 2-3: Content Marketing
 
-- Blog posts: "How I automated Bitcoin signals"
+- Blog posts: "How I automated multi-asset trading signals"
 - Product Hunt launch
 - Goal: 500+ signups, 10% activation
 
@@ -240,9 +243,9 @@ Every 15 minutes:
 
 - [ ] Set up Supabase database
 - [ ] Create database schema (assets, ohlcv, indicators, signals)
-- [ ] Build Prefect flow: Fetch data from Yahoo Finance
+- [ ] Build Prefect flow: Fetch data from Yahoo Finance for all 4 assets
 - [ ] Store raw 15m data in Supabase
-- **Milestone**: Can query BTC/ETH prices in database
+- **Milestone**: Can query prices for all 4 assets in database
 
 ### Week 2: Indicators & Signals
 
@@ -276,13 +279,15 @@ Every 15 minutes:
 
 | Decision | Rationale | Trade-off |
 |----------|-----------|-----------|
-| Crypto only (no stocks) | Avoid market hours complexity | Smaller addressable market |
+| 4 diverse assets | Validate appeal across asset classes | More complex than single asset type |
+| Same indicators for all | Simpler to build and explain | Not optimized per asset type |
 | 15-min bars (no resampling) | Simpler pipeline, faster MVP | Less control over timeframes |
 | 2 indicators only | Easy to explain, faster to build | Less sophisticated signals |
 | Email only | Perfect one channel first | Missing Telegram users |
 | Supabase (not Neon) | You already know it | Vendor lock-in |
 | 1 Prefect flow | Learn incrementally | Less modularity |
 | No authentication | Faster MVP, public dashboard | Can't personalize later |
+| Ignore market hours (MVP) | Simpler logic, 24/7 operation | Signals during closed markets |
 
 ## Anti-Goals
 
@@ -290,18 +295,20 @@ Things we're explicitly NOT doing:
 
 - ❌ Build a trading bot (we generate signals, not execute trades)
 - ❌ Guarantee profits (we're educational, not a money machine)
-- ❌ Support 50+ assets (focus on BTC/ETH first)
+- ❌ Support 50+ assets (focus on 4 representative assets first)
+- ❌ Asset-specific optimization (same indicators for all assets in MVP)
 - ❌ Real-time updates (15-minute delay is fine)
 - ❌ Mobile app (responsive web is enough)
 - ❌ Social features (comments, upvotes, etc.)
 
 ## Principles
 
-1. **Start small, learn fast** - 2 assets, 2 indicators, 1 flow
+1. **Start small, learn fast** - 4 assets, 2 indicators, 1 flow
 2. **Solo dev friendly** - Use tools you know (Supabase, Vercel)
 3. **Education over prediction** - Teach users, don't just tell them
 4. **Transparency over black boxes** - Document the logic
 5. **Quality over quantity** - Strong signals only (>70 strength)
+6. **Asset-agnostic approach** - Same indicators work across all asset types
 
 ## Next Steps
 

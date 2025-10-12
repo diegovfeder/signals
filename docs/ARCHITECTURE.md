@@ -30,12 +30,12 @@ graph LR
 **Flow Structure**:
 ```
 generate_signals_flow():
-  1. Fetch 15m data from Yahoo Finance (BTC-USD, ETH-USD)
-  2. Calculate RSI (14-period) and EMA (12/26)
-  3. Apply signal rules (RSI < 30 = BUY, etc.)
-  4. Calculate strength score (0-100)
+  1. Fetch 15m data from Yahoo Finance (BTC-USD, AAPL, IVV, BRL=X)
+  2. Calculate RSI (14-period) and EMA (12/26) for each asset
+  3. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all assets
+  4. Calculate strength score (0-100) per asset
   5. Save to Supabase
-  6. If strength >= 70, send email via Resend
+  6. If any asset signal strength >= 70, send email via Resend
 ```
 
 **Schedule**: Every 15 minutes (`*/15 * * * *`)
@@ -50,6 +50,8 @@ generate_signals_flow():
 - Single flow keeps it simple for solo dev
 - Use `@task` decorators for testable units
 - Prefect handles scheduling, retries, logging
+- Same indicator logic for all asset types (asset-agnostic approach)
+- Ignore market hours in MVP (24/7 operation, even for stocks/ETFs)
 
 ---
 
@@ -59,10 +61,10 @@ generate_signals_flow():
 
 **Core Tables** (5 essential):
 
-1. **assets** - BTC-USD, ETH-USD tracking
-2. **ohlcv** - Raw 15-minute price data
-3. **indicators** - RSI, EMA-12, EMA-26 values
-4. **signals** - Generated BUY/HOLD signals with strength scores
+1. **assets** - Tracks 4 asset types: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+2. **ohlcv** - Raw 15-minute price data for all assets
+3. **indicators** - RSI, EMA-12, EMA-26 values per asset
+4. **signals** - Generated BUY/HOLD signals with strength scores per asset
 5. **email_subscribers** - Double opt-in subscribers with tokens
 
 **Key Design Decisions**:
@@ -73,7 +75,7 @@ generate_signals_flow():
 
 **Schema Location**: `db/schema.sql`
 
-**Seed Data**: `db/seeds/symbols.sql` (BTC-USD, ETH-USD)
+**Seed Data**: `db/seeds/symbols.sql` (BTC-USD, AAPL, IVV, BRL=X)
 
 ---
 
@@ -177,13 +179,13 @@ sequenceDiagram
     participant RESEND as Resend
     participant USER as User
 
-    PREFECT->>YF: Fetch BTC/ETH 15m data
+    PREFECT->>YF: Fetch 4 assets 15m data (BTC, AAPL, IVV, BRL)
     YF-->>PREFECT: OHLCV data
-    PREFECT->>PREFECT: Calculate RSI, EMA
-    PREFECT->>PREFECT: Generate signals
-    PREFECT->>DB: Save signals
+    PREFECT->>PREFECT: Calculate RSI, EMA per asset
+    PREFECT->>PREFECT: Generate signals per asset
+    PREFECT->>DB: Save all signals
 
-    alt Signal strength >= 70
+    alt Any signal strength >= 70
         PREFECT->>DB: Get confirmed subscribers
         DB-->>PREFECT: Email list
         PREFECT->>RESEND: Send notifications
