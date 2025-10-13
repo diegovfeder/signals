@@ -15,16 +15,16 @@ An automated trading signals system that helps busy professionals catch opportun
 **Profile:**
 
 - 32-year-old software engineer
-- Works 9am-7pm, often in meetings
+- Works 9am-5pm, often in meetings
 - Has $15K to invest across crypto, stocks, and ETFs
 - Overwhelmed by multiple markets and conflicting advice
 
 **Pain Points:**
 
-- "I missed the BTC dip and AAPL earnings because I was in meetings"
+- "I missed the BTC dip because I was working"
 - "I can't track crypto, stocks, ETFs, and forex all at once"
-- "I don't know what RSI means or how indicators work"
-- "I don't trust myself to make trading decisions across different markets"
+- "I don't know what RSI means or how most technical indicators work"
+- "I don't trust myself trying to make self-directed trading decisions"
 
 **What She Needs:**
 
@@ -38,7 +38,10 @@ An automated trading signals system that helps busy professionals catch opportun
 ### 1. Signal Generation
 
 - Monitor 4 assets across different classes every 15 minutes
-- Calculate RSI and EMA indicators (same logic for all assets)
+- Calculate RSI and EMA indicators
+  - Flexibility to add more indicators later (MACD, Bollinger Bands, etc.)
+  - At first, same logic for all assets
+    - Later, different indicators per asset type
 - Generate BUY/HOLD signals based on simple rules
 - Score signal strength (0-100)
 - Only send emails for strong signals (>70)
@@ -56,7 +59,6 @@ An automated trading signals system that helps busy professionals catch opportun
 - See latest signals without login
 - View signal history
 - Charts with indicators overlaid
-- Educational tooltips
 
 ### 4. Simple Data Pipeline
 
@@ -87,7 +89,6 @@ An automated trading signals system that helps busy professionals catch opportun
 
 - Public dashboard (no login)
 - Email notifications (Resend API)
-- Double opt-in for subscriptions
 - Plain English explanations
 - Risk disclaimers
 
@@ -107,18 +108,15 @@ An automated trading signals system that helps busy professionals catch opportun
 - Additional indicators (MACD, Bollinger Bands)
 - Asset-specific strategies (different indicators per asset type)
 - Market hours handling (stocks/ETFs closed on weekends)
-- Telegram/SMS notifications
 - User authentication/accounts
 - Portfolio tracking
-- Mobile app
-- Payment system
-- Real-time websocket updates
+- Payment system (Stripe)
 
 ## How It Works
 
 ### User Flow
 
-1. **Discovery**: Maria visits landing page, sees latest signals across multiple assets
+1. **Discovery**: User visits landing page, sees latest signals across multiple assets
 2. **Signup**: Enters email, receives confirmation link
 3. **Activation**: Clicks confirmation, receives welcome email
 4. **Engagement**: Gets email when strong signal occurs (any asset)
@@ -215,13 +213,13 @@ Every 15 minutes:
 - Quality gates (reject stale/bad data)
 - Alert system for Prefect failures
 - Manual override ability
-- Start small (2 assets, 2 indicators)
+- Start small (4 assets, 2 indicators)
 
 ## Go-to-Market Strategy
 
 ### Week 1-2: Friends & Family
 
-- Personal outreach to friends interested in investing (not just crypto)
+- Personal outreach to friends interested in investing
 - Seed list who agreed to test
 - Goal: 20 signups, 5 active users
 
@@ -309,6 +307,38 @@ Things we're explicitly NOT doing:
 4. **Transparency over black boxes** - Document the logic
 5. **Quality over quantity** - Strong signals only (>70 strength)
 6. **Asset-agnostic approach** - Same indicators work across all asset types
+
+## Costs
+
+All services have generous free tiers:
+
+- **Vercel**: Unlimited deployments
+- **Prefect Cloud**: 20k task runs/month
+- **Resend**: 3,000 emails/month
+- **PostHog**: 1M events/month
+- **Supabase**:
+  - Unlimited API requests
+  - 50,000 monthly active users
+  - 500 MB database size
+  - 500 MB RAM
+  - 5 GB egress
+  - 5 GB cached egress
+  - 1 GB file storage
+  - Shared CPU
+  - Community support
+
+**Total Monthly Cost: $0** (for MVP scale)
+
+## Scaling
+
+If you exceed free tiers:
+
+- **Neon**: Upgrade to Pro ($19/mo for 10GB)
+- **Vercel**: Pro plan ($20/mo per member)
+- **Prefect**: Standard plan ($450/mo for 150k runs)
+- **Resend**: Pro plan ($20/mo for 50k emails)
+
+But you shouldn't hit these limits during MVP validation.
 
 ## Next Steps
 

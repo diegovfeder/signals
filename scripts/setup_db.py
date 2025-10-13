@@ -43,16 +43,19 @@ def setup_database():
 
         # Get project root
         project_root = Path(__file__).parent.parent
-        database_dir = project_root / 'database'
+        db_dir = project_root / 'db'
 
-        # Run schema migration
+        # Run schema
         print("\n1. Creating database schema...")
-        schema_file = database_dir / 'migrations' / '001_initial_schema.sql'
+        schema_file = db_dir / 'schema.sql'
+        if not schema_file.exists():
+            # Try migration file as fallback
+            schema_file = db_dir / 'migrations' / '001_initial_schema.sql'
         run_sql_file(cursor, schema_file)
 
         # Run seed data
         print("\n2. Seeding initial data...")
-        seeds_file = database_dir / 'seeds' / 'symbols.sql'
+        seeds_file = db_dir / 'seeds' / 'symbols.sql'
         run_sql_file(cursor, seeds_file)
 
         # Verify setup

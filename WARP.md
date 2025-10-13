@@ -6,11 +6,12 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 An automated trading signals system across multiple asset classes. Analyzes technical indicators (RSI + EMA) for crypto, stocks, ETFs, and forex, generates high-confidence signals, and sends email alerts to subscribers.
 
-**Solo dev MVP** - Start simple, learn incrementally, add complexity as needed.
+**Small dev team MVP** - Start simple, learn incrementally, add complexity as needed.
 
 ## What It Does
 
 Every 15 minutes:
+
 1. Fetches price data from Yahoo Finance (15-minute bars) for:
    - **Crypto**: BTC-USD (Bitcoin)
    - **Stocks**: AAPL (Apple)
@@ -75,7 +76,7 @@ signals/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - Python 3.11+
 - Supabase account
 - Resend API key
@@ -83,6 +84,7 @@ signals/
 ### Environment Variables
 
 **Backend** (`.env` in `/backend`):
+
 ```bash
 DATABASE_URL=postgresql://...
 RESEND_API_KEY=re_...
@@ -90,12 +92,14 @@ POSTHOG_API_KEY=phc_...  # Optional
 ```
 
 **Frontend** (`.env.local` in `/frontend`):
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_POSTHOG_KEY=phc_...  # Optional
 ```
 
 **Pipeline** (`.env` in `/pipe`):
+
 ```bash
 DATABASE_URL=postgresql://...
 RESEND_API_KEY=re_...
@@ -104,6 +108,7 @@ RESEND_API_KEY=re_...
 ### Quick Setup
 
 1. **Database Setup**:
+
    ```bash
    # Create Supabase project at supabase.com
    # Copy connection string
@@ -116,6 +121,7 @@ RESEND_API_KEY=re_...
    ```
 
 2. **Backend**:
+
    ```bash
    cd backend
    python -m venv venv
@@ -127,6 +133,7 @@ RESEND_API_KEY=re_...
    ```
 
 3. **Frontend**:
+
    ```bash
    cd frontend
    npm install
@@ -136,6 +143,7 @@ RESEND_API_KEY=re_...
    ```
 
 4. **Pipeline** (optional for testing):
+
    ```bash
    cd pipe
    pip install -r requirements.txt
@@ -238,6 +246,7 @@ prefect flow-run logs <flow-run-id>
 ### Signal Strength
 
 Weighted score (0-100) based on:
+
 - Distance from RSI threshold (30/70)
 - EMA separation magnitude
 - Volume confirmation
@@ -374,6 +383,7 @@ npm run build
 ### MVP Scope
 
 **IN**:
+
 - 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
 - RSI + EMA indicators (same logic for all asset types)
 - 24/7 operation (ignore market hours for stocks/ETFs)
@@ -381,6 +391,7 @@ npm run build
 - Public dashboard
 
 **OUT** (Phase 2):
+
 - More assets per category
 - MACD, Bollinger Bands
 - Asset-specific strategies (different indicators per asset type)

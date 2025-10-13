@@ -2,7 +2,13 @@
 
 ## Overview
 
-Simple architecture for a solo dev MVP: Yahoo Finance → Prefect → Supabase → FastAPI → Next.js
+This MVP is a lean, end‑to‑end signals system optimized for a small development team. A single Prefect flow fetches 15‑minute OHLCV data from Yahoo Finance for four assets, computes RSI/EMA, generates rule‑based signals with a strength score, persists results to Supabase, triggers emails via Resend on strong signals, and serves read‑only data via a FastAPI backend consumed by a Next.js frontend.
+
+- **Scope (MVP)**: 4 assets, 15‑minute bars, RSI + EMA indicators, rule‑based signals, email notifications, read‑only dashboard.
+- **Non‑goals (MVP)**: Auth, multi‑timeframe resampling, per‑asset custom logic, Telegram/other channels, advanced backtesting.
+- **Operational model**: Scheduled every 15 minutes with retries and logging in Prefect; simple, single‑flow design for speed and reliability.
+
+See the data flow diagram below for the detailed sequence.
 
 ## High-Level Data Flow
 
@@ -28,26 +34,29 @@ graph LR
 **Single Flow Approach**: Start with one flow that does everything, split later if needed
 
 **Flow Structure**:
-```
+
+```python
 generate_signals_flow():
-  1. Fetch 15m data from Yahoo Finance (BTC-USD, AAPL, IVV, BRL=X)
-  2. Calculate RSI (14-period) and EMA (12/26) for each asset
-  3. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all assets
-  4. Calculate strength score (0-100) per asset
-  5. Save to Supabase
-  6. If any asset signal strength >= 70, send email via Resend
+  # 1. Fetch 15m data from Yahoo Finance (BTC-USD, AAPL, IVV, BRL=X)
+  # 2. Calculate RSI (14-period) and EMA (12/26) for each asset
+  # 3. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all assets
+  # 4. Calculate strength score (0-100) per asset
+  # 5. Save to Supabase
+  # 6. If any asset signal strength >= 70, send email via Resend
 ```
 
 **Schedule**: Every 15 minutes (`*/15 * * * *`)
 
 **Error Handling**:
+
 - Retry 3 times with exponential backoff (Prefect built-in)
 - Log errors to Prefect Cloud
 - Alert on 2 consecutive failures
 
 **Key Decisions**:
+
 - Fetch 15m data directly (no 5m → 15m resampling in MVP)
-- Single flow keeps it simple for solo dev
+- Single flow keeps it simple for small dev team
 - Use `@task` decorators for testable units
 - Prefect handles scheduling, retries, logging
 - Same indicator logic for all asset types (asset-agnostic approach)
@@ -68,6 +77,7 @@ generate_signals_flow():
 5. **email_subscribers** - Double opt-in subscribers with tokens
 
 **Key Design Decisions**:
+
 - Single `ohlcv` table (no 5m/15m split in MVP)
 - `UNIQUE(asset_id, timestamp)` prevents duplicates
 - Indexes on `(asset_id, timestamp DESC)` for fast time-series queries
@@ -93,6 +103,7 @@ generate_signals_flow():
 - `GET /api/health` - System health check
 
 **Key Patterns**:
+
 - Use Pydantic models for request/response validation
 - Supabase client for database queries
 - Async endpoints for better performance
@@ -100,6 +111,7 @@ generate_signals_flow():
 - Rate limiting: 100 req/min per IP
 
 **Tech Stack**:
+
 - FastAPI for routing and validation
 - SQLAlchemy for database queries (optional, can use Supabase client directly)
 - Resend for email sending
@@ -113,7 +125,7 @@ generate_signals_flow():
 
 **Page Structure** (App Router):
 
-```
+```zsh
 app/
 ├── page.tsx              # Landing page
 ├── dashboard/page.tsx    # Signal list
@@ -121,23 +133,27 @@ app/
 ```
 
 **Key Components**:
+
 - `<SignalCard />` - Display signal summary
 - `<PriceChart />` - Chart with indicators overlaid
 - `<EmailSignup />` - Subscription form with validation
 - `<StrengthBadge />` - Color-coded strength indicator
 
 **Design System**:
+
 - TailwindCSS for styling
 - Dark theme inspired by Resend
 - Minimal, professional aesthetic
 - Responsive mobile-first design
 
 **Data Fetching Strategy**:
+
 - Server Components for initial page loads (SEO)
 - Consider TanStack Query for client-side data management (post-MVP)
 - Start with simple fetch, optimize later
 
 **State Management**:
+
 - Server Components reduce need for client state
 - React Context for theme/user preferences (if needed)
 - Keep it simple - avoid over-engineering
@@ -149,18 +165,21 @@ app/
 **Purpose**: Send signal notifications
 
 **Email Flow**:
+
 1. User subscribes → Confirmation email sent
 2. User clicks link → Subscription confirmed → Welcome email
 3. Strong signal generated → Notification email sent
 4. User can unsubscribe via one-click link
 
 **Email Types**:
+
 - **Confirmation**: Double opt-in verification
 - **Welcome**: What to expect, how to read signals
 - **Signal Notification**: Plain English explanation with reasoning
 - **Digest** (Phase 2): Weekly summary
 
 **Configuration Requirements**:
+
 - DKIM/SPF/DMARC setup for domain
 - `List-Unsubscribe` header for compliance
 - Webhooks for tracking opens/bounces
@@ -216,6 +235,7 @@ sequenceDiagram
 ## Technology Choices
 
 ### Why Supabase?
+
 - You already know it
 - PostgreSQL (reliable, mature)
 - Free tier: 500MB storage, unlimited API requests
@@ -223,6 +243,7 @@ sequenceDiagram
 - Real-time subscriptions (for Phase 2)
 
 ### Why Prefect?
+
 - Python-native (same as FastAPI)
 - Built-in scheduling (no cron needed)
 - Retry logic and error handling
@@ -230,6 +251,7 @@ sequenceDiagram
 - Free tier: 20K task runs/month
 
 ### Why FastAPI?
+
 - Fast (async support)
 - Auto-generated docs (Swagger UI)
 - Type safety (Pydantic)
@@ -237,6 +259,7 @@ sequenceDiagram
 - Share code with Prefect flows
 
 ### Why Next.js?
+
 - Your core expertise
 - Server-side rendering (SEO)
 - Vercel deployment (free, instant)
@@ -244,6 +267,7 @@ sequenceDiagram
 - App Router with built-in patterns
 
 ### Why Resend?
+
 - Simple API
 - High deliverability (DKIM/SPF/DMARC)
 - Free tier: 3K emails/month
@@ -255,16 +279,19 @@ sequenceDiagram
 ## Deployment
 
 ### Vercel (Frontend + API)
+
 - Frontend: Automatic deployment from main branch
 - Backend: Deploy as Vercel Serverless Functions (or separate if preferred)
 - Environment variables configured in Vercel dashboard
 
 ### Prefect Cloud (Pipeline)
+
 - Deploy flow with `prefect deploy`
 - Schedule configured in Prefect Cloud UI
 - Logs and monitoring built-in
 
 ### Supabase (Database)
+
 - Create project at supabase.com
 - Run migrations via SQL editor
 - Connection string in environment variables
@@ -274,18 +301,22 @@ sequenceDiagram
 ## Integration Points
 
 ### Pipeline → Database
+
 Prefect flows write directly to Supabase using connection string.
 Use SQLAlchemy or Supabase Python client.
 
 ### Database → API
+
 FastAPI reads from Supabase using async queries.
 Consider connection pooling for production.
 
 ### API → Frontend
+
 Next.js fetches from FastAPI endpoints.
 Server Components for initial load, client fetching for interactivity.
 
 ### Resend Integration
+
 Used in both Prefect (notifications) and FastAPI (confirmations).
 Same API key, different purposes.
 
@@ -294,17 +325,20 @@ Same API key, different purposes.
 ## Security Considerations
 
 ### API Security
+
 - Rate limiting: 100 req/min per IP
 - CORS: Whitelist frontend domain only
 - Input validation: Pydantic schemas on all endpoints
 - SQL injection: Use parameterized queries
 
 ### Database Security
+
 - SSL/TLS connections required
 - Environment variables for credentials (never in code)
 - Row-level security in Supabase (Phase 2)
 
 ### Email Security
+
 - Double opt-in prevents spam signups
 - Unsubscribe tokens: 32-byte random (cryptographically secure)
 - List-Unsubscribe header for RFC 8058 compliance
@@ -315,12 +349,14 @@ Same API key, different purposes.
 ## Monitoring
 
 ### Health Checks
+
 - Prefect Cloud: Flow run history, task durations
 - Supabase: Query performance, connection pool
 - Vercel: Page load times, API response times
 - PostHog: User events, funnels
 
 ### Alerts (Set up after MVP works)
+
 - Prefect: Email on flow failure
 - Supabase: Monitor connection pool usage
 - Resend: Webhook for bounce rate spikes

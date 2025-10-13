@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Trading Signals MVP - An automated system that monitors multiple asset classes (crypto, stocks, ETFs, forex), calculates technical indicators (RSI + EMA), generates trading signals, and sends email notifications to subscribers.
 
-**Solo dev project** designed for incremental learning and building. Start small, add complexity as you understand each piece.
+**Small dev team project** designed for incremental learning and building. Start small, add complexity as you understand each piece.
 
 ## Architecture
 

@@ -1,7 +1,8 @@
 """
 Seed Historical Data Script
 
-Backfill 30 days of historical market data for all symbols.
+Backfill historical market data for all MVP symbols.
+Yahoo Finance limits 15m data to ~60 days, so we fetch maximum available.
 """
 
 import os
@@ -17,26 +18,41 @@ def get_database_url():
     return os.getenv('DATABASE_URL', 'postgresql://signals_user:signals_password@localhost:5432/trading_signals')
 
 
-def fetch_historical_data(symbol: str, days: int = 30):
+def fetch_historical_data(symbol: str):
     """
-    Fetch historical data from Yahoo Finance.
+    Fetch maximum available 15-minute historical data from Yahoo Finance.
+
+    Note: Yahoo Finance limits 15m interval data to approximately 60 days.
+    For longer historical periods, use daily data separately.
 
     Args:
-        symbol: Asset symbol (e.g., 'BTC-USD')
-        days: Number of days to backfill
+        symbol: Asset symbol (e.g., 'BTC-USD', 'AAPL', 'IVV', 'BRL=X')
 
     Returns:
-        DataFrame with OHLCV data
+        DataFrame with OHLCV data (15-minute bars)
     """
-    print(f"Fetching {days} days of data for {symbol}...")
+    print(f"Fetching 15m data for {symbol}...")
 
     ticker = yf.Ticker(symbol)
-    df = ticker.history(period=f"{days}d", interval="1h")
+
+    # Fetch maximum available 15-minute data
+    # Yahoo Finance typically provides ~60 days for 15m interval
+    df = ticker.history(period="60d", interval="15m")
 
     if df.empty:
-        raise ValueError(f"No data returned for {symbol}")
+        print(f"⚠ No 15m data available for {symbol}, trying 1h interval...")
+        # Fallback to hourly data if 15m not available (e.g., some forex pairs)
+        df = ticker.history(period="60d", interval="1h")
 
-    print(f"✓ Fetched {len(df)} candles")
+        if df.empty:
+            raise ValueError(f"No data returned for {symbol}")
+
+    # Get actual date range
+    start_date = df.index.min()
+    end_date = df.index.max()
+    days = (end_date - start_date).days
+
+    print(f"✓ Fetched {len(df)} candles ({days} days: {start_date.date()} to {end_date.date()})")
     return df
 
 
@@ -70,13 +86,13 @@ def insert_market_data(cursor, symbol: str, df):
 
 
 def seed_historical_data():
-    """Seed historical data for all symbols."""
+    """Seed historical data for all MVP symbols."""
     print("=" * 60)
     print("Trading Signals - Seed Historical Data")
     print("=" * 60)
 
-    symbols = ['BTC-USD', 'ETH-USD', 'TSLA']
-    days = 30
+    # MVP: 4 assets across different classes
+    symbols = ['BTC-USD', 'AAPL', 'IVV', 'BRL=X']
 
     try:
         # Connect to database
@@ -91,13 +107,14 @@ def seed_historical_data():
             print("-" * 60)
 
             try:
-                df = fetch_historical_data(symbol, days)
+                df = fetch_historical_data(symbol)
                 insert_market_data(cursor, symbol, df)
                 conn.commit()
                 print(f"✓ Completed {symbol}")
             except Exception as e:
                 print(f"✗ Error processing {symbol}: {e}")
                 conn.rollback()
+                continue  # Continue with next symbol
 
         # Close connection
         cursor.close()

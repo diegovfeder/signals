@@ -1,14 +1,20 @@
 -- Trading Signals MVP Database Schema
 -- PostgreSQL 15+
+--
+-- NOTE: After running this schema, apply migrations in order:
+--   1. db/migrations/001_initial_schema.sql (if needed)
+--   2. db/migrations/002_add_critical_fields.sql (adds double opt-in, idempotency, EMA)
+--
+-- See db/README.md for setup instructions and design rationale
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Core symbols we track (MVP: 3 symbols only)
+-- Core symbols we track (MVP: 4 assets across different classes)
 CREATE TABLE symbols (
     symbol VARCHAR(20) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    asset_type VARCHAR(20) NOT NULL CHECK (asset_type IN ('crypto', 'stock')),
+    asset_type VARCHAR(20) NOT NULL CHECK (asset_type IN ('crypto', 'stock', 'etf', 'forex')),
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -109,9 +115,9 @@ WHERE s.timestamp > NOW() - INTERVAL '30 days'
 GROUP BY s.symbol, s.signal_type;
 
 -- Comments
-COMMENT ON TABLE symbols IS 'Tracked assets (BTC-USD, ETH-USD, TSLA for MVP)';
-COMMENT ON TABLE market_data IS 'Raw OHLCV data from Yahoo Finance, fetched hourly';
-COMMENT ON TABLE indicators IS 'Calculated technical indicators (RSI, MACD)';
-COMMENT ON TABLE signals IS 'Generated trading signals with confidence scores';
-COMMENT ON TABLE email_subscribers IS 'Users subscribed to email notifications';
-COMMENT ON TABLE sent_notifications IS 'Audit log of sent emails for rate limiting';
+COMMENT ON TABLE symbols IS 'Tracked assets (BTC-USD, AAPL, IVV, BRL=X for MVP - 4 asset classes)';
+COMMENT ON TABLE market_data IS 'Raw OHLCV data from Yahoo Finance, 15-min bars';
+COMMENT ON TABLE indicators IS 'Calculated technical indicators (RSI, EMA12, EMA26)';
+COMMENT ON TABLE signals IS 'Generated trading signals with confidence scores and idempotency';
+COMMENT ON TABLE email_subscribers IS 'Email subscribers with double opt-in confirmation';
+COMMENT ON TABLE sent_notifications IS 'Audit log of sent emails for rate limiting and tracking';
