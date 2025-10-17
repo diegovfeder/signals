@@ -60,18 +60,26 @@ def insert_market_data(cursor, symbol: str, df):
     """Insert market data into database."""
     print(f"Inserting data into database...")
 
+    # Ensure index is timezone-aware (convert to UTC if needed)
+    if df.index.tz is None:
+        # If timezone-naive, assume UTC
+        df.index = df.index.tz_localize('UTC')
+    else:
+        # Convert to UTC if in a different timezone
+        df.index = df.index.tz_convert('UTC')
+
     # Prepare data for insertion
     data = [
         (
             symbol,
-            row.Index,
+            timestamp,  # Use timestamp directly from index
             float(row.Open),
             float(row.High),
             float(row.Low),
             float(row.Close),
             int(row.Volume)
         )
-        for row in df.itertuples()
+        for timestamp, row in df.iterrows()  # Use iterrows() to get index explicitly
     ]
 
     # Insert with ON CONFLICT to handle duplicates
