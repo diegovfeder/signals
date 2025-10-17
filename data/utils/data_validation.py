@@ -5,10 +5,10 @@ Quality checks for market data before processing.
 """
 
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
-def validate_ohlcv_data(df: pd.DataFrame) -> Dict[str, any]:
+def validate_ohlcv_data(df: pd.DataFrame) -> Dict[str, Any]:
     """
     Validate OHLCV data quality.
 
