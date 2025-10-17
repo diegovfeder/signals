@@ -4,8 +4,8 @@ SQLAlchemy ORM Models
 Database models corresponding to the schema.
 """
 
-from sqlalchemy import Column, String, DECIMAL, BigInteger, TIMESTAMP, Boolean, ARRAY, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DECIMAL, BigInteger, TIMESTAMP, Boolean, Text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 from .database import Base
 import uuid

@@ -16,7 +16,7 @@ Rules (MVP):
         - None of the above conditions met
 """
 
-from typing import Dict, List, Literal
+from typing import Any, Dict, List, Literal
 import pandas as pd
 
 SignalType = Literal["BUY", "SELL", "HOLD"]
@@ -28,7 +28,7 @@ def generate_signal(
     macd_signal: float,
     macd_histogram: float,
     price: float
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Generate trading signal from technical indicators.
 

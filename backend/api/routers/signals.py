@@ -18,7 +18,7 @@ router = APIRouter()
 async def get_all_signals(
     limit: int = Query(default=20, le=100),
     offset: int = Query(default=0, ge=0),
-    signal_type: Optional[str] = Query(default=None, regex="^(BUY|SELL|HOLD)$"),
+    signal_type: Optional[str] = Query(default=None, pattern="^(BUY|SELL|HOLD)$"),
     min_strength: Optional[float] = Query(default=None, ge=0, le=100),
     db: Session = Depends(get_db)
 ):
