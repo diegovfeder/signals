@@ -125,11 +125,12 @@ generate_signals_flow():
 
 **Page Structure** (App Router):
 
-```zsh
+```bash
 app/
 ├── page.tsx              # Landing page
 ├── dashboard/page.tsx    # Signal list
-└── signal/[id]/page.tsx  # Signal detail with chart
+├── signals/page.tsx      # Signal list
+└── signals/[symbol]/page.tsx  # Signal detail with chart
 ```
 
 **Key Components**:

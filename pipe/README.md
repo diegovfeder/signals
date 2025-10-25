@@ -6,7 +6,7 @@ Simple orchestration for fetching market data, calculating indicators, generatin
 
 **One flow, four tasks, runs every 15 minutes:**
 
-```
+```bash
 generate_signals_flow():
   ├─ Task 1: fetch_market_data()     # Yahoo Finance → market_data table
   ├─ Task 2: calculate_indicators()  # RSI + EMA → indicators table
@@ -15,6 +15,7 @@ generate_signals_flow():
 ```
 
 **Why one flow?**
+
 - ✅ Simpler to understand and debug
 - ✅ No flow dependencies to manage
 - ✅ All logic in one file (`flows/signal_generation.py`)
@@ -23,7 +24,7 @@ generate_signals_flow():
 
 ## Files
 
-```
+```bash
 pipe/
 ├── flows/
 │   └── signal_generation.py      # Single flow with 4 tasks
@@ -55,6 +56,7 @@ cp .env.example .env
 ```
 
 Edit `.env`:
+
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/trading_signals
 RESEND_API_KEY=re_...
@@ -225,6 +227,7 @@ prefect server start
 ### Troubleshooting
 
 **No data fetched:**
+
 ```sql
 -- Check if bars are being stored
 SELECT symbol, COUNT(*), MAX(timestamp) 
@@ -233,6 +236,7 @@ GROUP BY symbol;
 ```
 
 **Indicators not calculating:**
+
 ```python
 # Add debug prints in calculate_indicators task
 print(f"Fetched {len(df)} bars for {symbol}")
@@ -240,6 +244,7 @@ print(f"Latest RSI: {df['rsi'].iloc[-1]}")
 ```
 
 **Flow not running on schedule:**
+
 - Check Prefect Cloud UI → Deployments → "production"
 - Verify cron schedule: `0,15,30,45 * * * *`
 - Check work queue is running
@@ -273,6 +278,7 @@ def notify_flow():
 ```
 
 **When to split:**
+
 - Different schedules needed (e.g., ingest every 5min, notify every 30min)
 - Want to run tasks in parallel
 - Need better failure isolation
@@ -284,6 +290,7 @@ def notify_flow():
 You'll need to implement:
 
 **RSI Calculation** (`data/indicators/rsi.py`):
+
 ```python
 def calculate_rsi(prices: pd.Series, period: int = 14) -> pd.Series:
     delta = prices.diff()
@@ -294,6 +301,7 @@ def calculate_rsi(prices: pd.Series, period: int = 14) -> pd.Series:
 ```
 
 **Signal Rules** (`data/signals/signal_generator.py`):
+
 ```python
 def generate_signal(rsi: float, ema_12: float, ema_26: float) -> dict:
     signal_type = "HOLD"

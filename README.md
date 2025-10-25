@@ -31,7 +31,7 @@ Diversified across 4 major asset classes:
 
 ## Project Structure
 
-```zsh
+```bash
 signals/
 ├── frontend/           # Next.js application
 ├── backend/            # FastAPI server
@@ -83,7 +83,7 @@ cd pipe && python -m flows.signal_generation  # Run once
 
 ### 1. Database Setup
 
-**Option A: Local (Docker)**
+- **Option A: Local (Docker)**
 
 ```bash
 # Start PostgreSQL
@@ -99,7 +99,7 @@ python scripts/setup_db.py
 python scripts/seed_historical_data.py
 ```
 
-**Option B: Production (Supabase)**
+- **Option B: Production (Supabase)**
 
 ```bash
 # Create project at https://supabase.com
@@ -199,14 +199,11 @@ cd prefect && python flows/generate_signals.py
 ### Testing
 
 ```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
-cd frontend
-bun test
+pip install pytest
+pytest -q
 ```
+
+See `tests/README.md` for test layout and fixture info.
 
 ## Documentation
 

@@ -1,21 +1,21 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: trading-signals-db
+    container_name: signals-db
     environment:
-      POSTGRES_USER: signals_user
-      POSTGRES_PASSWORD: signals_password
-      POSTGRES_DB: trading_signals
+      POSTGRES_USER: quantmaster
+      POSTGRES_PASSWORD: buysthedip
+      POSTGRES_DB: signals
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./database/seeds/symbols.sql:/docker-entrypoint-initdb.d/02-seeds.sql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./db/seeds/symbols.sql:/docker-entrypoint-initdb.d/02-seeds.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U signals_user"]
+      test: ["CMD-SHELL", "pg_isready -U quantmaster -d signals"]
       interval: 10s
       timeout: 5s
       retries: 5

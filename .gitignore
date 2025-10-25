@@ -10,7 +10,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -41,6 +40,7 @@ yarn-error.log*
 .env.local
 .env.*.local
 *.env
+!.env.example
 
 # IDEs
 .vscode/
@@ -73,3 +73,6 @@ logs/
 
 # OS
 Thumbs.db
+
+# IMPORTANT: do not ignore app source 'lib' directories
+# (avoid patterns like 'lib/' that hide frontend/src/lib or others)

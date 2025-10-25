@@ -4,7 +4,7 @@ Configuration Management
 Load environment variables and application settings.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_RELOAD: bool = True
 
-    # CORS
+    # CORS (expects JSON array format in .env: ["http://localhost:3000"])
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
 
     # Email Service
@@ -28,9 +28,11 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 
 # Global settings instance

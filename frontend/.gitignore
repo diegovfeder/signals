@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.next-static/
+.vercel/
+.turbo/
+
+.env
+.env.local
+.env*.local
+!.env.example
+
+*.log
+.DS_Store
+Thumbs.db

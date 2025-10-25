@@ -18,11 +18,13 @@ Single PostgreSQL database with 6 core tables optimized for solo dev speed.
 ### Size Estimates
 
 **After Initial Backfill (~60 days of 15m bars)**:
+
 - **OHLCV**: ~23K rows × 100 bytes ≈ **2.3 MB**
 - **Indicators**: ~23K rows × 80 bytes ≈ **1.8 MB**
 - **Total**: ~4 MB
 
 **After 6 Months of Live Data**:
+
 - **OHLCV**: 70K rows × 100 bytes ≈ **7 MB**
 - **Indicators**: 70K rows × 80 bytes ≈ **5.6 MB**
 - **Signals**: 1.8K rows × 200 bytes ≈ **360 KB**
@@ -62,6 +64,7 @@ CHECK (asset_type IN ('crypto', 'stock', 'etf', 'forex'))
 ## Key Queries
 
 ### Fetch latest bars for indicator calculation
+
 ```sql
 SELECT timestamp, close 
 FROM market_data 
@@ -71,6 +74,7 @@ LIMIT 50;  -- Last 50 bars for RSI-14, EMA-26 warmup
 ```
 
 ### Find strong signals pending notification
+
 ```sql
 SELECT s.* 
 FROM signals s
@@ -81,6 +85,7 @@ WHERE s.strength >= 70
 ```
 
 ### Get active confirmed subscribers
+
 ```sql
 SELECT email 
 FROM email_subscribers 
@@ -89,6 +94,7 @@ WHERE confirmed = true
 ```
 
 ### Email engagement metrics (last 7 days)
+
 ```sql
 SELECT 
   COUNT(*) as total_sent,
@@ -130,6 +136,7 @@ psql $DATABASE_URL -c "SELECT * FROM symbols;"
 **See** `scripts/README.md` for detailed setup instructions and troubleshooting.
 
 ### Local development (Docker)
+
 ```bash
 # Start PostgreSQL
 docker-compose up -d
@@ -148,6 +155,7 @@ psql postgresql://signals_user:signals_password@localhost:5432/trading_signals
 Place new migrations in `db/migrations/` with format: `NNN_description.sql`
 
 Example workflow:
+
 ```bash
 # Create new migration
 touch db/migrations/003_add_regime_detection.sql
@@ -167,6 +175,7 @@ psql $DATABASE_URL -f db/migrations/003_add_regime_detection.sql
 ### When to add
 
 **Regime detection** (when we implement ADX):
+
 ```sql
 ALTER TABLE indicators 
   ADD COLUMN adx DECIMAL(5, 2),
@@ -174,6 +183,7 @@ ALTER TABLE indicators
 ```
 
 **Delivery tracking** (when we add Resend webhooks):
+
 ```sql
 ALTER TABLE sent_notifications
   ADD COLUMN delivered_at TIMESTAMPTZ,
@@ -183,12 +193,14 @@ ALTER TABLE sent_notifications
 ```
 
 **Auth migration** (when we add Supabase auth):
+
 ```sql
 -- Migrate to auth.users, keep sent_notifications for history
 -- Use RLS policies for user-specific data
 ```
 
 **Data quality flags** (when we need quality gates):
+
 ```sql
 ALTER TABLE market_data 
   ADD COLUMN data_quality VARCHAR(20) DEFAULT 'valid'
@@ -237,6 +249,7 @@ WHERE confirmed = false
 ## Troubleshooting
 
 ### Issue: Duplicate signals
+
 ```sql
 -- Check for missing idempotency keys
 SELECT COUNT(*) FROM signals WHERE idempotency_key IS NULL;
@@ -248,6 +261,7 @@ WHERE idempotency_key IS NULL;
 ```
 
 ### Issue: Emails not sending
+
 ```sql
 -- Check for unconfirmed subscribers
 SELECT COUNT(*) FROM email_subscribers WHERE confirmed = false;
@@ -259,6 +273,7 @@ WHERE strength >= 70
 ```
 
 ### Issue: Slow queries
+
 ```sql
 -- Check index usage
 EXPLAIN ANALYZE 
@@ -268,4 +283,3 @@ ORDER BY timestamp DESC LIMIT 50;
 
 -- Should use: idx_market_data_symbol_time
 ```
-

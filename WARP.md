@@ -35,35 +35,35 @@ Every 15 minutes:
 
 ### High-Level Flow
 
-```
+```text
 Yahoo Finance → Prefect Flow → Supabase → FastAPI → Next.js → User
 ```
 
 ### Components
 
 1. **Prefect Pipeline** (`pipe/`) - Fetch data, calculate indicators, generate signals, send emails
-2. **Data Science** (`data/`) - RSI and EMA calculation modules
-3. **FastAPI Backend** (`backend/`) - REST API for signals and subscriptions
-4. **Next.js Frontend** (`frontend/`) - Public dashboard and landing page
-5. **Database** (`db/`) - Supabase PostgreSQL schema
+   - Includes `pipe/data/` - RSI and EMA calculation modules
+2. **FastAPI Backend** (`backend/`) - REST API for signals and subscriptions
+3. **Next.js Frontend** (`frontend/`) - Public dashboard and landing page
+4. **Database** (`db/`) - Supabase PostgreSQL schema
 
 ### Simplified Decisions (MVP)
 
 - **No 5m → 15m resampling**: Fetch 15m data directly from Yahoo Finance
-- **Single Prefect flow**: Everything in one flow to start (split later if needed)
-- **2 assets only**: BTC-USD and ETH-USD
-- **2 indicators only**: RSI + EMA (skip MACD for now)
-- **Email only**: No Telegram/SMS in MVP
-- **Public dashboard**: No authentication required
+- **Single Prefect flow**: `signal_generation.py` with all tasks inline (not separate flows)
+- **4 assets**: BTC-USD (crypto), AAPL (stock), IVV (ETF), BRL=X (forex)
+- **2 indicators**: RSI + EMA (MACD in schema but NULL for MVP)
+- **Log notifications**: Email sending via Resend in Phase 2
+- **Public dashboard**: No authentication required (Phase 1)
 
 ## Project Structure
 
-```
+```bash
 signals/
 ├── frontend/          # Next.js 15 application
 ├── backend/           # FastAPI server
-├── data/              # Indicator calculations (RSI, EMA)
 ├── pipe/              # Prefect flows
+│   └── data/         # Indicator calculations (RSI, EMA)
 ├── db/                # Database schema and seeds
 ├── scripts/           # Utility scripts
 └── docs/              # Documentation
@@ -105,18 +105,26 @@ DATABASE_URL=postgresql://...
 RESEND_API_KEY=re_...
 ```
 
-### Quick Setup
+### Quick Setup (Local with Docker)
 
 1. **Database Setup**:
 
    ```bash
-   # Create Supabase project at supabase.com
-   # Copy connection string
+   # Start PostgreSQL (auto-loads schema and seeds)
+   docker-compose up -d
 
-   # Run schema
+   # Connection string (from docker-compose.yml)
+   export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/trading_signals"
+
+   # Verify database is ready
+   psql $DATABASE_URL -c "SELECT * FROM symbols;"
+   ```
+
+   **Or use Supabase for production**:
+
+   ```bash
+   # Create project at supabase.com, then:
    psql $DATABASE_URL -f db/schema.sql
-
-   # Seed data
    psql $DATABASE_URL -f db/seeds/symbols.sql
    ```
 
@@ -128,15 +136,25 @@ RESEND_API_KEY=re_...
    source venv/bin/activate  # Windows: venv\Scripts\activate
    pip install -r requirements.txt
 
+   # Create .env from template
+   cp .env.example .env
+   # Edit .env with DATABASE_URL and RESEND_API_KEY
+
    # Start API server
    uvicorn api.main:app --reload --port 8000
+   # API docs: http://localhost:8000/api/docs
+   # Health: http://localhost:8000/health
    ```
 
 3. **Frontend**:
 
    ```bash
    cd frontend
-   npm install
+   npm install   # or bun install
+
+   # Create .env.local
+   cp .env.example .env.local
+   # Edit with NEXT_PUBLIC_API_URL=http://localhost:8000
 
    # Development
    npm run dev          # http://localhost:3000
@@ -146,14 +164,20 @@ RESEND_API_KEY=re_...
 
    ```bash
    cd pipe
+   python -m venv venv
+   source venv/bin/activate
    pip install -r requirements.txt
 
-   # Test flow locally
-   python flows/generate_signals.py
+   # Create .env
+   cp .env.example .env
+   # Edit with DATABASE_URL and RESEND_API_KEY
 
-   # Deploy to Prefect Cloud
+   # Test single unified flow locally
+   python -m flows.signal_generation
+
+   # Deploy to Prefect Cloud (runs every 15 min)
    prefect cloud login
-   prefect deploy
+   python schedules.py
    ```
 
 ## Common Development Commands
@@ -177,11 +201,14 @@ psql $DATABASE_URL -c "SELECT asset_id, MAX(timestamp) FROM ohlcv GROUP BY asset
 # Start with hot reload
 uvicorn api.main:app --reload --port 8000
 
-# View API docs
-open http://localhost:8000/docs
+# View API docs (Swagger)
+open http://localhost:8000/api/docs
 
-# Run tests (when written)
-pytest backend/tests/
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Run tests
+pytest -v
 ```
 
 ### Frontend
@@ -203,32 +230,44 @@ npm run lint
 ### Pipeline
 
 ```bash
-# Test flow locally
-python -m pipe.flows.generate_signals
+# Test single unified flow locally
+cd pipe && python -m flows.signal_generation
 
 # Check Prefect flow runs
 prefect flow-run ls --limit 10
 
 # View logs
 prefect flow-run logs <flow-run-id>
+
+# Deploy to Prefect Cloud
+python schedules.py
 ```
 
 ## API Endpoints
 
+**All endpoints are implemented and ready for testing.** See `docs/IMPLEMENTATION_SUMMARY.md` for details.
+
 ### Signals
 
-- `GET /api/signals` - List recent signals (paginated)
-- `GET /api/signals/{id}` - Single signal with OHLCV context
+- `GET /api/signals/` - List all signals (filterable by signal_type, min_strength, limit, offset)
+- `GET /api/signals/{symbol}` - Latest signal for a specific symbol
+- `GET /api/signals/{symbol}/history` - Signal history (default 30 days, max 90)
+
+### Market Data
+
+- `GET /api/market-data/{symbol}/ohlcv` - OHLCV bars (default 100, max 500)
+- `GET /api/market-data/{symbol}/indicators` - Calculated indicators (RSI, EMA-12, EMA-26, MACD)
 
 ### Subscriptions
 
-- `POST /api/subscribe` - Start double opt-in flow
-- `GET /api/confirm?token=xxx` - Confirm subscription
-- `GET /api/unsubscribe?token=xxx` - Unsubscribe
+- `POST /api/subscribe/` - Subscribe email (stores to DB, generates tokens)
+- `POST /api/subscribe/unsubscribe/{token}` - Unsubscribe via token
+
+**Note**: Email confirmation endpoint (`/confirm/{token}`) planned for Phase 2.
 
 ### Health
 
-- `GET /api/health` - System health check
+- `GET /health` - System health check with database connection test
 
 ## Signal Generation Logic
 
@@ -251,19 +290,22 @@ Weighted score (0-100) based on:
 - EMA separation magnitude
 - Volume confirmation
 
-**Email threshold**: Only send if strength >= 70
+**Notification threshold**: Log (Phase 1) or email (Phase 2) if strength >= 70
 
 ## Database Schema
 
-**5 Core Tables**:
+**6 Core Tables** (see `db/schema.sql`):
 
-1. `assets` - BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
-2. `ohlcv` - 15-minute price data for all assets
-3. `indicators` - RSI, EMA-12, EMA-26 values per asset
-4. `signals` - Generated signals with strength scores per asset
-5. `email_subscribers` - Double opt-in subscribers
+1. `symbols` - BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+2. `market_data` - 15-minute OHLCV price data for all assets
+3. `indicators` - RSI, EMA-12, EMA-26 (MACD fields available but NULL in MVP)
+4. `signals` - Generated signals with strength scores, idempotency_key, reasoning
+5. `email_subscribers` - Double opt-in subscribers with confirmation/unsubscribe tokens
+6. `sent_notifications` - Audit log for email sending (Phase 2)
 
-**Key Indexes**: `(asset_id, timestamp DESC)` on all tables for fast time-series queries.
+**Key Indexes**: `(symbol, timestamp DESC)` on all tables for fast time-series queries.
+
+**Schema Location**: Single consolidated `db/schema.sql` file (no migrations).
 
 ## Frontend Design
 
@@ -279,24 +321,45 @@ Weighted score (0-100) based on:
 
 - **Landing** (`/`) - Hero, live signals, email signup, how it works
 - **Dashboard** (`/dashboard`) - Signal cards grid, filters
-- **Signal Detail** (`/signal/[id]`) - Chart with indicators, reasoning, educational content
+- **Signal List** (`/signals`) - List of all signals
+- **Signal Detail** (`/signals/[symbol]`) - Chart with indicators, reasoning, educational content
 
 ### Data Fetching
 
-- Start with Server Components (SSR for SEO)
-- Consider TanStack Query for client-side data management post-MVP
-- Keep it simple initially
+Current implementation uses **Client Components** with custom React hooks:
+
+```typescript
+// frontend/src/lib/hooks/useSignals.ts
+export function useSignals() {
+  const [signals, setSignals] = useState([])
+  // Fetches from NEXT_PUBLIC_API_URL
+}
+
+// frontend/src/app/dashboard/page.tsx
+'use client'
+const { signals, loading, error } = useSignals()
+```
+
+Consider TanStack Query for Phase 2 (caching, polling).
 
 ## Email Notifications
 
-### Flow
+**Status**: Phase 2 (not yet implemented)
 
-1. User subscribes → Confirmation email
+### Planned Flow (Phase 2)
+
+1. User subscribes → Confirmation email sent
 2. User confirms → Welcome email
-3. Strong signal → Notification email (plain English explanation)
+3. Strong signal (strength >= 70) → Notification email with plain English explanation
 4. One-click unsubscribe
 
-### Configuration
+### Current Behavior (Phase 1)
+
+- Subscription stores email to database with tokens generated
+- Strong signals are **logged to console** instead of emailed
+- Unsubscribe endpoint works (updates database)
+
+### Configuration (Phase 2)
 
 - DKIM/SPF/DMARC for domain
 - `List-Unsubscribe` header
@@ -322,10 +385,18 @@ prefect cloud login
 prefect deploy
 ```
 
-### Supabase (Database)
+### Local Database
+
+**Local (Docker)**:
+
+```bash
+docker-compose up -d  # Auto-initializes schema
+```
+
+**Supabase (Production)**:
 
 - Create project at supabase.com
-- Run migrations via SQL editor
+- Run `db/schema.sql` via SQL editor (no migrations)
 - Copy connection string to environment variables
 
 ## Monitoring
@@ -382,16 +453,22 @@ npm run build
 
 ### MVP Scope
 
-**IN**:
+**✅ Phase 1 (Implemented)**:
 
 - 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
 - RSI + EMA indicators (same logic for all asset types)
 - 24/7 operation (ignore market hours for stocks/ETFs)
-- Email notifications
-- Public dashboard
+- Complete backend API (all endpoints working)
+- Database schema with double opt-in, idempotency
+- Single unified Prefect flow
+- Frontend dashboard with client-side hooks
+- Logging notifications (console)
+- Testing structure (pytest)
 
-**OUT** (Phase 2):
+**🔜 Phase 2 (Planned)**:
 
+- Email notifications via Resend
+- Email confirmation flow (double opt-in)
 - More assets per category
 - MACD, Bollinger Bands
 - Asset-specific strategies (different indicators per asset type)
@@ -417,11 +494,12 @@ npm run build
   - `MVP.md` - Project scope and goals
   - `ARCHITECTURE.md` - System design and patterns
   - `DATA-SCIENCE.md` - RSI and EMA explained
+  - `IMPLEMENTATION_SUMMARY.md` - ✅ **Current implementation status (what's done vs Phase 2)**
 - **CLAUDE.md** - Guidance for Claude Code AI assistant
 - **README.md** - Project overview and quick start
 
 ---
 
-**Version**: 1.0.0 (Simplified MVP)
-**Last Updated**: January 2025
-**Status**: Ready for development
+**Version**: 1.1.0 (Phase 1 Complete)
+**Last Updated**: October 2025
+**Status**: Backend + Pipeline + Frontend implemented, ready for Phase 2 (email integration)

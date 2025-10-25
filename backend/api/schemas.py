@@ -4,10 +4,10 @@ Pydantic Schemas
 Request and response models for API validation.
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 from typing import List, Literal
 from datetime import datetime
-from decimal import Decimal
+from uuid import UUID
 
 # Signal Types
 SignalType = Literal["BUY", "SELL", "HOLD"]
@@ -22,13 +22,18 @@ class EmailSubscribeRequest(BaseModel):
 # Response Schemas
 class SignalResponse(BaseModel):
     """Single signal response."""
-    id: str
+    id: UUID | str
     symbol: str
     timestamp: datetime
     signal_type: SignalType
     strength: float = Field(..., ge=0, le=100, description="Confidence score 0-100")
     reasoning: List[str]
     price_at_signal: float | None
+
+    @field_serializer('id')
+    def serialize_uuid(self, value: UUID | str) -> str:
+        """Convert UUID to string for JSON serialization."""
+        return str(value)
 
     class Config:
         from_attributes = True
@@ -59,6 +64,8 @@ class IndicatorResponse(BaseModel):
     symbol: str
     timestamp: datetime
     rsi: float | None
+    ema_12: float | None
+    ema_26: float | None
     macd: float | None
     macd_signal: float | None
     macd_histogram: float | None

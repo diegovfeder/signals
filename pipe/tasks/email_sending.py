@@ -5,8 +5,6 @@ Utilities for sending emails via Resend.
 """
 
 from typing import Dict
-import os
-
 
 def send_signal_notification(
     to_email: str,

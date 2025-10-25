@@ -32,14 +32,50 @@ async def subscribe_email(
         400: Email already subscribed
         422: Invalid email format
     """
-    # TODO: Implement email subscription
-    # 1. Check if email already exists
-    # 2. Generate unsubscribe token
-    # 3. Create EmailSubscriber record
-    # 4. Send welcome email (optional)
-    # 5. Return success response
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Check if email already exists
+    existing = db.query(EmailSubscriber)\
+        .filter(EmailSubscriber.email == request.email)\
+        .first()
+    
+    if existing:
+        if existing.unsubscribed:
+            # Reactivate subscription
+            existing.unsubscribed = False
+            existing.confirmed = False
+            existing.confirmation_token = secrets.token_urlsafe(32)
+            db.commit()
+            # TODO Phase 2: Send confirmation email via Resend
+            return EmailSubscribeResponse(
+                message="Subscription reactivated. Please check your email for confirmation.",
+                email=request.email
+            )
+        else:
+            return EmailSubscribeResponse(
+                message="Email already subscribed",
+                email=request.email
+            )
+    
+    # Create new subscriber with confirmation token
+    confirmation_token = secrets.token_urlsafe(32)
+    unsubscribe_token = secrets.token_urlsafe(32)
+    
+    subscriber = EmailSubscriber(
+        email=request.email,
+        confirmed=False,
+        confirmation_token=confirmation_token,
+        unsubscribe_token=unsubscribe_token
+    )
+    
+    db.add(subscriber)
+    db.commit()
+    
+    # TODO Phase 2: Send confirmation email via Resend
+    # Email should contain link: /api/subscribe/confirm/{confirmation_token}
+    
+    return EmailSubscribeResponse(
+        message="Subscription pending confirmation. Please check your email.",
+        email=request.email
+    )
 
 
 @router.post("/unsubscribe/{token}")
@@ -59,10 +95,22 @@ async def unsubscribe_email(
     Raises:
         404: Invalid token
     """
-    # TODO: Implement email unsubscription
-    # 1. Find subscriber by unsubscribe_token
-    # 2. Set unsubscribed = true
-    # 3. Commit to database
-    # 4. Return success message
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Find subscriber by unsubscribe_token
+    subscriber = db.query(EmailSubscriber)\
+        .filter(EmailSubscriber.unsubscribe_token == token)\
+        .first()
+    
+    if not subscriber:
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid unsubscribe token"
+        )
+    
+    # Set unsubscribed flag
+    subscriber.unsubscribed = True
+    db.commit()
+    
+    return {
+        "message": "Successfully unsubscribed from trading signals",
+        "email": subscriber.email
+    }

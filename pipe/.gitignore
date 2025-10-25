@@ -1,0 +1,13 @@
+# Env
+.env
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Prefect local state
+.prefect/
+
+# MyPy
+.mypy_cache/

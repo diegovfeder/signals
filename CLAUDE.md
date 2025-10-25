@@ -12,7 +12,7 @@ Trading Signals MVP - An automated system that monitors multiple asset classes (
 
 This is a **multi-component system** with 4 independent parts:
 
-```zsh
+```bash
 Yahoo Finance API → Prefect Pipeline → Supabase → FastAPI → Next.js → User
 ```
 
@@ -21,22 +21,37 @@ Yahoo Finance API → Prefect Pipeline → Supabase → FastAPI → Next.js → 
 ### Component Responsibilities
 
 1. **Prefect Pipeline** (`pipe/`): Fetch data, calculate indicators, generate signals, send emails
-2. **Data Science** (`data/`): Indicator calculations (RSI, EMA) and signal generation logic
-3. **FastAPI Backend** (`backend/`): REST API serving signals and market data to frontend
-4. **Next.js Frontend** (`frontend/`): Public dashboard displaying signals and email signup
-5. **Database** (`db/`): Supabase PostgreSQL schema with 6 core tables
+   - Includes `pipe/data/` - Indicator calculations (RSI, EMA) and signal generation logic
+2. **FastAPI Backend** (`backend/`): REST API serving signals and market data to frontend
+3. **Next.js Frontend** (`frontend/`): Public dashboard displaying signals and email signup
+4. **Database** (`db/`): Supabase PostgreSQL schema with 6 core tables
 
 **Data flow**: Pipeline writes → Database stores → API reads → Frontend displays
 
 ## Development Commands
 
-### Database Setup (Supabase)
+### Database Setup
+
+- **Option A: Local (Docker) - Recommended for Development**
+
+```bash
+# Start PostgreSQL with auto-initialized schema
+docker-compose up -d
+
+# Connection string (already configured in docker-compose.yml)
+export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/trading_signals"
+
+# Schema and seeds are auto-loaded on first start
+# See docker-compose.yml volumes section
+```
+
+- **Option B: Production (Supabase)**
 
 ```bash
 # 1. Create Supabase project at supabase.com
 # 2. Copy connection string
 
-# 3. Run schema
+# 3. Run schema (single consolidated file, no migrations)
 psql $DATABASE_URL -f db/schema.sql
 
 # 4. Seed initial data
@@ -51,17 +66,34 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
+# Create .env from template
+cp .env.example .env
+# Edit .env with your DATABASE_URL and RESEND_API_KEY
+
 # Run development server
 uvicorn api.main:app --reload --port 8000
 
-# API docs available at: http://localhost:8000/docs
+# API docs available at: http://localhost:8000/api/docs
+# Health check: http://localhost:8000/health
 ```
+
+**Backend Requirements** (Python 3.11+):
+
+- FastAPI + Uvicorn
+- SQLAlchemy 2.0+
+- `psycopg[binary,pool]` (Python 3.13 compatible, replaces asyncpg/psycopg2-binary)
+- Pydantic 2.4+
+- Resend (email service)
 
 ### Frontend (Next.js)
 
 ```bash
 cd frontend
-npm install
+npm install   # or bun install
+
+# Create .env.local from template
+cp .env.example .env.local
+# Edit with NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Development
 npm run dev          # Start dev server (http://localhost:3000)
@@ -71,34 +103,56 @@ npm run lint         # ESLint check
 npm run type-check   # TypeScript check
 ```
 
+**Frontend Stack**:
+
+- Next.js 15 (App Router)
+- React 19
+- TypeScript 5.6
+- TailwindCSS 4.0
+- Chart.js + react-chartjs-2 (for signal visualization)
+
 ### Prefect Pipeline
 
 ```bash
 cd pipe
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 
-# Test flows locally (dry run)
-python flows/market_data_ingestion.py
-python flows/indicator_calculation.py
-python flows/signal_generation.py
+# Create .env from template
+cp .env.example .env
+# Edit with DATABASE_URL and RESEND_API_KEY
 
-# Deploy to Prefect Cloud
+# Test single unified flow locally (dry run)
+python -m flows.signal_generation
+
+# Deploy to Prefect Cloud (runs every 15 minutes)
 prefect cloud login
-prefect deploy --all
+python schedules.py
 
 # View flow runs
 prefect flow-run ls
 ```
 
+**Important**: MVP uses a **single unified flow** (`signal_generation.py`) that handles all steps:
+
+1. Fetch OHLCV from Yahoo Finance
+2. Calculate RSI + EMA indicators
+3. Generate BUY/HOLD signals
+4. Store in database
+5. Notify if strength >= 70
+
+This replaces the separate flows mentioned in older docs (market_data_ingestion, indicator_calculation, notification_sender).
+
 ### Data Science (Indicators)
 
 ```bash
-# The data/ folder contains pure Python modules
+# The data/ folder is inside pipe/ directory
 # Test indicators in isolation:
 
-cd data
-python -c "from indicators.rsi import calculate_rsi; print('RSI module loaded')"
-python -c "from signals.signal_generator import generate_signal; print('Signal generator loaded')"
+cd pipe
+python -c "from data.indicators.rsi import calculate_rsi; print('RSI module loaded')"
+python -c "from data.signals.signal_generator import generate_signal; print('Signal generator loaded')"
 ```
 
 ## Database Schema
@@ -118,140 +172,217 @@ python -c "from signals.signal_generator import generate_signal; print('Signal g
 
 ### Prefect Flows (`pipe/`)
 
-```zsh
+```bash
 pipe/
-├── flows/              # Main Prefect flows (high-level orchestration)
+├── flows/
+│   └── signal_generation.py    # Single unified flow (MVP approach)
+│       # Contains all tasks inline: fetch → calculate → generate → store → notify
+│   # Historical flows (not used in MVP):
 │   ├── market_data_ingestion.py
 │   ├── indicator_calculation.py
-│   ├── signal_generation.py
 │   └── notification_sender.py
-├── tasks/              # Reusable tasks (low-level operations)
+├── tasks/              # Reusable tasks (for future refactoring)
 │   ├── data_fetching.py
 │   ├── data_validation.py
 │   └── email_sending.py
-└── schedules.py        # Cron schedules for flows
+└── schedules.py        # Prefect Cloud deployment config (15-min cron)
 ```
 
-**Pattern**: Flows orchestrate, tasks execute. Keep tasks pure/testable.
+**MVP Pattern**: Single `signal_generation_flow` with all tasks defined inline for simplicity. This can be refactored into separate flows in Phase 2 if needed.
 
-### Data Science (`data/`)
+### Data Science (`pipe/data/`)
 
-```zsh
-data/
-├── indicators/         # Technical indicator calculations
-│   ├── rsi.py         # RSI (14-period)
-│   └── macd.py        # MACD (not in MVP, use for Phase 2)
-├── signals/           # Signal generation logic
-│   ├── signal_generator.py  # Main signal rules
-│   └── signal_scorer.py     # Strength scoring (0-100)
-└── utils/             # Shared utilities
+```bash
+pipe/
+├── data/                     # Indicator calculations (moved from root)
+│   ├── indicators/          # Technical indicator calculations
+│   │   ├── rsi.py          # RSI (14-period)
+│   │   └── macd.py         # MACD (not in MVP, use for Phase 2)
+│   ├── signals/            # Signal generation logic
+│   │   ├── signal_generator.py  # Main signal rules
+│   │   └── signal_scorer.py     # Strength scoring (0-100)
+│   └── utils/              # Shared utilities
+├── flows/                   # Prefect flow definitions
+│   └── signal_generation.py
+└── tasks/                   # Reusable tasks
 ```
 
 **Pattern**: Each indicator is a pure function: `calculate_indicator(df) -> df_with_indicator`
 
 ### FastAPI Backend (`backend/`)
 
-```zsh
+```bash
 backend/
 ├── api/
-│   ├── main.py           # FastAPI app + CORS
-│   ├── routes/           # API endpoints
-│   │   ├── signals.py    # GET /api/signals
-│   │   ├── subscribe.py  # POST /api/subscribe
-│   │   └── health.py     # GET /api/health
-│   ├── models/           # Pydantic models
-│   └── db.py             # Database connection
+│   ├── main.py           # FastAPI app + CORS + health check endpoint
+│   ├── routers/          # API endpoints (✅ All implemented)
+│   │   ├── signals.py    # GET /api/signals/, /api/signals/{symbol}, /api/signals/{symbol}/history
+│   │   ├── market_data.py # GET /api/market-data/{symbol}/ohlcv, /indicators
+│   │   └── subscribe.py  # POST /api/subscribe/, POST /api/subscribe/unsubscribe/{token}
+│   ├── models.py         # SQLAlchemy ORM models (Symbol, MarketData, Indicator, Signal, EmailSubscriber, etc.)
+│   ├── schemas.py        # Pydantic response schemas
+│   ├── database.py       # Database connection and session management
+│   ├── config.py         # Environment config (DATABASE_URL, RESEND_API_KEY, etc.)
+│   └── .env.example      # Environment template
 ├── requirements.txt
 └── vercel.json           # Vercel deployment config
 ```
 
-**Pattern**: Each route file handles one resource. Use Pydantic for validation.
+**Pattern**: All endpoints are **fully implemented**. Each router file handles one resource domain. SQLAlchemy models map to database tables, Pydantic schemas validate responses.
+
+**Implementation Status** (See `docs/IMPLEMENTATION_SUMMARY.md` for details):
+
+- ✅ All read endpoints (signals, market data)
+- ✅ Subscribe/unsubscribe (stores to DB, tokens generated)
+- ✅ Health check with DB connection test
+- 🔜 Email sending via Resend (Phase 2)
 
 ### Next.js Frontend (`frontend/`)
 
-```zsh
+```bash
 frontend/
 ├── src/
 │   ├── app/                    # App Router pages
 │   │   ├── page.tsx           # Landing page
-│   │   ├── dashboard/         # Signal dashboard
-│   │   └── signal/[symbol]/   # Signal detail
-│   └── components/
-│       ├── landing/           # Landing page sections
-│       │   ├── Hero.tsx
-│       │   ├── LiveSignals.tsx
-│       │   └── EmailSignup.tsx
-│       └── dashboard/         # Dashboard components
+│   │   └── dashboard/         # Signal dashboard
+│   │       └── page.tsx       # Uses 'use client' + useSignals() hook
+│   ├── components/
+│   │   ├── landing/           # Landing page sections
+│   │   │   ├── Hero.tsx
+│   │   │   ├── LiveSignals.tsx
+│   │   │   └── EmailSignup.tsx
+│   │   └── dashboard/         # Dashboard components
+│   │       └── SignalCard.tsx # Card component for each symbol
+│   └── lib/
+│       └── hooks/
+│           └── useSignals.ts  # Client-side data fetching hook
 ├── package.json
-└── next.config.ts
+├── next.config.ts
+└── .env.example               # NEXT_PUBLIC_API_URL template
 ```
 
-**Pattern**: Server Components for data fetching, Client Components for interactivity.
+**Pattern**: The dashboard uses **Client Components** with a custom `useSignals()` hook for data fetching. This replaces the Server Component pattern mentioned in older docs.
+
+```typescript
+// Example from dashboard/page.tsx
+'use client'
+import { useSignals } from '@/lib/hooks/useSignals'
+
+export default function Dashboard() {
+  const { signals, loading, error } = useSignals()
+  // ...
+}
+```
 
 ## Key Integration Points
 
 ### 1. Pipeline → Database
 
-Prefect flows write directly to Supabase tables:
+The unified flow writes directly to PostgreSQL using psycopg2:
 
 ```python
-# In pipe/tasks/data_fetching.py
-from sqlalchemy import create_engine
+# In pipe/flows/signal_generation.py
+import psycopg2
+from psycopg2.extras import execute_values
 
-engine = create_engine(os.getenv("DATABASE_URL"))
-df.to_sql('market_data', engine, if_exists='append')
+def _get_db_conn():
+    db_url = os.getenv("DATABASE_URL")
+    return psycopg2.connect(db_url)
+
+# Upsert market data
+@task(name="upsert-market-data")
+def upsert_market_data(df: pd.DataFrame):
+    query = (
+        "INSERT INTO market_data (symbol, timestamp, open, high, low, close, volume) "
+        "VALUES %s ON CONFLICT (symbol, timestamp) DO NOTHING"
+    )
+    with _get_db_conn() as conn, conn.cursor() as cur:
+        execute_values(cur, query, rows)
 ```
 
 ### 2. Database → FastAPI
 
-Backend reads from Supabase using SQLAlchemy:
+Backend reads from PostgreSQL using SQLAlchemy 2.0:
 
 ```python
-# In backend/api/routes/signals.py
-from sqlalchemy import select
+# In backend/api/routers/signals.py
+from sqlalchemy import select, desc
+from api.database import get_db
+from api.models import Signal
 
-signals = session.execute(
-    select(Signal).order_by(Signal.timestamp.desc()).limit(10)
-).scalars().all()
+def get_signals(db: Session = Depends(get_db)):
+    query = select(Signal).order_by(desc(Signal.timestamp)).limit(10)
+    signals = db.execute(query).scalars().all()
+    return {"signals": [SignalResponse.from_orm(s) for s in signals]}
 ```
+
+All endpoints are implemented:
+
+- `GET /api/signals/` - List all signals (filterable)
+- `GET /api/signals/{symbol}` - Latest signal for symbol
+- `GET /api/signals/{symbol}/history` - Historical signals
+- `GET /api/market-data/{symbol}/ohlcv` - OHLCV bars
+- `GET /api/market-data/{symbol}/indicators` - Calculated indicators
 
 ### 3. FastAPI → Next.js
 
-Frontend fetches via fetch API (Server Components):
+Frontend fetches via custom React hook (Client Component):
 
 ```typescript
+// In frontend/src/lib/hooks/useSignals.ts
+export function useSignals() {
+  const [signals, setSignals] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/signals`)
+      .then(r => r.json())
+      .then(data => setSignals(data.signals))
+      .catch(setError)
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { signals, loading, error }
+}
+
 // In frontend/src/app/dashboard/page.tsx
-const signals = await fetch(`${API_URL}/api/signals?limit=50`)
-  .then(r => r.json())
+'use client'
+const { signals, loading, error } = useSignals()
 ```
 
 ### 4. Resend Email Integration
 
-Used in both pipeline (notifications) and backend (confirmations):
+**Status**: Phase 2 (not yet implemented in MVP)
+
+The pipeline currently logs strong signals instead of sending emails:
 
 ```python
-import resend
-
-resend.api_key = os.getenv("RESEND_API_KEY")
-resend.Emails.send({
-    "from": "signals@yourdomain.com",
-    "to": email,
-    "subject": "BTC-USD BUY Signal",
-    "html": template
-})
+# In pipe/flows/signal_generation.py
+@task(name="notify-if-strong")
+def notify_if_strong(result: Dict) -> None:
+    if result["strength"] >= 70.0:
+        print(f"[notify] Strong signal {result['symbol']} {result['signal_type']} {result['strength']}/100")
+        # TODO Phase 2: Send email via Resend
 ```
+
+Email sending will be added in Phase 2 with:
+
+- Welcome emails on subscription
+- Confirmation emails (double opt-in)
+- Signal notification emails
 
 ## MVP Scope & Simplifications
 
 **What's IN** (build this first):
 
 - 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
-- 2 indicators: RSI + EMA (skip MACD for now, despite schema having it)
+- 2 indicators: RSI + EMA (MACD fields in schema but NULL for MVP)
 - Asset-agnostic approach: Same indicator logic for all asset types
 - 24/7 operation: Ignore market hours (even for stocks/ETFs that close on weekends)
-- 1 Prefect flow: Fetch → Calculate → Signal → Email (all in one)
+- 1 unified Prefect flow: `signal_generation.py` with all tasks inline
 - Fetch 15m data directly from Yahoo Finance (no resampling)
-- Email notifications only (no Telegram)
+- Logging notifications (email sending in Phase 2)
 
 **What's OUT** (Phase 2):
 
@@ -263,7 +394,7 @@ resend.Emails.send({
 - 5-minute to 15-minute resampling
 - Real-time WebSocket updates
 
-**Important**: Database schema includes MACD fields, but MVP docs specify RSI+EMA only. You can populate MACD fields with NULL initially, or add EMA fields to schema.
+**Schema Note**: The `indicators` table includes both EMA fields (`ema_12`, `ema_26`) and MACD fields (`macd`, `macd_signal`, `macd_histogram`). MVP uses RSI+EMA only; MACD fields are NULL and available for Phase 2.
 
 ## Important Notes
 
@@ -287,19 +418,48 @@ resend.Emails.send({
 
 ### Testing Strategy
 
-**Unit tests**: Test indicators in isolation with known inputs
+**Setup**: Project has `pytest.ini` configured at root. Each domain has its own tests.
 
-```python
-# Example: test RSI calculation
-def test_rsi_calculation():
-    prices = pd.Series([100, 102, 101, 103, 105])
-    rsi = calculate_rsi(prices, period=14)
-    assert 0 <= rsi.iloc[-1] <= 100
+```bash
+# Run pipe tests
+cd pipe
+pytest tests/ -v
+
+# Run backend tests
+cd backend
+pytest tests/ -v
+
+# Run with coverage
+cd pipe
+pytest tests/ --cov=data --cov=flows
 ```
 
-**Integration tests**: Test flows with real Yahoo Finance data (mark as `@pytest.mark.integration`)
+**Test Structure**:
 
-**Visual tests**: Use matplotlib to plot indicators and verify they look correct
+```bash
+pipe/tests/
+├── README.md          # Testing guide
+├── test_indicators.py # Indicator calculation tests
+└── test_signals.py    # Signal generation tests
+
+backend/tests/
+└── (to be added)      # API endpoint tests
+```
+
+**Example unit test**:
+
+```python
+# pipe/tests/test_indicators.py
+import pandas as pd
+from data.indicators.rsi import calculate_rsi
+
+def test_rsi_calculation():
+    df = pd.DataFrame({'close': [100, 102, 101, 103, 105, 104, 106]})
+    rsi = calculate_rsi(df, period=6)
+    assert rsi.iloc[-1] >= 0 and rsi.iloc[-1] <= 100
+```
+
+**Integration tests**: Mark with `@pytest.mark.integration` for tests that hit Yahoo Finance API or database.
 
 ### Common Gotchas
 
@@ -318,7 +478,7 @@ def test_rsi_calculation():
 Each indicator follows this pattern:
 
 ```python
-# data/indicators/rsi.py
+# pipe/data/indicators/rsi.py
 import pandas as pd
 
 def calculate_rsi(df: pd.DataFrame, period: int = 14) -> pd.Series:
@@ -342,14 +502,14 @@ def calculate_rsi(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
 **To add a new indicator**:
 
-1. Create `data/indicators/new_indicator.py` with `calculate_new_indicator()` function
-2. Add to `pipe/flows/indicator_calculation.py` flow
+1. Create `pipe/data/indicators/new_indicator.py` with `calculate_new_indicator()` function
+2. Add to `pipe/flows/signal_generation.py` flow
 3. Add column to `indicators` table in schema
-4. Update `data/signals/signal_generator.py` to use it
+4. Update `pipe/data/signals/signal_generator.py` to use it
 
 ## Working with Signals
 
-Signal generation logic in `data/signals/signal_generator.py`:
+Signal generation logic in `pipe/data/signals/signal_generator.py`:
 
 ```python
 def generate_signal(df: pd.DataFrame) -> dict:
@@ -386,19 +546,45 @@ def generate_signal(df: pd.DataFrame) -> dict:
 
 ## Documentation
 
-- **README.md** - Quick start guide
+- **README.md** - Quick start guide and project overview
 - **docs/MVP.md** - Project scope, user persona, success metrics
 - **docs/ARCHITECTURE.md** - System design with code examples
 - **docs/DATA-SCIENCE.md** - RSI + EMA explained with Python code
+- **docs/IMPLEMENTATION_SUMMARY.md** - Current implementation status (backend endpoints, database, what's done vs Phase 2)
 - **docs/archive/** - Original comprehensive docs (reference only)
 
-When stuck, read docs in this order: MVP.md → ARCHITECTURE.md → DATA-SCIENCE.md
+When stuck, read docs in this order: MVP.md → ARCHITECTURE.md → IMPLEMENTATION_SUMMARY.md → DATA-SCIENCE.md
 
-## Next Steps for Development
+## Current Implementation Status
 
-1. **Week 1**: Set up Supabase, build basic Prefect flow to fetch and store data for all 4 assets
-2. **Week 2**: Implement RSI+EMA calculations for each asset, generate signals, store in DB
-3. **Week 3**: Build FastAPI endpoints, test with Postman/curl
-4. **Week 4**: Build Next.js frontend with multi-asset dashboard, connect to API, add email signup
+### ✅ Completed (MVP Phase 1)
 
-Start simple: fetch data for 1 asset, calculate 1 indicator, store in DB. Then expand to all 4 assets with same logic.
+1. **Database**: Complete schema with EMA support, double opt-in, idempotency (`db/schema.sql`)
+2. **Backend API**: All endpoints implemented and ready for testing
+   - Signals endpoints (list, get by symbol, history)
+   - Market data endpoints (OHLCV, indicators)
+   - Subscribe/unsubscribe endpoints (stores to DB)
+   - Health check with DB connection test
+3. **Prefect Pipeline**: Single unified flow working with all 4 assets
+   - Fetches 15m data from Yahoo Finance
+   - Calculates RSI + EMA indicators
+   - Generates and stores signals with idempotency
+   - Logs strong signals (strength >= 70)
+4. **Data Science**: RSI, EMA (MACD available but not used)
+5. **Frontend**: Dashboard with `useSignals()` hook, signal cards
+6. **Testing**: pytest structure configured
+
+### 🔜 Next Steps (Phase 2)
+
+1. **Email Integration**: Implement Resend email sending
+   - Welcome emails on subscription
+   - Confirmation emails (double opt-in flow)
+   - Signal notification emails
+2. **Frontend Enhancements**: Landing page, signal detail pages, charts
+3. **Testing**: Write comprehensive tests for indicators and API endpoints
+4. **Deployment**: Deploy to Vercel (frontend + backend) and Prefect Cloud (pipeline)
+5. **Monitoring**: Set up PostHog analytics, error tracking
+
+### 📝 Development Workflow
+
+Start with local Docker setup → Test pipeline → Verify API endpoints → Connect frontend → Deploy

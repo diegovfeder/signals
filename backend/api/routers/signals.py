@@ -6,7 +6,8 @@ Endpoints for fetching trading signals.
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Optional
+from datetime import datetime, timedelta
 from ..database import get_db
 from ..models import Signal
 from ..schemas import SignalResponse, SignalListResponse
@@ -34,13 +35,22 @@ async def get_all_signals(
     Returns:
         List of signals with total count
     """
-    # TODO: Implement database query
-    # 1. Build query with filters
-    # 2. Apply limit and offset
-    # 3. Fetch signals from database
-    # 4. Return response
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Build query with filters
+    query = db.query(Signal)
+    
+    if signal_type:
+        query = query.filter(Signal.signal_type == signal_type)
+    
+    if min_strength is not None:
+        query = query.filter(Signal.strength >= min_strength)
+    
+    # Get total count before pagination
+    total = query.count()
+    
+    # Apply ordering and pagination
+    signals = query.order_by(Signal.timestamp.desc()).limit(limit).offset(offset).all()
+    
+    return SignalListResponse(signals=signals, total=total)
 
 
 @router.get("/{symbol}", response_model=SignalResponse)
@@ -57,13 +67,19 @@ async def get_signal_by_symbol(
     Returns:
         Most recent signal for the symbol
     """
-    # TODO: Implement database query
-    # 1. Query signals table for symbol
-    # 2. Order by timestamp DESC
-    # 3. Return most recent signal
-    # 4. Raise 404 if not found
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Query signals table for symbol
+    signal = db.query(Signal)\
+        .filter(Signal.symbol == symbol)\
+        .order_by(Signal.timestamp.desc())\
+        .first()
+    
+    if not signal:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No signals found for symbol: {symbol}"
+        )
+    
+    return signal
 
 
 @router.get("/{symbol}/history", response_model=SignalListResponse)
@@ -84,9 +100,13 @@ async def get_signal_history(
     Returns:
         Historical signals for the symbol
     """
-    # TODO: Implement database query
-    # 1. Query signals for symbol
-    # 2. Filter by timestamp (last N days)
-    # 3. Return signals
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Calculate cutoff date
+    cutoff = datetime.now() - timedelta(days=days)
+    
+    # Query signals for symbol within date range
+    signals = db.query(Signal)\
+        .filter(Signal.symbol == symbol, Signal.timestamp >= cutoff)\
+        .order_by(Signal.timestamp.desc())\
+        .all()
+    
+    return SignalListResponse(signals=signals, total=len(signals))

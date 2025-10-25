@@ -32,14 +32,20 @@ async def get_market_data(
     Returns:
         List of OHLCV data points (most recent first)
     """
-    # TODO: Implement database query
-    # 1. Query market_data table
-    # 2. Filter by symbol
-    # 3. Order by timestamp DESC
-    # 4. Apply limit
-    # 5. Return data
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Query market_data table
+    data = db.query(MarketData)\
+        .filter(MarketData.symbol == symbol)\
+        .order_by(MarketData.timestamp.desc())\
+        .limit(limit)\
+        .all()
+    
+    if not data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No market data found for symbol: {symbol}"
+        )
+    
+    return data
 
 
 @router.get("/{symbol}/indicators", response_model=List[IndicatorResponse])
@@ -58,13 +64,19 @@ async def get_indicators(
         - limit: Number of indicator data points to return
 
     Returns:
-        List of indicator values (RSI, MACD) over time
+        List of indicator values (RSI, EMA, MACD) over time
     """
-    # TODO: Implement database query
-    # 1. Query indicators table
-    # 2. Filter by symbol
-    # 3. Order by timestamp DESC
-    # 4. Apply limit
-    # 5. Return indicators
-
-    raise HTTPException(status_code=501, detail="Not yet implemented")
+    # Query indicators table
+    indicators = db.query(Indicator)\
+        .filter(Indicator.symbol == symbol)\
+        .order_by(Indicator.timestamp.desc())\
+        .limit(limit)\
+        .all()
+    
+    if not indicators:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No indicators found for symbol: {symbol}"
+        )
+    
+    return indicators

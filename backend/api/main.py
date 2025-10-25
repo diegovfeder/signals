@@ -4,9 +4,12 @@ Trading Signals API
 FastAPI application for serving trading signals, market data, and email subscriptions.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from .config import settings
+from .database import get_db
 from .routers import signals, market_data, subscribe
 
 # Create FastAPI app
@@ -44,10 +47,18 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+async def health_check(db: Session = Depends(get_db)):
     """Detailed health check including database connection."""
-    # TODO: Add database connection check
-    return {
-        "status": "healthy",
-        "database": "connected"
-    }
+    try:
+        # Test database connection
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "database": "disconnected",
+            "error": str(e)
+        }

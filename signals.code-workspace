@@ -1,0 +1,36 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "📁 Root (db, docs, ...)"
+    },
+    {
+      "path": "backend",
+      "name": "🚀 Backend (FastAPI)"
+    },
+    {
+      "path": "pipe",
+      "name": "⚙️ Pipeline (Prefect)"
+    },
+    {
+      "path": "frontend",
+      "name": "💻 Frontend (Next.js)"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true,
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.pytest_cache": true,
+      "**/venv": false
+    },
+    "search.exclude": {
+      "**/__pycache__": true,
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/venv": true
+    }
+  }
+}

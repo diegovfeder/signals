@@ -39,6 +39,7 @@ Quick reference for key terms used throughout the documentation.
 ---
 
 **For detailed explanations**, see:
+
 - Technical indicators: `docs/DATA-SCIENCE.md`
 - System architecture: `docs/ARCHITECTURE.md`
 - MVP scope: `docs/MVP.md`

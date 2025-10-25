@@ -1,9 +1,8 @@
 -- Trading Signals MVP Database Schema
 -- PostgreSQL 15+
 --
--- NOTE: After running this schema, apply migrations in order:
---   1. db/migrations/001_initial_schema.sql (if needed)
---   2. db/migrations/002_add_critical_fields.sql (adds double opt-in, idempotency, EMA)
+-- Complete initial schema including double opt-in, idempotency, and EMA indicators
+-- This is the first migration for the project (no prior migrations have been run)
 --
 -- See db/README.md for setup instructions and design rationale
 
@@ -37,7 +36,7 @@ CREATE TABLE market_data (
 CREATE INDEX idx_market_data_symbol_time ON market_data(symbol, timestamp DESC);
 CREATE INDEX idx_market_data_created ON market_data(created_at DESC);
 
--- Calculated technical indicators (RSI + MACD only for MVP)
+-- Calculated technical indicators (RSI + EMA for MVP, MACD optional)
 CREATE TABLE indicators (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     symbol VARCHAR(20) REFERENCES symbols(symbol) ON DELETE CASCADE,
@@ -46,7 +45,11 @@ CREATE TABLE indicators (
     -- RSI (Relative Strength Index)
     rsi DECIMAL(5, 2) CHECK (rsi >= 0 AND rsi <= 100),
 
-    -- MACD (Moving Average Convergence Divergence)
+    -- EMA (Exponential Moving Average)
+    ema_12 DECIMAL(20, 8),
+    ema_26 DECIMAL(20, 8),
+
+    -- MACD (Moving Average Convergence Divergence - optional)
     macd DECIMAL(10, 4),
     macd_signal DECIMAL(10, 4),
     macd_histogram DECIMAL(10, 4),
@@ -68,6 +71,8 @@ CREATE TABLE signals (
     strength DECIMAL(5, 2) NOT NULL CHECK (strength >= 0 AND strength <= 100),
     reasoning TEXT[] NOT NULL,
     price_at_signal DECIMAL(20, 8),
+    idempotency_key VARCHAR(255) UNIQUE,
+    rule_version VARCHAR(50),
     generated_at TIMESTAMPTZ DEFAULT NOW(),
 
     UNIQUE(symbol, timestamp)
@@ -77,18 +82,21 @@ CREATE INDEX idx_signals_symbol_time ON signals(symbol, timestamp DESC);
 CREATE INDEX idx_signals_strength ON signals(strength DESC);
 CREATE INDEX idx_signals_type ON signals(signal_type);
 
--- Email subscribers (no authentication, email-only)
+-- Email subscribers (no authentication, email-only with double opt-in)
 CREATE TABLE email_subscribers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     subscribed_at TIMESTAMPTZ DEFAULT NOW(),
+    confirmed BOOLEAN DEFAULT false,
+    confirmation_token VARCHAR(64) UNIQUE,
+    confirmed_at TIMESTAMPTZ,
     last_email_sent_at TIMESTAMPTZ,
     unsubscribed BOOLEAN DEFAULT false,
     unsubscribe_token VARCHAR(64) UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex')
 );
 
 CREATE INDEX idx_email_subscribers_email ON email_subscribers(email);
-CREATE INDEX idx_email_subscribers_active ON email_subscribers(unsubscribed, subscribed_at DESC);
+CREATE INDEX idx_email_subscribers_active ON email_subscribers(email) WHERE confirmed = true AND unsubscribed = false;
 
 -- Track sent notifications (for rate limiting)
 CREATE TABLE sent_notifications (
@@ -121,3 +129,4 @@ COMMENT ON TABLE indicators IS 'Calculated technical indicators (RSI, EMA12, EMA
 COMMENT ON TABLE signals IS 'Generated trading signals with confidence scores and idempotency';
 COMMENT ON TABLE email_subscribers IS 'Email subscribers with double opt-in confirmation';
 COMMENT ON TABLE sent_notifications IS 'Audit log of sent emails for rate limiting and tracking';
+

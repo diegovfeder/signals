@@ -1,6 +1,6 @@
 # FastAPI Backend
 
-REST API for serving trading signals, market data, and managing email subscriptions.
+REST API for serving our trading-signals, market data, and managing email subscriptions.
 
 ## Quick Start
 
@@ -9,7 +9,8 @@ REST API for serving trading signals, market data, and managing email subscripti
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  
+# Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
 
@@ -41,7 +42,7 @@ curl http://localhost:8000/api/signals/BTC-USD
 
 ## Project Structure
 
-```
+```bash
 backend/
 ├── api/
 │   ├── main.py              # FastAPI app, CORS, routing
@@ -76,6 +77,7 @@ GET /api/signals/{symbol}/history # Historical signals
 ```
 
 **Query Parameters:**
+
 - `limit` (int): Max results (default: 20, max: 100)
 - `offset` (int): Pagination offset
 - `signal_type` (str): Filter by BUY/SELL/HOLD
@@ -99,8 +101,8 @@ POST /api/subscribe/unsubscribe/{token} # Unsubscribe via token
 
 FastAPI auto-generates interactive documentation:
 
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
+- **Swagger UI**: <http://localhost:8000/api/docs>
+- **ReDoc**: <http://localhost:8000/api/redoc>
 
 Try endpoints directly in your browser!
 
@@ -109,21 +111,25 @@ Try endpoints directly in your browser!
 ### Core Endpoints (MVP)
 
 **Signals:**
+
 - [ ] `GET /api/signals/` - Fetch from `signals` table with filters
 - [ ] `GET /api/signals/{symbol}` - Latest signal per symbol
 - [ ] `GET /api/signals/{symbol}/history` - Historical signals
 
 **Market Data:**
+
 - [ ] `GET /api/market-data/{symbol}/ohlcv` - Fetch from `market_data` table
 - [ ] `GET /api/market-data/{symbol}/indicators` - Fetch from `indicators` table
 
 **Subscriptions:**
+
 - [ ] `POST /api/subscribe/` - Create subscriber with double opt-in
 - [ ] `POST /api/subscribe/unsubscribe/{token}` - Mark as unsubscribed
 
 ### Database Integration
 
 **SQLAlchemy Models** (`api/models.py`):
+
 ```python
 class Signal(Base):
     __tablename__ = "signals"
@@ -137,6 +143,7 @@ class Signal(Base):
 ```
 
 **Pydantic Schemas** (`api/schemas.py`):
+
 ```python
 class SignalResponse(BaseModel):
     id: str
@@ -154,6 +161,7 @@ class SignalResponse(BaseModel):
 ### Query Examples
 
 **Get all signals with filters:**
+
 ```python
 @router.get("/", response_model=SignalListResponse)
 async def get_all_signals(
@@ -171,6 +179,7 @@ async def get_all_signals(
 ```
 
 **Get latest signal per symbol:**
+
 ```python
 @router.get("/{symbol}")
 async def get_signal_by_symbol(symbol: str, db: Session = Depends(get_db)):
@@ -268,8 +277,8 @@ CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```bash
-docker build -t trading-signals-api .
-docker run -p 8000:8000 --env-file .env trading-signals-api
+docker build -t signals-api .
+docker run -p 8000:8000 --env-file .env signals-api
 ```
 
 ## Error Handling
@@ -317,6 +326,7 @@ class Settings(BaseSettings):
 ```
 
 For development, allow localhost:
+
 ```python
 CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
 ```
@@ -337,6 +347,7 @@ async def get_signal(symbol: str):
 ```
 
 Configure in `main.py`:
+
 ```python
 logging.basicConfig(
     level=logging.INFO,
@@ -347,6 +358,7 @@ logging.basicConfig(
 ## Troubleshooting
 
 **"uvicorn: command not found":**
+
 ```bash
 pip install uvicorn
 # or
@@ -354,6 +366,7 @@ python -m uvicorn api.main:app --reload
 ```
 
 **Database connection error:**
+
 ```bash
 # Check DATABASE_URL format
 postgresql://user:password@host:port/database
@@ -363,12 +376,14 @@ psql $DATABASE_URL -c "SELECT 1"
 ```
 
 **CORS errors in browser:**
+
 ```python
 # Add your frontend URL to CORS_ORIGINS in .env
 CORS_ORIGINS=http://localhost:3000
 ```
 
 **Import errors:**
+
 ```bash
 # Make sure you're in the backend directory
 cd backend
@@ -377,15 +392,15 @@ python -m uvicorn api.main:app --reload
 
 ## Next Steps
 
-1. ✅ Implement signal endpoints (connect to `signals` table)
-2. ✅ Implement market data endpoints (connect to `market_data`, `indicators` tables)
-3. ✅ Implement subscription endpoints (double opt-in flow with Resend)
-4. ✅ Add request validation and error handling
-5. ✅ Write tests for all endpoints
-6. ✅ Deploy to Vercel or Docker
+1. Implement signal endpoints (connect to `signals` table)
+2. Implement market data endpoints (connect to `market_data`, `indicators` tables)
+3. Implement subscription endpoints (double opt-in flow with Resend)
+4. Add request validation and error handling
+5. Write tests for all endpoints
+6. Deploy to Vercel or Docker
 
-**See also:** 
+**See also:**
+
 - `db/README.md` for database schema
 - `pipe/README.md` for data pipeline (populates the DB)
 - `docs/DATA-SCIENCE.md` for indicator calculations
-
