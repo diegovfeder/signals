@@ -19,6 +19,27 @@ export interface Signal {
   price_at_signal: number
 }
 
+export interface MarketBar {
+  symbol: string
+  timestamp: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+export interface BacktestSummary {
+  symbol: string
+  range: string
+  trades: number
+  win_rate: number
+  avg_return: number
+  total_return: number
+  last_trained_at?: string | null
+  notes?: string | null
+}
+
 async function fetchSignals(): Promise<Signal[]> {
   const data = await api.get<{ signals: Signal[] }>('/api/signals', {
     limit: '50',
@@ -40,5 +61,48 @@ export function useSignalBySymbol(symbol: string) {
     queryFn: async () => api.get<Signal>(`/api/signals/${symbol}`),
     enabled: Boolean(symbol),
     refetchInterval: 60_000,
+  })
+}
+
+export function useMarketData(symbol: string, range: string) {
+  return useQuery({
+    queryKey: ['market-data', symbol, range],
+    enabled: Boolean(symbol),
+    refetchInterval: 300_000,
+    queryFn: async () =>
+      api.get<MarketBar[]>(
+        `/api/market-data/${encodeURIComponent(symbol)}/ohlcv`,
+        {
+          range,
+          limit: '5000',
+        },
+      ),
+    select: (rows) =>
+      (rows ?? [])
+        .map((row) => ({
+          ...row,
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+          volume: Number(row.volume),
+        }))
+        .sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        ),
+  })
+}
+
+export function useBacktestSummary(symbol: string, range: string) {
+  return useQuery({
+    queryKey: ['backtests', symbol, range],
+    enabled: Boolean(symbol),
+    staleTime: 300_000,
+    queryFn: async () =>
+      api.get<BacktestSummary>(
+        `/api/backtests/${encodeURIComponent(symbol)}`,
+        { range },
+      ),
   })
 }

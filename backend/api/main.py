@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from .config import settings
 from .database import get_db
-from .routers import signals, market_data, subscribe
+from .routers import signals, market_data, subscribe, backtests
 
 # Create FastAPI app
 app = FastAPI(
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
 app.include_router(market_data.router, prefix="/api/market-data", tags=["market-data"])
 app.include_router(subscribe.router, prefix="/api/subscribe", tags=["subscribe"])
+app.include_router(backtests.router, prefix="/api/backtests", tags=["backtests"])
 
 
 @app.get("/")

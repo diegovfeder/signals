@@ -84,3 +84,15 @@ class HealthCheckResponse(BaseModel):
     """Health check response."""
     status: str
     database: str
+
+
+class BacktestSummaryResponse(BaseModel):
+    """Placeholder backtest summary response."""
+    symbol: str
+    range: str
+    trades: int
+    win_rate: float
+    avg_return: float
+    total_return: float
+    last_trained_at: datetime | None = None
+    notes: str | None = None
