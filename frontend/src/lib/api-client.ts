@@ -35,7 +35,18 @@ export async function apiClient<T>(
 
   // Handle errors
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    let errorMessage = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const errorBody = await response.json();
+      if (typeof errorBody?.detail === 'string') {
+        errorMessage = errorBody.detail;
+      } else if (typeof errorBody?.message === 'string') {
+        errorMessage = errorBody.message;
+      }
+    } catch {
+      // ignore JSON parse errors and keep default message
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

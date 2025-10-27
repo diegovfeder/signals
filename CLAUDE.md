@@ -361,7 +361,7 @@ The pipeline currently logs strong signals instead of sending emails:
 # In pipe/flows/signal_generation.py
 @task(name="notify-if-strong")
 def notify_if_strong(result: Dict) -> None:
-    if result["strength"] >= 70.0:
+    if result["strength"] >= 60.0:
         print(f"[notify] Strong signal {result['symbol']} {result['signal_type']} {result['strength']}/100")
         # TODO Phase 2: Send email via Resend
 ```

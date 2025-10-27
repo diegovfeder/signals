@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useSignals } from '@/lib/hooks/useSignals'
+import { useSignals, type Signal } from '@/lib/hooks/useSignals'
 import Link from 'next/link'
 import { useState, useMemo } from 'react'
 
@@ -15,13 +15,18 @@ type SortKey = 'timestamp' | 'symbol' | 'strength'
 type SortOrder = 'asc' | 'desc'
 
 export default function SignalsPage() {
-  const { signals, loading, error } = useSignals()
+  const {
+    data: signals = [],
+    isLoading,
+    isError,
+    error,
+  } = useSignals()
   const [filterType, setFilterType] = useState<SignalType>('ALL')
   const [sortKey, setSortKey] = useState<SortKey>('timestamp')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   // Filtered and sorted signals
-  const filteredSignals = useMemo(() => {
+  const filteredSignals = useMemo<Signal[]>(() => {
     let filtered = signals
 
     // Filter by signal type
@@ -149,7 +154,7 @@ export default function SignalsPage() {
         </div>
 
         {/* Error state */}
-        {error && (
+        {isError && error && (
           <div className="card-premium p-6 mb-8 border-red-500/30 animate-slide-up">
             <div className="flex items-start gap-3">
               <span className="text-danger text-xl">⚠</span>
@@ -166,14 +171,14 @@ export default function SignalsPage() {
         )}
 
         {/* Loading state */}
-        {loading && (
+        {isLoading && (
           <div className="card p-8 text-center animate-pulse">
             <p className="text-muted">Loading signals...</p>
           </div>
         )}
 
         {/* Signals Table */}
-        {!loading && !error && filteredSignals.length > 0 && (
+        {!isLoading && !isError && filteredSignals.length > 0 && (
           <div className="card overflow-hidden animate-slide-up">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -296,7 +301,7 @@ export default function SignalsPage() {
         )}
 
         {/* Empty state */}
-        {!loading && !error && filteredSignals.length === 0 && (
+        {!isLoading && !isError && filteredSignals.length === 0 && (
           <div className="card p-12 text-center animate-slide-up">
             <p className="text-muted text-lg mb-2">No signals found</p>
             <p className="text-sm text-foreground-muted">
@@ -308,7 +313,7 @@ export default function SignalsPage() {
         )}
 
         {/* Quick navigation */}
-        {!loading && !error && signals.length > 0 && (
+        {!isLoading && !isError && signals.length > 0 && (
           <div className="mt-8 text-center animate-fade-in">
             <Link href="/dashboard" className="btn-secondary inline-block">
               View Dashboard

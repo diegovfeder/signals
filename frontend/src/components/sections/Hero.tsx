@@ -3,11 +3,12 @@
  * Main headline, subheadline, CTAs, and live status
  */
 
-import Link from 'next/link'
+import Link from "next/link";
+import { SubscribeForm } from "@/components/forms/SubscribeForm";
 
 export default function Hero() {
   return (
-    <section className="pt-32 pb-20 px-4 relative">
+    <section className="pt-16 sm:pt-20 pb-8 px-4 relative">
       <div className="container-app">
         <div className="max-w-3xl mx-auto text-center">
           {/* Live status pill */}
@@ -24,18 +25,33 @@ export default function Hero() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl text-foreground-muted mb-10 animate-slide-up" style={{animationDelay: '100ms'}}>
-            Email alerts and a simple dashboard for opportunities across crypto, stocks, ETFs, and forex.
+          <p
+            className="text-xl text-foreground-muted mb-10 animate-slide-up"
+            style={{ animationDelay: "100ms" }}
+          >
+            Email alerts and a simple dashboard for opportunities across crypto,
+            stocks, ETFs, and forex.
           </p>
 
+          <div
+            id="subscribe"
+            className="my-12 animate-slide-up"
+            style={{ animationDelay: "250ms" }}
+          >
+            <SubscribeForm
+              className="max-w-2xl mx-auto"
+              helperText="No spam. We only email when a conviction-level signal triggers."
+            />
+          </div>
+
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up" style={{animationDelay: '200ms'}}>
+          <div
+            className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up"
+            style={{ animationDelay: "200ms" }}
+          >
             <Link href="/dashboard" className="btn-primary">
               Go to Dashboard
             </Link>
-            <button className="btn-secondary">
-              Get Email Alerts
-            </button>
           </div>
         </div>
       </div>
@@ -45,5 +61,5 @@ export default function Hero() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
       </div>
     </section>
-  )
+  );
 }

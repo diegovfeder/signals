@@ -1,237 +1,116 @@
 # TODOs
 
-**Last Updated**: October 15, 2025
+**Last Updated**: October 27, 2025
 
-Actionable task list for MVP development. Focus on critical path first.
+Actionable task list for the next MVP milestones. Critical-path items appear first; completed work lives at the bottom for reference.
 
 ## Critical Path (MVP Must-Haves)
 
-### Database & Historical Data
-- [x] Initialize database schema (`db/schema.sql` applied via docker-compose)
-- [x] Seed test data (using mock data scripts as workaround)
-- [x] Verify data loaded (200 market_data + 200 indicators + 4 signals)
-- [x] Ensure minimum bars for indicators (50 bars per symbol seeded)
-
 ### Data Pipeline (Prefect)
-- [x] Create unified flow `flows/signal_generation.py` with tasks:
-  - [x] `fetch_ohlcv()` - Yahoo Finance → `market_data` table
-  - [x] `calculate_and_upsert_indicators()` - RSI + EMA → `indicators` table
-  - [x] `generate_and_store_signal()` - Apply rules → `signals` table
-  - [x] `notify_if_strong()` - Log strong signals (email in Phase 2)
-- [ ] Fix Yahoo Finance integration (currently hanging)
-- [ ] Test flow locally end-to-end with real Yahoo Finance data
-- [ ] Deploy to Prefect Cloud with 15-minute schedule
-- [ ] Verify first live run completes successfully
 
-### Backend API (FastAPI)
-- [x] Implement `GET /api/signals/` (list all signals, with filters)
-- [x] Implement `GET /api/signals/{symbol}` (latest signal per symbol)
-- [x] Implement `GET /api/signals/{symbol}/history`
-- [x] Implement `GET /api/market-data/{symbol}/ohlcv`
-- [x] Implement `GET /api/market-data/{symbol}/indicators`
-- [x] Implement `POST /api/subscribe/` (stores to DB, generates tokens)
-- [x] Implement `POST /api/subscribe/unsubscribe/{token}`
-- [x] Implement `GET /health` with database connection test
-- [x] Fix UUID serialization for Pydantic v2
-- [x] Test all endpoints with Swagger UI (`/api/docs`)
-- [ ] Deploy to Vercel
+- [x] Asset-specific signal models (per symbol strategies that emit BUY/SELL/HOLD, e.g., crypto momentum vs. stock mean reversion).
+- [x] Historical signal replay: run `flows/signal_replay.py` on a schedule and persist metrics to the `backtests` table.
+- [x] Flow scheduling: create Prefect Deployments / cron jobs for `historical_backfill`, `signal_generation`, `signal_replay`, and `notification_sender`.
+- [ ] Provider QA: document and test the Alpha Vantage + Yahoo fallback path end-to-end using real data.
 
-### Frontend (Next.js)
-- [x] Landing page with hero, live signals preview, email signup
-- [x] Dashboard page: signal cards grid (4 assets with glass morphism)
-- [x] Signal detail page: strength meter, reasoning, back button
-- [x] Redesign with Resend-inspired dark theme
-- [x] Create 8 reusable components (Navbar, Hero, ValueProps, etc.)
-- [x] Fix Next.js 15 async params issue
-- [x] Migrate to TailwindCSS 4.0
-- [x] Implement auto-refresh (60 seconds)
-- [x] Add loading and error states
-- [ ] Deploy to Vercel
+### Backend & Frontend
+
+- [ ] Deploy FastAPI backend (Railway/Render/Vercel) and update CORS settings.
+- [ ] Deploy Next.js frontend to Vercel and wire it to the live API.
+- [x] Hook the email signup form to `/api/subscribe` and surface confirmation states in the UI.
+- [x] Provide a minimal internal subscriber dashboard (`/admin/subscribers`) and diagnostics console (`/admin/backtests`).
 
 ### Email Notifications (Resend)
-- [ ] Create Resend account and get API key
-- [ ] Implement confirmation email template (double opt-in)
-- [ ] Implement welcome email template (what to expect)
-- [ ] Implement signal notification template (plain English, strength, reasoning)
-- [ ] Configure DKIM/SPF/DMARC for custom domain
-- [ ] Test email delivery (check spam folder)
 
-## Immediate Next Steps (Tomorrow)
+- [ ] Finalize Resend sandbox sender (or verify custom domain when available).
+- [ ] Implement confirmation + welcome templates (double opt-in flow).
+- [ ] Configure DKIM/SPF/DMARC once the domain quota frees up.
+- [ ] Run end-to-end delivery test (Resend dashboard + screenshot).
+
+## Immediate Next Steps (Next Sprint)
 
 ### High Priority
-- [ ] **Fix Yahoo Finance Integration**
-  - Debug yfinance library timeout issue
-  - Consider alternatives: Alpha Vantage, Polygon.io, Twelve Data
-  - Test with different intervals (1h instead of 15m)
-  - Implement retry logic and timeout handling
 
-- [ ] **Clean Up Temporary Scripts**
-  - Delete `pipe/seed_mvp_data.py` (once real data works)
-  - Delete `pipe/test_fetch.py` (debugging script)
-  - Integrate `pipe/calculate_and_signal.py` logic into main flow
-  - Or keep in `scripts/` for manual testing
-
-- [ ] **Deploy to Production**
-  - Deploy frontend to Vercel
-  - Deploy backend to Vercel (or Railway/Render)
-  - Update CORS settings for production domains
-  - Test end-to-end in production
-
-- [ ] **Documentation**
-  - Update README.md with deployment URLs
-  - Document environment variables for production
-  - Add screenshots to docs/
-  - Create DEPLOYMENT.md with step-by-step guide
+- [x] Finish the strategy engine + BUY/SELL/HOLD thresholds and update the signal scorer accordingly.
+- [x] Create a replay runbook: backfill → replay → intraday signals → notification sender; document CLI commands.
+- [ ] Deploy backend/frontend + `/admin/backtests` diagnostics page to production and validate round-trip data.
+- [x] Update README/docs with provider architecture, `/admin` usage, and env vars (`RESEND_FROM_EMAIL`, `SIGNAL_NOTIFY_THRESHOLD`, etc.).
 
 ### Medium Priority
-- [ ] **Monitoring & Observability**
-  - Add logging to Prefect flow
-  - Set up error notifications (email or Slack)
-  - Monitor API response times
-  - Track signal generation frequency
 
-- [ ] **Data Quality**
-  - Add validation for OHLCV data (no negative prices, volume)
-  - Detect data gaps and handle gracefully
-  - Log when indicators can't be calculated (insufficient data)
-
-- [ ] **User Experience**
-  - Add toast notifications for errors
-  - Implement email signup form (connect to `/api/subscribe`)
-  - Add "Share" button to signal cards
-  - Improve mobile responsiveness
+- [ ] Monitoring & observability: structured logs for Prefect flows, Slack/Resend alerts on failures, metrics for signal/email volume.
+- [ ] Data quality: enforce OHLCV validation (non-negative prices, gap detection, duplicate filtering) and surface indicator failures.
+- [ ] UX polish: toast notifications for API errors, share buttons on signal cards, improved mobile responsiveness.
+  - [ ] This should be really thought of. Think on how would a user want to share this? How can we make a share card image and text/link that describes it in a cool way and invites another user.
+- [ ] Clean up legacy scripts (`pipe/seed_mvp_data.py`, `pipe/test_fetch.py`, `pipe/calculate_and_signal.py`) once the production pipeline stabilizes.
 
 ## Known Issues & Technical Debt
 
 ### Critical
-- **Yahoo Finance Integration**: yfinance library hangs during fetch (no data returned after 5 minutes)
-  - Workaround: Using mock data seeding scripts
-  - Impact: Can't test with real market data
-  - Priority: HIGH - blocks production deployment
+
+- **Monitoring gap**: Deployments exist but alerts/observability are minimal; add Prefect notifications + dashboards.
+- **Historical signals missing**: until the replay flow runs regularly, the `signals` table only has the latest row per symbol.
 
 ### Medium
-- **Temporary Scripts**: Need cleanup once real data pipeline works
-  - `pipe/seed_mvp_data.py`
-  - `pipe/test_fetch.py`
-  - `pipe/calculate_and_signal.py`
 
-- **Email Notifications**: Not implemented (Phase 2)
-  - Subscribe endpoint stores to DB but doesn't send email
-  - No confirmation flow
-  - No signal alerts
+- **Temporary scripts**: move/remove the legacy seeding/fetch scripts under `scripts/`.
+- **Email domain**: Resend sandbox works but custom domain is unverified (blocked by DNS quota) – track status.
 
 ### Low
-- **Tests**: No automated tests yet
-  - Unit tests for indicators (pytest)
-  - Integration tests for API endpoints
-  - E2E tests for frontend
 
-- **Error Handling**: Could be more robust
-  - Add retry logic to Yahoo Finance fetches
-  - Handle database connection failures gracefully
-  - Add circuit breaker pattern
+- **Automated tests**: none yet (unit, integration, E2E).
+- **Error handling**: add retries, circuit breakers, graceful DB reconnection.
 
 ## Phase 2 (Post-MVP)
 
 ### Advanced Features
-- [ ] MACD indicator (schema already supports it)
-- [ ] Bollinger Bands
-- [ ] ADX regime detection (trend vs range markets)
-- [ ] Market hours handling (skip signals when stocks/ETFs closed)
-- [ ] Cooldown policy (max 1 signal per 8 hours per symbol)
-- [ ] Asset-specific strategies (different rules per asset type)
-- [ ] More assets (ETH, TSLA, SPY, etc.)
+
+- MACD / Bollinger Bands / ADX support.
+- Market hours handling + cooldown policy.
+- Asset-specific strategies for additional tickers (GOOGL, TSM, SPY, etc.).
 
 ### User Experience
-- [ ] User authentication (Supabase auth)
-- [ ] Portfolio tracking (track which signals user acted on)
-- [ ] Telegram notifications (in addition to email)
-- [ ] Weekly digest email (summary of week's signals)
-- [ ] Mobile-responsive dashboard improvements
-- [ ] Signal history charts (performance tracking)
-- [ ] Backtesting view (historical signal performance)
+
+- Auth via Supabase, portfolio tracking, Telegram/weekly digests, richer signal history charts/backtesting views.
 
 ### Operational
-- [ ] Data quality gates (gap detection, staleness checks, spike filtering)
-- [ ] Circuit breaker (pause signals on data issues or flow failures)
-- [ ] Ops alerts (Slack notifications for missed runs, zero signals, bounces)
-- [ ] Email deliverability tracking (Resend webhooks for opens, clicks, bounces)
-- [ ] TimescaleDB compression (archive OHLCV >90 days old)
-- [ ] Rate limiting on API endpoints
-- [ ] Caching layer (Redis for frequently accessed data)
 
-### Code Quality & Developer Experience
-- [ ] Add Ruff for Python linting and formatting
-  - Replaces flake8 + black + isort in one modern, fast tool
-  - Zero-config with sensible defaults
-  - Install: `pip install ruff` in backend and pipe venvs
-  - Add `ruff.toml` configuration at project root
-  - Run: `ruff check .` for linting, `ruff format .` for formatting
-  - Optional: Add pre-commit hooks for auto-formatting on commit
-  - Consider VS Code extension: `charliermarsh.ruff`
+- Data quality gates, circuit breakers, Ops alerts, email deliverability tracking, Timescale compression, rate limiting, Redis caching.
+
+### Code Quality & DX
+
+- Add Ruff for linting/formatting, optional pre-commit hooks, VS Code integration.
 
 ### Monetization
-- [ ] Payment system (Stripe integration)
-- [ ] Freemium model (BTC-USD free, paid for all 4 assets)
-- [ ] Analytics dashboard for paid users
-- [ ] Premium features (more assets, more indicators, priority support)
-- [ ] Referral program
-- [ ] API access tier
 
-## Project Structure Notes
+- Stripe payments, freemium tiers, analytics dashboard, referral program, external API tier.
 
-### Pipeline vs Scripts
-- **`pipe/`**: Production pipeline code (Prefect flows, tasks)
-  - Should only contain production-ready code
-  - Mock/test scripts should be temporary
+## Completed
 
-- **`scripts/`**: One-off utility scripts for manual operations
-  - Database setup/seeding
-  - Data backfills
-  - Testing/debugging
-  - Keep mock data generators here once cleaned up
+### Database & Historical Data
 
-### Recommended Cleanup
-```bash
-# Move temporary scripts to scripts/
-mv pipe/seed_mvp_data.py scripts/testing/seed_mock_data.py
-mv pipe/test_fetch.py scripts/testing/test_yahoo_finance.py
-mv pipe/calculate_and_signal.py scripts/testing/manual_signal_gen.py
+- [x] Initialize schema via `db/schema.sql`.
+- [x] Seed baseline data and verify minimum bars per symbol.
 
-# Or delete once real pipeline works
-rm pipe/seed_mvp_data.py pipe/test_fetch.py pipe/calculate_and_signal.py
-```
+### Pipeline Foundations
 
-## Reference
+- [x] Unified Prefect flow with fetch → indicators → signals → notify tasks.
+- [x] Alpha Vantage intraday fetch + Yahoo chart fallback for daily history.
+- [x] Refactored provider layer (`data/sources`) and added `/admin/backtest` diagnostics page to validate pipeline → DB → API → UI.
 
-**See domain READMEs for implementation details:**
-- Database: `db/README.md`
-- Pipeline: `pipe/README.md`
-- Indicators: `pipe/data/README.md` (moved from root)
-- API: `backend/README.md`
-- Setup: `scripts/README.md`
+### BE & FE
 
-**See docs for concepts:**
-- MVP scope: `docs/MVP.md`
-- Architecture: `docs/ARCHITECTURE.md`
-- Indicators: `docs/DATA-SCIENCE.md`
-- Terms: `docs/GLOSSARY.md`
-- Implementation details: `docs/IMPLEMENTATION_SUMMARY.md`
+- [x] CRUD endpoints for signals, history, market data, and indicators.
+- [x] Subscription endpoints (opt-in / unsubscribe) and health check.
+- [x] Next.js dashboard, detail page, dark theme redesign, auto-refresh, loading/error states.
+
+### Email
+
+- [x] Integrated Resend (sandbox) with HTML/text templates for signal notifications; added `SIGNAL_NOTIFY_THRESHOLD` + `RESEND_FROM_EMAIL` env vars.
 
 ## Progress Summary
 
-**October 15, 2025 Achievements:**
-- ✅ Full MVP functional with modern UI
-- ✅ Python 3.13 environment working
-- ✅ Database seeded with 200+ records
-- ✅ Backend API serving 4 signals
-- ✅ Frontend completely redesigned (Resend-inspired)
-- ✅ Landing page with 8 reusable components
-- ✅ TailwindCSS 4.0 migration complete
-- ✅ Next.js 15 compatibility fixed
-
-**Remaining for Production:**
-- ⏳ Fix Yahoo Finance integration
-- ⏳ Deploy to Vercel
-- ⏳ Clean up temporary scripts
-- ⏳ Add email notifications (Phase 2)
+- ✅ Modern UI + API + Prefect pipeline running locally.
+- ✅ Alpha Vantage intraday + Yahoo fallback provides 2-year history per symbol.
+- ✅ Diagnostics page (`/admin/backtest`) verifies the data path after every flow run.
+- ⏳ Remaining gap: production deploy + monitoring/alerting; strategies and scheduled flows are in place.
