@@ -80,6 +80,23 @@ class EmailSubscribeResponse(BaseModel):
     email: str
 
 
+class EmailSubscriberSummary(BaseModel):
+    """Admin-facing subscriber summary."""
+    email: EmailStr
+    subscribed_at: datetime | None = None
+    confirmed: bool
+    confirmed_at: datetime | None = None
+    unsubscribed: bool
+    confirmation_token: str | None = None
+    unsubscribe_token: str | None = None
+
+
+class EmailSubscriberListResponse(BaseModel):
+    """Paginated subscriber list response."""
+    subscribers: List[EmailSubscriberSummary]
+    total: int
+
+
 class HealthCheckResponse(BaseModel):
     """Health check response."""
     status: str

@@ -38,11 +38,10 @@ An automated trading signals system that helps busy professionals catch opportun
 ### 1. Signal Generation
 
 - Monitor 4 assets across different classes every 15 minutes
-- Calculate RSI and EMA indicators
-  - Flexibility to add more indicators later (MACD, Bollinger Bands, etc.)
-  - At first, same logic for all assets
-    - Later, different indicators per asset type
-- Generate BUY/HOLD signals based on simple rules
+- Calculate RSI, EMA, and MACD indicators
+  - Flexibility to add more indicators later (Bollinger Bands, ADX, etc.)
+  - Assets can opt into different strategies as the library grows
+- Generate BUY/SELL/HOLD signals using per-symbol strategies (crypto momentum vs. equity mean reversion)
 - Score signal strength (0-100)
 - Only send emails for strong signals (>70)
 
@@ -62,10 +61,10 @@ An automated trading signals system that helps busy professionals catch opportun
 
 ### 4. Simple Data Pipeline
 
-- Fetch 15-minute data from Yahoo Finance
-- Store in Supabase
-- Run Prefect flow every 15 minutes
-- Quality checks (reject stale data)
+- Fetch intraday data from Alpha Vantage (Yahoo fallback for gaps and large backfills)
+- Store in PostgreSQL
+- Run dedicated Prefect flows (historical backfill, intraday generation, nightly replay)
+- Quality checks (reject stale data, watchdog on provider errors)
 
 ## MVP Scope
 
@@ -83,7 +82,7 @@ An automated trading signals system that helps busy professionals catch opportun
 
 - RSI (14-period) - oversold/overbought detection
 - EMA (12/26 periods) - trend detection
-- No MACD, Bollinger Bands, or other indicators yet
+- MACD histogram - momentum confirmation (future candidates: Bollinger Bands, ADX)
 
 **User Experience:**
 
@@ -96,8 +95,8 @@ An automated trading signals system that helps busy professionals catch opportun
 
 - Frontend: Next.js 15 + Vercel
 - Backend: FastAPI
-- Database: Supabase (PostgreSQL)
-- Pipeline: Prefect (1 simple flow)
+- Database: PostgreSQL (docker-compose locally, managed Postgres in prod)
+- Pipeline: Prefect (separate flows for backfill, intraday generation, replay, notifications)
 - Email: Resend
 
 ### ❌ Out of Scope (Phase 2)
@@ -106,7 +105,7 @@ An automated trading signals system that helps busy professionals catch opportun
 
 - More assets per category (expand after validation)
 - Additional indicators (MACD, Bollinger Bands)
-- Asset-specific strategies (different indicators per asset type)
+- Advanced regime detection or ML-driven strategies
 - Market hours handling (stocks/ETFs closed on weekends)
 - User authentication/accounts
 - Portfolio tracking
@@ -127,35 +126,35 @@ An automated trading signals system that helps busy professionals catch opportun
 
 ```text
 Every 15 minutes:
-1. Prefect flow triggers
-2. Fetch data for all 4 assets from Yahoo Finance (15m bars)
-3. Calculate RSI and EMA indicators for each asset
-4. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all
-5. Calculate signal strength (0-100) per asset
-6. Save all signals to Supabase
-7. If any signal has strength > 70, send email via Resend
-8. Track events in PostHog
+1. Prefect intraday flow triggers
+2. Fetch the latest slice from Alpha Vantage (Yahoo fallback if throttled)
+3. Recompute RSI, EMA(12/26), MACD for the updated window
+4. Lookup the mapped strategy per symbol and generate BUY/SELL/HOLD + reasoning
+5. Save/overwrite signals in PostgreSQL
+6. If any signal >= 70 strength, enqueue downstream notifications (Resend flow)
+7. Track key events in PostHog
 ```
 
 ## Signal Rules (Simplified)
 
 ### RSI Signals
 
-- RSI < 30 → BUY (oversold, likely to bounce)
-- RSI > 70 → HOLD (overbought, wait for pullback)
-- RSI 30-70 → HOLD (neutral zone)
+- RSI < 32 and turning upward → BUY (oversold bounce)
+- RSI > 72 with negative divergence → SELL (take profits, momentum stalling)
+- RSI between 32-72 → HOLD (neutral zone)
 
-### EMA Signals
+### EMA / MACD Signals
 
-- EMA-12 crosses above EMA-26 → BUY (bullish momentum)
-- EMA-12 crosses below EMA-26 → HOLD (bearish, stay out)
+- EMA-12 crossing above EMA-26 and MACD histogram > 0 → BUY (bullish momentum)
+- EMA-12 crossing below EMA-26 and MACD histogram < 0 → SELL (downtrend or exhaustion)
+- Flat EMAs with neutral MACD → HOLD (no edge)
 
 ### Signal Strength
 
 - Weighted score based on:
-  - How far RSI is from 30/70
-  - How clear the EMA crossover is
-  - Volume confirmation
+  - RSI distance from trigger zone
+  - EMA spread percentage and whether it is widening
+  - MACD histogram magnitude/direction
 - Only email if strength > 70
 
 ## Success Criteria

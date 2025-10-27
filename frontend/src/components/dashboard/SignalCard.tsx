@@ -5,15 +5,15 @@
  * Features glass morphism design inspired by Resend.
  */
 
-import type { JSX } from 'react'
-import Link from 'next/link'
+import type { JSX } from "react";
+import Link from "next/link";
 
 interface SignalCardProps {
-  symbol: string
-  signalType: 'BUY' | 'SELL' | 'HOLD'
-  strength: number
-  reasoning: string[]
-  price: number
+  symbol: string;
+  signalType: "BUY" | "SELL" | "HOLD";
+  strength: number;
+  reasoning: string[];
+  price: number;
 }
 
 export default function SignalCard({
@@ -26,35 +26,35 @@ export default function SignalCard({
   // Determine signal badge colors
   const getBadgeClasses = () => {
     switch (signalType) {
-      case 'BUY':
-        return 'bg-success/20 text-success border-success/30'
-      case 'SELL':
-        return 'bg-danger/20 text-danger border-danger/30'
+      case "BUY":
+        return "bg-success/20 text-success border-success/30";
+      case "SELL":
+        return "bg-danger/20 text-danger border-danger/30";
       default:
-        return 'bg-neutral/20 text-neutral border-neutral/30'
+        return "bg-neutral/20 text-neutral border-neutral/30";
     }
-  }
+  };
 
   // Determine strength bar color
-  const numericStrength = Number.isFinite(strength) ? strength : 0
-  const confidence = Math.max(0, Math.min(100, Math.round(numericStrength)))
+  const numericStrength = Number.isFinite(strength) ? strength : 0;
+  const confidence = Math.max(0, Math.min(100, Math.round(numericStrength)));
   const getStrengthColor = () => {
-    if (confidence >= 70) return 'bg-success'
-    if (confidence >= 40) return 'bg-warning'
-    return 'bg-danger'
-  }
+    if (confidence >= 70) return "bg-success";
+    if (confidence >= 40) return "bg-warning";
+    return "bg-danger";
+  };
   const confidenceLabel =
-    confidence >= 70 ? 'Strong' : confidence >= 40 ? 'Moderate' : 'Weak'
+    confidence >= 70 ? "Strong" : confidence >= 40 ? "Moderate" : "Weak";
 
   return (
-    <div className="card p-6 animate-fade-in group">
+    <div className="card p-6 animate-fade-in group h-full flex flex-col justify-between">
       {/* Header with symbol and price */}
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-xl font-semibold text-foreground-secondary group-hover:text-foreground transition-colors">
           {symbol}
         </h2>
         <span className="text-sm text-muted font-mono">
-          ${price?.toFixed(2) ?? '-'}
+          ${price?.toFixed(2) ?? "-"}
         </span>
       </div>
 
@@ -66,7 +66,9 @@ export default function SignalCard({
           {signalType}
         </div>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-wide text-muted">Confidence</p>
+          <p className="text-xs uppercase tracking-wide text-muted">
+            Confidence
+          </p>
           <p className="text-lg font-semibold text-foreground-secondary font-mono">
             {confidence}%
           </p>
@@ -106,5 +108,5 @@ export default function SignalCard({
         View details →
       </Link>
     </div>
-  )
+  );
 }

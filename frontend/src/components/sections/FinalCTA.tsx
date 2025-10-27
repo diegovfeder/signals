@@ -3,11 +3,11 @@
  * Last conversion opportunity
  */
 
-import Link from 'next/link'
+import Link from "next/link";
 
 export default function FinalCTA() {
   return (
-    <section className="py-20 px-4">
+    <section className="py-16 px-4">
       <div className="container-app">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-4 text-foreground animate-fade-in">
@@ -16,16 +16,8 @@ export default function FinalCTA() {
           <p className="text-lg text-foreground-muted mb-8 animate-fade-in">
             Free during MVP testing. No credit card.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
-            <Link href="/dashboard" className="btn-primary">
-              Go to Dashboard
-            </Link>
-            <button className="btn-secondary">
-              Get Email Alerts
-            </button>
-          </div>
         </div>
       </div>
     </section>
-  )
+  );
 }

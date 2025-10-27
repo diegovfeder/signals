@@ -32,7 +32,7 @@ export default function Coverage() {
   ]
 
   return (
-    <section className="py-20 px-4 bg-background-secondary/50">
+    <section className="py-16 px-4 bg-background-secondary/50">
       <div className="container-app">
         <h2 className="text-3xl font-bold text-center mb-12 text-foreground-secondary animate-fade-in">
           Coverage

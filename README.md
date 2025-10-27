@@ -4,12 +4,14 @@ Track automated trading signals across multiple asset classes. Get email alerts 
 
 ## What It Does
 
-Every 15 minutes, the system:
+Every 15 minutes, the system can:
 
-1. Fetches price data from Yahoo Finance across 4 asset types
-2. Calculates RSI and EMA indicators for each asset
-3. Generates signals based on market conditions
-4. Sends email notifications for strong signals (>70/100 confidence)
+1. Fetch the latest intraday data from Alpha Vantage (with Yahoo Finance fallback for gaps).
+2. Calculate RSI / EMA / MACD indicators per asset.
+3. Run per-symbol strategies (crypto momentum, stock mean reversion) to emit BUY / SELL / HOLD signals.
+4. Send email notifications when strength exceeds `SIGNAL_NOTIFY_THRESHOLD`.
+
+See the **Data Pipeline Workflow** section below for the exact Prefect flows and schedules.
 
 ## MVP Asset Coverage
 
@@ -45,6 +47,20 @@ signals/
     └── DATA-SCIENCE.md # Indicators explained
 ```
 
+Provider clients live under `pipe/data/sources` (Alpha Vantage intraday + Yahoo chart fallback).
+
+## Data Pipeline Workflow
+
+| Flow | Module | Purpose | Default Schedule |
+| --- | --- | --- | --- |
+| `historical-backfill` | `pipe/flows/historical_backfill.py` | Fetch multi-year daily OHLCV history and refresh indicators. | Manual (on demand) |
+| `signal-generation` | `pipe/flows/signal_generation.py` | Fetch intraday bars, update indicators, store BUY/SELL/HOLD signals. | Every 15 minutes |
+| `signal-replay` | `pipe/flows/signal_replay.py` | Rebuild historical signals and backtests (default: 2 years). | Nightly at 00:15 UTC |
+| `notification-sender` | `pipe/flows/notification_sender.py` | Email subscribers when strength ≥ threshold. | Every 15 minutes (offset 10 min) |
+
+Run flows ad-hoc with `python -m flows.<name>` or register the deployments with Prefect Cloud (see [docs/RUNBOOK.md](docs/RUNBOOK.md)).
+Enable schedules via `python -m deployments.register --work-pool <pool>` and manage them with Prefect Cloud or `prefect deployment pause|resume <flow>/<deployment>`.
+
 ## Quick Setup (Local Development)
 
 **Get running in 5 minutes:**
@@ -54,9 +70,11 @@ signals/
 docker-compose up -d
 export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/trading_signals"
 
-# 2. Schema & Historical Data (~60 days of 15m bars)
+# 2. Schema & Historical Data (~2 years of daily bars)
 python scripts/setup_db.py
-python scripts/seed_historical_data.py
+cd pipe
+python -m flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
+python -m flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
 
 # 3. Backend API
 cd backend && uvicorn main:app --reload  # http://localhost:8000
@@ -65,7 +83,8 @@ cd backend && uvicorn main:app --reload  # http://localhost:8000
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
-cd pipe && python -m flows.signal_generation  # Run once
+python -m flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+python -m flows.notification_sender --min-strength 60
 ```
 
 **See** `scripts/README.md` for production setup (Supabase) and troubleshooting.
@@ -154,27 +173,39 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with DATABASE_URL and RESEND_API_KEY
 
-# Test the flow locally (runs once)
-python -m flows.signal_generation
+# Backfill + indicators
+python -m flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
+python -m flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
 
-# Deploy to Prefect Cloud (runs every 15 min)
+# Generate latest intraday signals + send notifications
+python -m flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+python -m flows.notification_sender --min-strength 60
+
+# Optional: register Prefect deployments / schedules
 prefect cloud login
-python schedules.py
+python -m deployments.register --work-pool default-prefect-managed-wp
+# Pause/resume with Prefect CLI:
+#   prefect deployment pause signal-generation/intraday-15m
+#   prefect deployment resume signal-generation/intraday-15m
 ```
 
-**Simple approach:** One flow (`generate_signals_flow`) with 4 tasks (fetch → calculate → generate → notify). See [`pipe/README.md`](pipe/README.md) for details.
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) for flow commands, deployment management, and troubleshooting.
 
 ## Environment Variables
 
-### Backend (.env)
+### Backend / Pipeline (`backend/.env`, `pipe/.env`)
 
 ```env
 DATABASE_URL=postgresql://...
 RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL="Signals Bot <onboarding@resend.dev>"
+SIGNAL_NOTIFY_THRESHOLD=60
+APP_BASE_URL=https://signalsapp.dev
+SIGNAL_SYMBOLS=BTC-USD,AAPL,IVV,BRL=X
 POSTHOG_API_KEY=phc_...
 ```
 
-### Frontend (.env.local)
+### Frontend (`frontend/.env.local`)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
@@ -196,14 +227,11 @@ cd frontend && bun run dev
 cd prefect && python flows/generate_signals.py
 ```
 
-### Testing
+### Diagnostics & Testing
 
-```bash
-pip install pytest
-pytest -q
-```
-
-See `tests/README.md` for test layout and fixture info.
+- **Pipeline smoke test**: `curl "http://localhost:8000/api/market-data/BTC-USD/ohlcv?range=2y&limit=5000"` to confirm history is loaded.
+- **Diagnostics UI**: visit `http://localhost:3000/admin/backtest` to inspect signals, OHLCV rows, and backtest summaries after each flow run.
+- **Automated tests**: `pip install pytest && pytest -q` (see `tests/README.md`).
 
 ## Documentation
 

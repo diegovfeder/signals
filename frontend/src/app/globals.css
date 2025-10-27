@@ -189,15 +189,27 @@ body {
   /* Enhanced buttons */
   .btn-primary {
     @apply relative font-medium px-6 py-3 rounded-xl transition-all duration-300 focus:outline-none overflow-hidden;
-    background: var(--primary-alpha-80);
-    border: 1px solid var(--primary-alpha-30);
-    color: white;
-    backdrop-filter: blur(10px);
+    background: linear-gradient(
+      130deg,
+      color-mix(in srgb, var(--color-buy-light) 85%, transparent) 0%,
+      var(--color-buy) 55%,
+      color-mix(in srgb, var(--color-buy-dark) 90%, black 5%) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--color-buy-light) 50%, var(--white-20));
+    color: #f8fafc;
+    box-shadow: 0 8px 30px rgba(5, 150, 105, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(12px);
   }
 
   .btn-primary:hover {
-    background: var(--primary-alpha-100);
-    box-shadow: var(--shadow-button-primary);
+    background: linear-gradient(
+      130deg,
+      color-mix(in srgb, var(--color-buy-light) 95%, white 5%) 0%,
+      color-mix(in srgb, var(--color-buy) 90%, white 10%) 50%,
+      color-mix(in srgb, var(--color-buy-dark) 90%, black 10%) 100%
+    );
+    border-color: color-mix(in srgb, var(--color-buy-light) 70%, var(--white-30));
+    box-shadow: 0 12px 35px rgba(5, 150, 105, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
   .btn-secondary {

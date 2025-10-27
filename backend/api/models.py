@@ -4,7 +4,7 @@ SQLAlchemy ORM Models
 Database models corresponding to the schema.
 """
 
-from sqlalchemy import Column, String, DECIMAL, BigInteger, TIMESTAMP, Boolean, ARRAY, Text, ForeignKey
+from sqlalchemy import Column, String, DECIMAL, BigInteger, TIMESTAMP, Boolean, ARRAY, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from .database import Base
@@ -99,3 +99,20 @@ class SentNotification(Base):
     email = Column(String(255), nullable=False)
     signal_id = Column(UUID(as_uuid=True), ForeignKey("signals.id", ondelete="CASCADE"))
     sent_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
+class Backtest(Base):
+    """Backtest summary snapshots."""
+    __tablename__ = "backtests"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    symbol = Column(String(20), ForeignKey("symbols.symbol", ondelete="CASCADE"))
+    range_label = Column(String(10))
+    start_timestamp = Column(TIMESTAMP(timezone=True))
+    end_timestamp = Column(TIMESTAMP(timezone=True))
+    trades = Column(Integer)
+    win_rate = Column(DECIMAL(5, 2))
+    avg_return = Column(DECIMAL(6, 2))
+    total_return = Column(DECIMAL(10, 2))
+    rule_version = Column(String(50))
+    generated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())

@@ -8,7 +8,8 @@
  */
 
 import type { Metadata } from 'next'
-import Navbar from '@/components/sections/Navbar'
+import Link from 'next/link'
+import AppHeader from '@/components/layout/AppHeader'
 import Hero from '@/components/sections/Hero'
 import ValueProps from '@/components/sections/ValueProps'
 import HowItWorks from '@/components/sections/HowItWorks'
@@ -25,8 +26,14 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <>
-      <Navbar />
       <main>
+        <AppHeader
+          rightSlot={
+            <Link href="/dashboard" className="btn-primary text-sm">
+              Go to Dashboard
+            </Link>
+          }
+        />
         <Hero />
         <ValueProps />
         <HowItWorks />

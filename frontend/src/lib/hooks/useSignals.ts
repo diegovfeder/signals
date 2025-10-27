@@ -40,6 +40,16 @@ export interface BacktestSummary {
   notes?: string | null
 }
 
+export interface SubscriberSummary {
+  email: string
+  subscribed_at?: string | null
+  confirmed: boolean
+  confirmed_at?: string | null
+  unsubscribed: boolean
+  confirmation_token?: string | null
+  unsubscribe_token?: string | null
+}
+
 async function fetchSignals(): Promise<Signal[]> {
   const data = await api.get<{ signals: Signal[] }>('/api/signals', {
     limit: '50',
@@ -104,5 +114,39 @@ export function useBacktestSummary(symbol: string, range: string) {
         `/api/backtests/${encodeURIComponent(symbol)}`,
         { range },
       ),
+  })
+}
+
+type SubscriberQueryOptions = {
+  includeUnsubscribed?: boolean
+  includeTokens?: boolean
+  limit?: number
+  offset?: number
+}
+
+export function useSubscribers(options: SubscriberQueryOptions = {}) {
+  const {
+    includeUnsubscribed = true,
+    includeTokens = false,
+    limit = 100,
+    offset = 0,
+  } = options
+
+  const params: Record<string, string> = {
+    include_unsubscribed: String(includeUnsubscribed),
+    include_tokens: String(includeTokens),
+    limit: String(limit),
+    offset: String(offset),
+  }
+
+  return useQuery({
+    queryKey: ['subscribers', params],
+    queryFn: async () =>
+      api.get<{ subscribers: SubscriberSummary[]; total: number }>(
+        '/api/subscribe',
+        params,
+      ),
+    staleTime: 60_000,
+    keepPreviousData: true,
   })
 }

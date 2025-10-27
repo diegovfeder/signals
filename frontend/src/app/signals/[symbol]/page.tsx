@@ -280,7 +280,7 @@ export default function SignalDetail({
                   <li className="flex gap-2">
                     <span className="text-primary">•</span>
                     <span>
-                      Use the range selector to inspect 1M–5Y performance before
+                      Use the range selector to inspect 1M–2Y performance before
                       tweaking rules.
                     </span>
                   </li>
@@ -290,7 +290,7 @@ export default function SignalDetail({
                       Run{" "}
                       <code className="font-mono text-xs">
                         python -m flows.signal_generation --mode backfill
-                        --backfill-range 5y
+                        --backfill-range 2y
                       </code>{" "}
                       to refresh history.
                     </span>

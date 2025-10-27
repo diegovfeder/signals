@@ -1,377 +1,205 @@
 # System Architecture
 
-## Overview
+_Last updated: October 2025_
 
-This MVP is a lean, end‑to‑end signals system optimized for a small development team. A single Prefect flow fetches 15‑minute OHLCV data from Yahoo Finance for four assets, computes RSI/EMA, generates rule‑based signals with a strength score, persists results to Supabase, triggers emails via Resend on strong signals, and serves read‑only data via a FastAPI backend consumed by a Next.js frontend.
+This document describes how data moves through the Signals stack after the strategy refactor and the subscription UX refresh. Treat it as the source of truth when onboarding new engineers or deciding where to plug in new features.
 
-- **Scope (MVP)**: 4 assets, 15‑minute bars, RSI + EMA indicators, rule‑based signals, email notifications, read‑only dashboard.
-- **Non‑goals (MVP)**: Auth, multi‑timeframe resampling, per‑asset custom logic, Telegram/other channels, advanced backtesting.
-- **Operational model**: Scheduled every 15 minutes with retries and logging in Prefect; simple, single‑flow design for speed and reliability.
+---
 
-See the data flow diagram below for the detailed sequence.
+## 1. High-Level View
 
-## High-Level Data Flow
+| Layer | Tech | Responsibilities |
+| --- | --- | --- |
+| Pipeline (`pipe/`) | Prefect 2 + pandas + psycopg | Fetch OHLCV data, normalize bars, compute indicators, pick a strategy per symbol, emit BUY/SELL/HOLD + strength, seed backtests, trigger emails. |
+| Backend (`backend/`) | FastAPI + SQLAlchemy/psycopg | Read-only REST API for signals, indicators, market data, backtests, and subscriber management. |
+| Frontend (`frontend/`) | Next.js 15 + React Query + Chart.js | Marketing site + dashboard, live signals grid, symbol detail chart, reusable signup component. |
+| Database (`db/`) | PostgreSQL (local docker-compose) | Durable storage for `market_data`, `indicators`, `signals`, `backtests`, `email_subscribers`, etc. |
+| Messaging | Resend (HTTP API) | Confirmation + high-confidence alert emails (Phase 2 automation lives in `flows/notification_sender.py`). |
+
+### Execution Graph (simplified)
 
 ```mermaid
-graph LR
-    YF[Yahoo Finance API] -->|15m OHLCV| PREFECT[Prefect Flow]
-    PREFECT -->|Calculate| IND[RSI + EMA]
-    IND -->|Generate| SIG[Signals]
-    SIG -->|Save| DB[(Supabase)]
-    SIG -->|Email| RESEND[Resend API]
-    RESEND -->|Notify| USER[User]
-    DB -->|Read| API[FastAPI]
-    API -->|JSON| NEXT[Next.js]
-    NEXT -->|Display| USER
+graph TD
+    subgraph Pipeline
+      A[Historical Backfill Flow<br/>python -m flows.historical_backfill] --> B(Indicators Task)
+      B --> C(Strategy Engine)
+      C --> D[Signals Table]
+      D --> E[Backtests Table]
+      subgraph Intraday
+        F[Signal Generation Flow<br/>python -m flows.signal_generation] --> B
+      end
+      G[Signal Replay Flow] --> C
+      H[Notification Sender] --> RESEND
+    end
+    YF[Alpha Vantage + Yahoo Finance] --> A
+    YF --> F
+    DB[(PostgreSQL)] --> API
+    API --> NEXT
+    NEXT --> USER
+    D --> RESEND
+    RESEND --> USER
 ```
 
-## Components
+---
 
-### 1. Data Pipeline (Prefect)
+## 2. Data Pipeline
 
-**Purpose**: Fetch data, calculate indicators, generate signals
+All reusable logic lives under `pipe/tasks/`. Flows in `pipe/flows/` are orchestration shells with CLI entry points.
 
-**Single Flow Approach**: Start with one flow that does everything, split later if needed
+### Shared Tasks
 
-**Flow Structure**:
+- `tasks/market_data.py`
+  - Resolves input symbols/ranges (`resolve_symbols`, `resolve_history_days`).
+  - Calls Alpha Vantage intraday endpoints when available; falls back to the Yahoo Finance chart API for longer history.
+  - Handles per-provider rate limits with locks, throttling, and graceful downgrade logs.
+  - Upserts bars into `market_data` with `ON CONFLICT (symbol, timestamp)` semantics.
+- `tasks/indicators.py`
+  - Pulls the requested window from `market_data`, computes RSI/EMA/MACD via pandas, and writes rows into `indicators`.
+- `tasks/signals.py`
+  - Loads the most recent indicator row, hydrates a `StrategyInputs` dataclass, picks a strategy using the registry (see §3), and persists/updates the `signals` table.
+  - Emits structured logs used by Prefect and by the replay/backtest flow.
+- `tasks/db.py`
+  - Normalizes SQLAlchemy-style URLs (e.g., `postgresql+psycopg://`) for psycopg, centralizes connection helpers, and enforces UTC timestamps.
+
+### Flows
+
+| Flow | Module | Typical command | Notes |
+| --- | --- | --- | --- |
+| Historical backfill | `flows/historical_backfill.py` | `python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` | Fetches up to N days of daily data per symbol, backfills indicators, and guarantees enough history for replay. |
+| Intraday signal generation | `flows/signal_generation.py` | `python -m flows.signal_generation --symbols BTC-USD,AAPL` | Pulls the newest intraday slice (Alpha → Yahoo fallback), refreshes indicators for the tail window, generates a fresh signal per symbol, and logs BUY/SELL/HOLD decisions. |
+| Signal replay / backtest | `flows/signal_replay.py` | `python -m flows.signal_replay --symbols BTC-USD --range-label 2y` | Replays historical indicators to rebuild the `signals` table and writes summary rows into `backtests`. Conflict handling ensures timestamps are upserted instead of duplicated. |
+| Notification sender | `flows/notification_sender.py` | `python -m flows.notification_sender --min-strength 70` | Queries for the last strong signal per symbol and sends Resend emails to confirmed subscribers (real automation scheduled after MVP). |
+
+Deployments live in `pipe/deployments/register.py`; run `python -m deployments.register --work-pool <pool>` to register schedules in Prefect Cloud (intraday every 15 min, replay nightly, notifications offset by 10 minutes).
+
+---
+
+## 3. Strategy Registry
+
+The new signal layer lives under `pipe/data/signals/strategies/` and exposes a `Strategy` protocol plus concrete implementations:
+
+- `StockMeanReversionStrategy` – RSI-driven mean reversion tuned for equities/ETFs (`AAPL`, `IVV`, `BRL=X`). Looks for RSI reclaiming the 35–40 zone, EMA compression, and penalizes extended overbought readings to issue SELL or HOLD.
+- `CryptoMomentumStrategy` – Momentum-first strategy for `BTC-USD`. Rewards faster EMA separation, MACD histogram surges, and includes profit-taking SELLs when RSI > 72 with weakening momentum.
+- `HoldStrategy` – Fallback that keeps the symbol in HOLD with a neutral reasoning line (used when a symbol isn’t mapped).
+
+Usage model:
 
 ```python
-generate_signals_flow():
-  # 1. Fetch 15m data from Yahoo Finance (BTC-USD, AAPL, IVV, BRL=X)
-  # 2. Calculate RSI (14-period) and EMA (12/26) for each asset
-  # 3. Apply signal rules (RSI < 30 = BUY, etc.) - same logic for all assets
-  # 4. Calculate strength score (0-100) per asset
-  # 5. Save to Supabase
-  # 6. If any asset signal strength >= 70, send email via Resend
+from pipe.data.signals.strategies import get_strategy, StrategyInputs
+
+strategy = get_strategy("BTC-USD")
+result = strategy.generate(StrategyInputs(...))
 ```
 
-**Schedule**: Every 15 minutes (`*/15 * * * *`)
+- Registry defaults are defined in `_DEFAULT_SYMBOL_MAPPING`.
+- Override any mapping at runtime via environment variables: `SIGNAL_MODEL_BTC_USD=crypto_momentum`. We normalize the env key so `SIGNAL_MODEL_IVV=stock_mean_reversion` just works. Use double underscores to encode `/` in forex pairs (e.g., `SIGNAL_MODEL_BRL__X=stock_mean_reversion`).
+- Strategies return a `StrategyResult(signal_type, reasoning[], strength)` which the pipeline writes directly to the database and the frontend displays verbatim.
 
-**Error Handling**:
-
-- Retry 3 times with exponential backoff (Prefect built-in)
-- Log errors to Prefect Cloud
-- Alert on 2 consecutive failures
-
-**Key Decisions**:
-
-- Fetch 15m data directly (no 5m → 15m resampling in MVP)
-- Single flow keeps it simple for small dev team
-- Use `@task` decorators for testable units
-- Prefect handles scheduling, retries, logging
-- Same indicator logic for all asset types (asset-agnostic approach)
-- Ignore market hours in MVP (24/7 operation, even for stocks/ETFs)
+When data scientists introduce a new heuristic, they add a file next to the existing strategies and register it inside `pipe/data/signals/strategies/__init__.py`. All flows automatically pick it up on the next run or replay.
 
 ---
 
-### 2. Database (Supabase)
+## 4. Database
 
-**Purpose**: Store assets, OHLCV data, indicators, signals, and subscribers
-
-**Core Tables** (5 essential):
-
-1. **assets** - Tracks 4 asset types: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
-2. **ohlcv** - Raw 15-minute price data for all assets
-3. **indicators** - RSI, EMA-12, EMA-26 values per asset
-4. **signals** - Generated BUY/HOLD signals with strength scores per asset
-5. **email_subscribers** - Double opt-in subscribers with tokens
-
-**Key Design Decisions**:
-
-- Single `ohlcv` table (no 5m/15m split in MVP)
-- `UNIQUE(asset_id, timestamp)` prevents duplicates
-- Indexes on `(asset_id, timestamp DESC)` for fast time-series queries
-- `confirmed` flag on subscribers for double opt-in
-
-**Schema Location**: `db/schema.sql`
-
-**Seed Data**: `db/seeds/symbols.sql` (BTC-USD, AAPL, IVV, BRL=X)
+- **Engine**: PostgreSQL 15 via `docker-compose up -d`.
+- **Schema file**: `db/schema.sql` (idempotent, safe to re-run).
+- **Key tables**:
+  - `market_data` – canonical OHLCV history (`symbol`, `timestamp`, `open`, `high`, `low`, `close`, `volume`).
+  - `indicators` – RSI, EMA(12/26), MACD histogram, derived for the same timestamps as `market_data`.
+  - `signals` – per-symbol BUY/SELL/HOLD entries with `strength`, `strategy_name`, `rule_version`, `idempotency_key`.
+  - `backtests` – summary metrics produced by the replay flow.
+  - `email_subscribers` – double opt-in tracking: `confirmed`, `confirmation_token`, `unsubscribe_token`, `unsubscribed`.
+- **Constraints**: `UNIQUE(symbol, timestamp)` on data tables to make upserts cheap; `signals` uses the same constraint so replays overwrite instead of duplicating.
+- **Connection string**: `postgresql+psycopg://quantmaster:buysthedip@localhost:5432/signals`. The `+psycopg` suffix keeps SQLAlchemy happy while `tasks/db.py` strips it for raw psycopg connections.
 
 ---
 
-### 3. Backend API (FastAPI)
+## 5. Backend API
 
-**Purpose**: Serve signals and market data to frontend
+Located in `backend/`. Highlights:
 
-**Core Endpoints** (Keep it minimal):
+- `api/main.py` wires routers for signals, market data, backtests, and subscribe/unsubscribe.
+- `api/routers/signals.py` offers list, latest, and history endpoints, including the `strength`, `reasoning`, and `strategy_name` fields required by the dashboard.
+- `api/routers/market_data.py` streams OHLCV and indicators slices (with range filters the frontend’s chart uses).
+- `api/routers/backtests.py` exposes the latest replay summary per symbol/range; returns sensible placeholders if no backtest exists.
+- `api/routers/subscribe.py` handles POST `/api/subscribe` and `/api/subscribe/unsubscribe/{token}`. We store a confirmation token for Phase 2 email verification even though the MVP form just thanks the user inline.
+- `api/routers/health.py` (via `main.py`) checks the DB with `SELECT 1`.
 
-- `GET /api/signals` - List recent signals (with pagination)
-- `GET /api/signals/{id}` - Single signal with OHLCV context
-- `POST /api/subscribe` - Start double opt-in flow
-- `GET /api/confirm` - Confirm email subscription
-- `GET /api/unsubscribe` - Unsubscribe from emails
-- `GET /api/health` - System health check
-
-**Key Patterns**:
-
-- Use Pydantic models for request/response validation
-- Supabase client for database queries
-- Async endpoints for better performance
-- CORS configured for frontend domain
-- Rate limiting: 100 req/min per IP
-
-**Tech Stack**:
-
-- FastAPI for routing and validation
-- SQLAlchemy for database queries (optional, can use Supabase client directly)
-- Resend for email sending
-- PostHog for analytics events
-
----
-
-### 4. Frontend (Next.js)
-
-**Purpose**: Landing page and dashboard
-
-**Page Structure** (App Router):
+FastAPI runs locally with:
 
 ```bash
-app/
-├── page.tsx              # Landing page
-├── dashboard/page.tsx    # Signal list
-├── signals/page.tsx      # Signal list
-└── signals/[symbol]/page.tsx  # Signal detail with chart
+cd backend
+uvicorn api.main:app --reload --port 8000
 ```
 
-**Key Components**:
-
-- `<SignalCard />` - Display signal summary
-- `<PriceChart />` - Chart with indicators overlaid
-- `<EmailSignup />` - Subscription form with validation
-- `<StrengthBadge />` - Color-coded strength indicator
-
-**Design System**:
-
-- TailwindCSS for styling
-- Dark theme inspired by Resend
-- Minimal, professional aesthetic
-- Responsive mobile-first design
-
-**Data Fetching Strategy**:
-
-- Server Components for initial page loads (SEO)
-- Consider TanStack Query for client-side data management (post-MVP)
-- Start with simple fetch, optimize later
-
-**State Management**:
-
-- Server Components reduce need for client state
-- React Context for theme/user preferences (if needed)
-- Keep it simple - avoid over-engineering
+Set `DATABASE_URL`, `RESEND_API_KEY`, and `CORS_ORIGINS` in `backend/.env`.
 
 ---
 
-### 5. Email Service (Resend)
+## 6. Frontend
 
-**Purpose**: Send signal notifications
+Next.js 15 (App Router) with Bun.
 
-**Email Flow**:
+- `src/app/page.tsx` – marketing landing page made of modular sections (Hero, Value props, Coverage, CTA). The Hero now embeds the shared `<SubscribeForm />` so visitors can join the email list immediately.
+- `src/app/dashboard/page.tsx` – authenticated-lite dashboard that fetches signals via TanStack Query (`useSignals`) and shows the same subscribe component for visitors coming from emails.
+- `src/app/signals/[symbol]/page.tsx` – detail view with Chart.js + indicator overlays and room for backtest stats.
+- `src/components/forms/SubscribeForm.tsx` – client component that posts to `/api/subscribe`, handles success/error messaging, and is reusable across sections.
+- Providers (`src/app/providers.tsx`) wrap the tree with a `QueryClientProvider`.
 
-1. User subscribes → Confirmation email sent
-2. User clicks link → Subscription confirmed → Welcome email
-3. Strong signal generated → Notification email sent
-4. User can unsubscribe via one-click link
-
-**Email Types**:
-
-- **Confirmation**: Double opt-in verification
-- **Welcome**: What to expect, how to read signals
-- **Signal Notification**: Plain English explanation with reasoning
-- **Digest** (Phase 2): Weekly summary
-
-**Configuration Requirements**:
-
-- DKIM/SPF/DMARC setup for domain
-- `List-Unsubscribe` header for compliance
-- Webhooks for tracking opens/bounces
+Configure the API origin via `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`). Tailwind 4 powers the design system; button tokens live in `src/app/globals.css`.
 
 ---
 
-## Data Flow Sequence
+## 7. Email + Subscription Flow
 
-### Every 15 Minutes (Automated)
+1. User enters an email on the landing page or dashboard.
+2. `<SubscribeForm />` calls `POST /api/subscribe` → backend creates/updates a row in `email_subscribers`, issuing new confirmation + unsubscribe tokens if needed.
+3. API currently returns a friendly message. In Phase 2 the notification sender will pick up confirmed emails and Resend will deliver both confirmation and signal alerts.
+4. Users can self-serve removal via `POST /api/subscribe/unsubscribe/{token}` (link to be embedded in future emails).
 
-```mermaid
-sequenceDiagram
-    participant PREFECT as Prefect Flow
-    participant YF as Yahoo Finance
-    participant DB as Supabase
-    participant RESEND as Resend
-    participant USER as User
-
-    PREFECT->>YF: Fetch 4 assets 15m data (BTC, AAPL, IVV, BRL)
-    YF-->>PREFECT: OHLCV data
-    PREFECT->>PREFECT: Calculate RSI, EMA per asset
-    PREFECT->>PREFECT: Generate signals per asset
-    PREFECT->>DB: Save all signals
-
-    alt Any signal strength >= 70
-        PREFECT->>DB: Get confirmed subscribers
-        DB-->>PREFECT: Email list
-        PREFECT->>RESEND: Send notifications
-        RESEND-->>USER: Email delivered
-    end
-```
-
-### User Visits Dashboard
-
-```mermaid
-sequenceDiagram
-    participant USER as User Browser
-    participant NEXT as Next.js
-    participant API as FastAPI
-    participant DB as Supabase
-
-    USER->>NEXT: GET /dashboard
-    NEXT->>API: GET /api/signals
-    API->>DB: SELECT * FROM signals
-    DB-->>API: Signals data
-    API-->>NEXT: JSON response
-    NEXT->>NEXT: Render page (SSR)
-    NEXT-->>USER: HTML with signals
-```
+`flows/notification_sender.py` already contains the plumbing to email confirmed subscribers when a signal stronger than `SIGNAL_NOTIFY_THRESHOLD` occurs; we only need to wire scheduling + templates once Resend credentials are live.
 
 ---
 
-## Technology Choices
+## 8. Data Quality & Observability
 
-### Why Supabase?
-
-- You already know it
-- PostgreSQL (reliable, mature)
-- Free tier: 500MB storage, unlimited API requests
-- Built-in auth (for Phase 2)
-- Real-time subscriptions (for Phase 2)
-
-### Why Prefect?
-
-- Python-native (same as FastAPI)
-- Built-in scheduling (no cron needed)
-- Retry logic and error handling
-- Observability dashboard
-- Free tier: 20K task runs/month
-
-### Why FastAPI?
-
-- Fast (async support)
-- Auto-generated docs (Swagger UI)
-- Type safety (Pydantic)
-- Easy to learn coming from Node.js/NestJS
-- Share code with Prefect flows
-
-### Why Next.js?
-
-- Your core expertise
-- Server-side rendering (SEO)
-- Vercel deployment (free, instant)
-- React Server Components (less JS)
-- App Router with built-in patterns
-
-### Why Resend?
-
-- Simple API
-- High deliverability (DKIM/SPF/DMARC)
-- Free tier: 3K emails/month
-- Webhooks for tracking
-- Great developer experience
+- Prefect manages retries (3 attempts with exponential backoff) and emits structured logs that show up in Prefect Cloud’s UI.
+- Alpha Vantage calls are rate-limited via `_ALPHA_RATE_LOCK` and fall back to Yahoo automatically when the quota is exceeded or when we request >500 days of history.
+- `pipe/data/utils/data_validation.py` (planned) hosts sanity checks (no negative prices, gap detection). Hook it into the flows as we mature the pipeline.
+- Replay flow uses `ON CONFLICT DO UPDATE` to keep signals consistent whenever strategies change.
+- Future enhancements: Prefect deployment alerts, Slack/email ops notifications, DB-level monitoring.
 
 ---
 
-## Deployment
+## 9. Deployment & Configuration
 
-### Vercel (Frontend + API)
+Environment variable quick reference (aggregate from `.env.example` files):
 
-- Frontend: Automatic deployment from main branch
-- Backend: Deploy as Vercel Serverless Functions (or separate if preferred)
-- Environment variables configured in Vercel dashboard
+| Variable | Description | Location |
+| --- | --- | --- |
+| `DATABASE_URL` | `postgresql+psycopg://…` connection string shared by pipeline + backend. | backend, pipe |
+| `ALPHA_VANTAGE_API_KEY` | Required for Alpha Vantage intraday fetches. | pipe |
+| `SIGNAL_SYMBOLS` | Optional comma-separated overrides for flows. | pipe |
+| `BACKFILL_RANGE` / `BACKFILL_DAYS` | Preferred range for historical flow when CLI args aren’t provided. | pipe |
+| `SIGNAL_MODEL_<SYMBOL>` | Override per-symbol strategies (e.g., `SIGNAL_MODEL_ETH_USD=crypto_momentum`). | pipe |
+| `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength to email from notification flow. | pipe |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Email sender credentials. | backend, pipe |
+| `NEXT_PUBLIC_API_URL` | Frontend → backend base URL. | frontend |
 
-### Prefect Cloud (Pipeline)
+Deployment targets:
 
-- Deploy flow with `prefect deploy`
-- Schedule configured in Prefect Cloud UI
-- Logs and monitoring built-in
-
-### Supabase (Database)
-
-- Create project at supabase.com
-- Run migrations via SQL editor
-- Connection string in environment variables
-
----
-
-## Integration Points
-
-### Pipeline → Database
-
-Prefect flows write directly to Supabase using connection string.
-Use SQLAlchemy or Supabase Python client.
-
-### Database → API
-
-FastAPI reads from Supabase using async queries.
-Consider connection pooling for production.
-
-### API → Frontend
-
-Next.js fetches from FastAPI endpoints.
-Server Components for initial load, client fetching for interactivity.
-
-### Resend Integration
-
-Used in both Prefect (notifications) and FastAPI (confirmations).
-Same API key, different purposes.
+- **Frontend**: Vercel (Bun/Next.js). Add environment variables via the Vercel dashboard.
+- **Backend**: Vercel functions, Railway, or Fly.io – any place that can run FastAPI + psycopg.
+- **Pipeline**: Prefect Cloud deployments (historical backfill on-demand, intraday generation every 15 min, replay nightly, notification sender right after the intraday flow).
 
 ---
 
-## Security Considerations
+## 10. Related Docs
 
-### API Security
+- [CURRENT_STATE.md](CURRENT_STATE.md) – step-by-step onboarding + CLI commands.
+- [DATA-SCIENCE.md](DATA-SCIENCE.md) – indicator math and strategy heuristics.
+- [TODOs.md](TODOs.md) – prioritized backlog.
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) – change log of what’s been built.
+- [MVP.md](MVP.md) – business scope and success metrics.
 
-- Rate limiting: 100 req/min per IP
-- CORS: Whitelist frontend domain only
-- Input validation: Pydantic schemas on all endpoints
-- SQL injection: Use parameterized queries
-
-### Database Security
-
-- SSL/TLS connections required
-- Environment variables for credentials (never in code)
-- Row-level security in Supabase (Phase 2)
-
-### Email Security
-
-- Double opt-in prevents spam signups
-- Unsubscribe tokens: 32-byte random (cryptographically secure)
-- List-Unsubscribe header for RFC 8058 compliance
-- DKIM/SPF/DMARC prevents email spoofing
-
----
-
-## Monitoring
-
-### Health Checks
-
-- Prefect Cloud: Flow run history, task durations
-- Supabase: Query performance, connection pool
-- Vercel: Page load times, API response times
-- PostHog: User events, funnels
-
-### Alerts (Set up after MVP works)
-
-- Prefect: Email on flow failure
-- Supabase: Monitor connection pool usage
-- Resend: Webhook for bounce rate spikes
-
----
-
-## Next Steps
-
-1. Set up Supabase project and run migrations
-2. Implement Prefect flow locally (test with manual run)
-3. Build FastAPI endpoints (test with Swagger UI)
-4. Create Next.js pages (start with landing page)
-5. Deploy and test end-to-end
-
-For indicator details, see [DATA-SCIENCE.md](DATA-SCIENCE.md)
-
-For project scope, see [MVP.md](MVP.md)
+Keep this document updated whenever the architecture shifts (new data providers, strategy bundles, notification transports, etc.).

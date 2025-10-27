@@ -23,7 +23,7 @@ RANGE_TO_DAYS = {
     "3m": 90,
     "6m": 180,
     "1y": 365,
-    "5y": 365 * 5,
+    "2y": 365 * 2,
 }
 
 
@@ -44,7 +44,7 @@ async def get_market_data(
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,
-        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 5y). When provided, results are filtered to this window.",
+        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 2y). When provided, results are filtered to this window.",
     ),
     db: Session = Depends(get_db),
 ):
@@ -90,7 +90,7 @@ async def get_indicators(
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,
-        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 5y).",
+        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 2y).",
     ),
     db: Session = Depends(get_db),
 ):

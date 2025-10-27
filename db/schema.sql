@@ -82,6 +82,24 @@ CREATE INDEX idx_signals_symbol_time ON signals(symbol, timestamp DESC);
 CREATE INDEX idx_signals_strength ON signals(strength DESC);
 CREATE INDEX idx_signals_type ON signals(signal_type);
 
+-- Backtest summaries
+CREATE TABLE IF NOT EXISTS backtests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    symbol VARCHAR(20) REFERENCES symbols(symbol) ON DELETE CASCADE,
+    range_label VARCHAR(10),
+    start_timestamp TIMESTAMPTZ,
+    end_timestamp TIMESTAMPTZ,
+    trades INTEGER,
+    win_rate DECIMAL(5, 2),
+    avg_return DECIMAL(6, 2),
+    total_return DECIMAL(10, 2),
+    rule_version VARCHAR(50),
+    generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_backtests_symbol_range_rule
+ON backtests(symbol, range_label, rule_version);
+
 -- Email subscribers (no authentication, email-only with double opt-in)
 CREATE TABLE email_subscribers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -129,4 +147,3 @@ COMMENT ON TABLE indicators IS 'Calculated technical indicators (RSI, EMA12, EMA
 COMMENT ON TABLE signals IS 'Generated trading signals with confidence scores and idempotency';
 COMMENT ON TABLE email_subscribers IS 'Email subscribers with double opt-in confirmation';
 COMMENT ON TABLE sent_notifications IS 'Audit log of sent emails for rate limiting and tracking';
-

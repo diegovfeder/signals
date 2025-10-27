@@ -4,117 +4,133 @@ Notification Sender Flow
 Send email alerts for strong trading signals.
 """
 
+from __future__ import annotations
+
+from typing import Dict, List, Optional
+
 from prefect import flow, task
-from typing import List, Dict
+
+from tasks.db import get_db_conn
+from tasks.email_sending import send_signal_notification
+from settings import signal_notify_threshold
 
 
 @task(name="fetch-strong-signals")
-def fetch_strong_signals(min_strength: float = 70.0) -> List[Dict]:
+def fetch_strong_signals(min_strength: Optional[float] = None, window_minutes: int = 60) -> List[Dict]:
+    """Fetch signals above a strength threshold generated within the last `window_minutes`."""
+    threshold = min_strength if min_strength is not None else signal_notify_threshold()
+    query = """
+        SELECT id, symbol, signal_type, strength, reasoning, price_at_signal, generated_at
+        FROM signals
+        WHERE strength >= %s
+          AND generated_at >= NOW() - %s::interval
+        ORDER BY generated_at DESC
     """
-    Fetch recent strong signals from database.
-
-    Args:
-        min_strength: Minimum signal strength to send (default: 70)
-
-    Returns:
-        List of signal dicts
-    """
-    # TODO: Implement database query
-    # 1. Query signals table
-    # 2. Filter by strength >= min_strength
-    # 3. Filter by generated_at within last hour
-    # 4. Return list of signals
-
-    raise NotImplementedError("Strong signal fetching not yet implemented")
+    interval = f"{max(window_minutes, 1)} minutes"
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute(query, (threshold, interval))
+        rows = cur.fetchall()
+    signals = []
+    for row in rows:
+        signal_id, symbol, signal_type, strength, reasoning, price, generated_at = row
+        signals.append(
+            {
+                "id": str(signal_id),
+                "symbol": symbol,
+                "signal_type": signal_type,
+                "strength": float(strength),
+                "reasoning": reasoning or [],
+                "price": float(price) if price is not None else None,
+                "at": generated_at.isoformat() if generated_at else None,
+            }
+        )
+    return signals
 
 
 @task(name="get-subscribers")
-def get_email_subscribers() -> List[str]:
+def get_email_subscribers() -> List[Dict]:
+    """Return confirmed, active subscribers with their unsubscribe tokens."""
+    query = """
+        SELECT email, unsubscribe_token
+        FROM email_subscribers
+        WHERE confirmed = TRUE
+          AND (unsubscribed = FALSE OR unsubscribed IS NULL)
     """
-    Get list of active email subscribers.
-
-    Returns:
-        List of email addresses
-    """
-    # TODO: Implement database query
-    # 1. Query email_subscribers table
-    # 2. Filter by unsubscribed = false
-    # 3. Return list of emails
-
-    raise NotImplementedError("Subscriber fetching not yet implemented")
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute(query)
+        rows = cur.fetchall()
+    sanitized = []
+    for email, token in rows:
+        clean_email = (email or "").strip().strip('"').strip("'")
+        sanitized.append(
+            {
+                "email": clean_email,
+                "unsubscribe_token": token,
+            }
+        )
+    return sanitized
 
 
 @task(name="check-rate-limit")
-def should_send_email(email: str, signal_id: str) -> bool:
+def should_send_email(email: str, signal_id: str, symbol: str) -> bool:
     """
-    Check if we should send email (rate limiting).
-
-    Rules:
-        - Max 1 email per symbol per 6 hours per user
-
-    Args:
-        email: User email
-        signal_id: Signal ID
-
-    Returns:
-        True if should send, False otherwise
+    Enforce rate limiting: max one email per subscriber per symbol per 6 hours.
     """
-    # TODO: Implement rate limit check
-    # 1. Query sent_notifications table
-    # 2. Check if email was sent for this symbol in last 6 hours
-    # 3. Return boolean
-
-    raise NotImplementedError("Rate limit check not yet implemented")
+    query = """
+        SELECT 1
+        FROM sent_notifications sn
+        JOIN signals s ON sn.signal_id = s.id
+        WHERE sn.email = %s
+          AND s.symbol = %s
+          AND sn.sent_at >= NOW() - INTERVAL '6 hours'
+        LIMIT 1
+    """
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute(query, (email, symbol))
+        return cur.fetchone() is None
 
 
 @task(name="send-email")
-def send_signal_email(email: str, signal: Dict):
-    """
-    Send email notification using Resend.
+def send_signal_email(email: str, unsubscribe_token: str, signal: Dict) -> bool:
+    """Send the signal email and log it to `sent_notifications` if successful."""
+    success = send_signal_notification.fn(email, signal, unsubscribe_token)
+    if not success:
+        return False
 
-    Args:
-        email: Recipient email
-        signal: Signal details dict
-    """
-    # TODO: Implement email sending
-    # 1. Import Resend client
-    # 2. Format email template with signal details
-    # 3. Send email via Resend API
-    # 4. Log to sent_notifications table
-
-    raise NotImplementedError("Email sending not yet implemented")
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO sent_notifications (email, signal_id) VALUES (%s, %s)",
+            (email, signal["id"]),
+        )
+        conn.commit()
+    return True
 
 
 @flow(name="notification-sender", log_prints=True)
-def notification_sender_flow(min_strength: float = 70.0):
-    """
-    Main flow: Send email notifications for strong signals.
-
-    Args:
-        min_strength: Minimum signal strength to notify (default: 70)
-    """
-    print(f"Starting notification sender (min strength: {min_strength})...")
-
-    # Fetch strong signals
-    signals = fetch_strong_signals(min_strength)
+def notification_sender_flow(min_strength: Optional[float] = None, window_minutes: int = 60):
+    """Fetch strong signals, find subscribers, and send notifications."""
+    threshold = min_strength if min_strength is not None else signal_notify_threshold()
+    print(f"Starting notification sender (min strength: {threshold})...")
+    signals = fetch_strong_signals(threshold, window_minutes)
     print(f"Found {len(signals)} strong signals")
-
     if not signals:
         print("No strong signals to send")
         return
 
-    # Get subscribers
     subscribers = get_email_subscribers()
     print(f"Found {len(subscribers)} active subscribers")
+    if not subscribers:
+        print("No active subscribers, skipping email send.")
+        return
 
-    # Send emails
     emails_sent = 0
     for signal in signals:
-        for email in subscribers:
-            # Check rate limit
-            if should_send_email(email, signal['id']):
-                send_signal_email(email, signal)
-                emails_sent += 1
+        for subscriber in subscribers:
+            email = subscriber["email"]
+            token = subscriber["unsubscribe_token"]
+            if should_send_email(email, signal["id"], signal["symbol"]):
+                if send_signal_email(email, token, signal):
+                    emails_sent += 1
 
     print(f"✓ Sent {emails_sent} email notifications")
 

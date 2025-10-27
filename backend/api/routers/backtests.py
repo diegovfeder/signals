@@ -9,12 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Signal
+from ..models import Signal, Backtest
 from ..schemas import BacktestSummaryResponse
 
 router = APIRouter()
 
-BACKTEST_RANGE_CHOICES = {"1m", "3m", "6m", "1y", "3y", "5y"}
+BACKTEST_RANGE_CHOICES = {"1m", "3m", "6m", "1y", "2y"}
 
 
 def _normalize_range(range_label: str) -> str:
@@ -36,20 +36,38 @@ async def get_backtest_summary(
     backtesting engine ships.
     """
     normalized_range = _normalize_range(range)
-    latest_signal = (
-        db.query(Signal)
-        .filter(Signal.symbol == symbol)
-        .order_by(Signal.timestamp.desc())
+    backtest = (
+        db.query(Backtest)
+        .filter(Backtest.symbol == symbol, Backtest.range_label == normalized_range)
+        .order_by(Backtest.generated_at.desc())
         .first()
     )
 
+    if not backtest:
+        latest_signal = (
+            db.query(Signal)
+            .filter(Signal.symbol == symbol)
+            .order_by(Signal.timestamp.desc())
+            .first()
+        )
+        return BacktestSummaryResponse(
+            symbol=symbol,
+            range=normalized_range,
+            trades=0,
+            win_rate=0.0,
+            avg_return=0.0,
+            total_return=0.0,
+            last_trained_at=latest_signal.timestamp if latest_signal else None,
+            notes="No backtest summary available yet. Run the signal replay flow to generate one.",
+        )
+
     return BacktestSummaryResponse(
         symbol=symbol,
-        range=normalized_range,
-        trades=0,
-        win_rate=0.0,
-        avg_return=0.0,
-        total_return=0.0,
-        last_trained_at=latest_signal.timestamp if latest_signal else None,
-        notes="Backtest engine coming soon – rerun Prefect flows to populate more data.",
+        range=backtest.range_label or normalized_range,
+        trades=backtest.trades or 0,
+        win_rate=float(backtest.win_rate or 0),
+        avg_return=float(backtest.avg_return or 0),
+        total_return=float(backtest.total_return or 0),
+        last_trained_at=backtest.generated_at,
+        notes=f"Rule version: {backtest.rule_version}",
     )
