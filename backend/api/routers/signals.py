@@ -49,8 +49,11 @@ async def get_all_signals(
     
     # Apply ordering and pagination
     signals = query.order_by(Signal.timestamp.desc()).limit(limit).offset(offset).all()
-    
-    return SignalListResponse(signals=signals, total=total)
+
+    # Convert ORM models to Pydantic schemas
+    signal_responses = [SignalResponse.model_validate(signal) for signal in signals]
+
+    return SignalListResponse(signals=signal_responses, total=total)
 
 
 @router.get("/{symbol}", response_model=SignalResponse)
@@ -72,7 +75,7 @@ async def get_signal_by_symbol(
         .filter(Signal.symbol == symbol)\
         .order_by(Signal.timestamp.desc())\
         .first()
-    
+
     if not signal:
         raise HTTPException(
             status_code=404,
@@ -108,5 +111,8 @@ async def get_signal_history(
         .filter(Signal.symbol == symbol, Signal.timestamp >= cutoff)\
         .order_by(Signal.timestamp.desc())\
         .all()
-    
-    return SignalListResponse(signals=signals, total=len(signals))
+
+    # Convert ORM models to Pydantic schemas
+    signal_responses = [SignalResponse.model_validate(signal) for signal in signals]
+
+    return SignalListResponse(signals=signal_responses, total=len(signals))

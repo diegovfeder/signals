@@ -111,11 +111,9 @@ WHERE sent_at > NOW() - INTERVAL '7 days';
 
 ```bash
 # 1. Initialize schema and seed 4 assets
-python scripts/setup_db.py
+python scripts/apply_db.py
 
 # 2. Backfill ~60 days of historical data
-python scripts/seed_historical_data.py
-
 # 3. Verify data loaded
 psql $DATABASE_URL -c "SELECT symbol, COUNT(*), MIN(timestamp), MAX(timestamp) FROM market_data GROUP BY symbol;"
 ```
@@ -133,7 +131,7 @@ psql $DATABASE_URL -f db/seeds/symbols.sql
 psql $DATABASE_URL -c "SELECT * FROM symbols;"
 ```
 
-**See** `scripts/README.md` for detailed setup instructions and troubleshooting.
+**See** `README.md` for detailed setup instructions and troubleshooting.
 
 ### Local development (Docker)
 
@@ -144,9 +142,8 @@ docker-compose up -d
 # Connect
 psql postgresql://signals_user:signals_password@localhost:5432/trading_signals
 
-# Apply schema
+# Apply schema and seeds
 \i db/schema.sql
-\i db/migrations/002_add_critical_fields.sql
 \i db/seeds/symbols.sql
 ```
 

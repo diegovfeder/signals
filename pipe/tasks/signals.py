@@ -9,10 +9,17 @@ from typing import Dict
 
 from prefect import task
 
-from data.signals.strategies import StrategyInputs, get_strategy
+try:
+    from ..lib.strategies import StrategyInputs, get_strategy
+except ImportError:
+    from lib.strategies import StrategyInputs, get_strategy
 
-from tasks.db import get_db_conn
-from settings import signal_notify_threshold
+from .db import get_db_conn
+
+try:
+    from ..settings import signal_notify_threshold
+except ImportError:
+    from settings import signal_notify_threshold
 
 
 @task(name="generate-and-store-signal")

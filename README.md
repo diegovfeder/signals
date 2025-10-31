@@ -37,10 +37,8 @@ Diversified across 4 major asset classes:
 signals/
 ├── frontend/           # Next.js application
 ├── backend/            # FastAPI server
-├── data/               # Indicators and signal logic
 ├── pipe/               # Prefect flows (data pipeline)
 ├── db/                 # Database schemas and migrations
-├── scripts/            # Utility scripts
 └── docs/               # Documentation
     ├── MVP.md          # Project scope and goals
     ├── ARCHITECTURE.md # System design
@@ -58,7 +56,7 @@ Provider clients live under `pipe/data/sources` (Alpha Vantage intraday + Yahoo 
 | `signal-replay` | `pipe/flows/signal_replay.py` | Rebuild historical signals and backtests (default: 2 years). | Nightly at 00:15 UTC |
 | `notification-sender` | `pipe/flows/notification_sender.py` | Email subscribers when strength ≥ threshold. | Every 15 minutes (offset 10 min) |
 
-Run flows ad-hoc with `python -m flows.<name>` or register the deployments with Prefect Cloud (see [docs/RUNBOOK.md](docs/RUNBOOK.md)).
+Run flows ad-hoc with `python -m pipe.flows.<name>` or register the deployments with Prefect Cloud (see [docs/RUNBOOK.md](docs/RUNBOOK.md)).
 Enable schedules via `python -m deployments.register --work-pool <pool>` and manage them with Prefect Cloud or `prefect deployment pause|resume <flow>/<deployment>`.
 
 ## Quick Setup (Local Development)
@@ -71,20 +69,19 @@ docker-compose up -d
 export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/trading_signals"
 
 # 2. Schema & Historical Data (~2 years of daily bars)
-python scripts/setup_db.py
-cd pipe
-python -m flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
-python -m flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
+python scripts/apply_db.py
+uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
 
 # 3. Backend API
-cd backend && uvicorn main:app --reload  # http://localhost:8000
+cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
 
 # 4. Frontend
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
-python -m flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
-python -m flows.notification_sender --min-strength 60
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
 ```
 
 **See** `scripts/README.md` for production setup (Supabase) and troubleshooting.
@@ -112,10 +109,9 @@ docker-compose up -d
 export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/trading_signals"
 
 # Initialize schema and seed 4 assets
-python scripts/setup_db.py
+python scripts/apply_db.py
 
 # Backfill ~60 days of historical data
-python scripts/seed_historical_data.py
 ```
 
 - **Option B: Production (Supabase)**
@@ -127,24 +123,21 @@ python scripts/seed_historical_data.py
 export DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
 
 # Initialize schema and seed
-python scripts/setup_db.py
-python scripts/seed_historical_data.py
+python scripts/apply_db.py
 ```
 
 ### 2. Backend Setup
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+uv sync
 
 # Create .env file
 cp .env.example .env
 # Edit .env with your credentials
 
 # Run the API
-uvicorn main:app --reload
+uv run uvicorn api.main:app --reload
 # API available at http://localhost:8000
 ```
 
@@ -167,23 +160,24 @@ bun run dev
 
 ```bash
 cd pipe
-pip install -r requirements.txt
+uv sync
 
 # Create .env file
 cp .env.example .env
 # Edit .env with DATABASE_URL and RESEND_API_KEY
 
-# Backfill + indicators
-python -m flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
-python -m flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
+# Backfill + indicators (run from project root)
+cd ..
+uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
 
 # Generate latest intraday signals + send notifications
-python -m flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
-python -m flows.notification_sender --min-strength 60
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
 
 # Optional: register Prefect deployments / schedules
 prefect cloud login
-python -m deployments.register --work-pool default-prefect-managed-wp
+uv run --directory pipe python -m deployments.register --work-pool default-prefect-managed-wp
 # Pause/resume with Prefect CLI:
 #   prefect deployment pause signal-generation/intraday-15m
 #   prefect deployment resume signal-generation/intraday-15m
@@ -218,20 +212,20 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 ```bash
 # Terminal 1: Backend
-cd backend && uvicorn main:app --reload
+cd backend && uv run uvicorn api.main:app --reload
 
 # Terminal 2: Frontend
 cd frontend && bun run dev
 
 # Terminal 3: Prefect (optional for testing)
-cd prefect && python flows/generate_signals.py
+uv run --directory pipe python -m pipe.flows.signal_generation
 ```
 
 ### Diagnostics & Testing
 
 - **Pipeline smoke test**: `curl "http://localhost:8000/api/market-data/BTC-USD/ohlcv?range=2y&limit=5000"` to confirm history is loaded.
 - **Diagnostics UI**: visit `http://localhost:3000/admin/backtest` to inspect signals, OHLCV rows, and backtest summaries after each flow run.
-- **Automated tests**: `pip install pytest && pytest -q` (see `tests/README.md`).
+- **Automated tests**: `uv run pytest -q` (see `tests/README.md`).
 
 ## Documentation
 

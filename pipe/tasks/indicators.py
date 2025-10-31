@@ -10,11 +10,16 @@ from typing import Optional, Tuple
 import pandas as pd
 from prefect import task
 
-from data.indicators.rsi import calculate_rsi
-from data.indicators.macd import calculate_macd
-from data.utils import calculate_ema
+try:
+    from ..lib.indicators.rsi import calculate_rsi
+    from ..lib.indicators.macd import calculate_macd
+    from ..lib.indicators import calculate_ema
+except ImportError:
+    from lib.indicators.rsi import calculate_rsi
+    from lib.indicators.macd import calculate_macd
+    from lib.indicators import calculate_ema
 
-from tasks.db import get_db_conn
+from .db import get_db_conn
 
 
 def _ensure_utc(dt: datetime) -> datetime:

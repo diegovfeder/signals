@@ -33,7 +33,7 @@ pipe/
 │   ├── data_validation.py        # Quality checks (Phase 2)
 │   └── email_sending.py          # Resend API helpers
 ├── schedules.py                   # Deploy flow to Prefect Cloud
-├── requirements.txt               # Dependencies
+├── pyproject.toml                 # Dependencies
 └── README.md                      # This file
 ```
 
@@ -43,10 +43,7 @@ pipe/
 
 ```bash
 cd pipe
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. Set environment variables
@@ -65,8 +62,8 @@ RESEND_API_KEY=re_...
 ### 3. Test locally
 
 ```bash
-# Run the flow once
-python -m flows.signal_generation
+# Run the flow once (from project root)
+uv run --directory pipe python -m pipe.flows.signal_generation
 
 # Check what happened
 psql $DATABASE_URL -c "SELECT * FROM signals ORDER BY timestamp DESC LIMIT 5;"
@@ -78,8 +75,8 @@ psql $DATABASE_URL -c "SELECT * FROM signals ORDER BY timestamp DESC LIMIT 5;"
 # Login (first time only)
 prefect cloud login
 
-# Deploy with 15-minute schedule
-python schedules.py
+# Deploy with 15-minute schedule (from project root)
+uv run --directory pipe python schedules.py
 ```
 
 ## Flow Structure
@@ -190,7 +187,7 @@ deployment.apply()
 print("✅ Deployed to Prefect Cloud!")
 ```
 
-Run: `python schedules.py`
+Run: `uv run --directory pipe python schedules.py`
 
 ## Development Tips
 
@@ -336,7 +333,7 @@ See `docs/DATA-SCIENCE.md` for full indicator explanations.
 3. ✅ Implement `calculate_indicators()` task
 4. ✅ Implement `generate_signals()` task
 5. ✅ Implement `send_notifications()` task
-6. ✅ Test locally with `python -m flows.signal_generation`
+6. ✅ Test locally with `python -m pipe.flows.signal_generation`
 7. ✅ Deploy to Prefect Cloud with `python schedules.py`
 
 **Keep it simple, get it working, iterate!** 🚀

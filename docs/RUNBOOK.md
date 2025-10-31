@@ -8,10 +8,10 @@ All commands assume you are inside `pipe/` with the virtualenv activated (`sourc
 
 | Action | Command |
 | --- | --- |
-| Backfill two years of history | `python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` |
-| Replay + backtest last two years | `python -m flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y` |
-| Generate latest intraday signals | `python -m flows.signal_generation --symbols BTC-USD,AAPL` |
-| Send email notifications manually | `python -m flows.notification_sender --min-strength 70` |
+| Backfill two years of history | `python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` |
+| Replay + backtest last two years | `python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y` |
+| Generate latest intraday signals | `python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL` |
+| Send email notifications manually | `python -m pipe.flows.notification_sender --min-strength 70` |
 
 > **Tip:** For quick local testing without Prefect Cloud, call `.fn` on any flow (e.g. `signal_replay_flow.fn(symbols=["BTC-USD"])`).
 

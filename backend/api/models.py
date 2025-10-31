@@ -6,8 +6,10 @@ Database models corresponding to the schema.
 
 from sqlalchemy import Column, String, DECIMAL, BigInteger, TIMESTAMP, Boolean, ARRAY, Text, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from .database import Base
+from datetime import datetime
 import uuid
 
 
@@ -65,15 +67,15 @@ class Signal(Base):
     __tablename__ = "signals"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    symbol = Column(String(20), ForeignKey("symbols.symbol", ondelete="CASCADE"))
-    timestamp = Column(TIMESTAMP(timezone=True), nullable=False)
-    signal_type = Column(String(10), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(20), ForeignKey("symbols.symbol", ondelete="CASCADE"))
+    timestamp: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    signal_type: Mapped[str] = mapped_column(String(10), nullable=False)
     strength = Column(DECIMAL(5, 2), nullable=False)
     reasoning = Column(ARRAY(Text), nullable=False)
     price_at_signal = Column(DECIMAL(20, 8))
-    idempotency_key = Column(String(255), unique=True)
-    rule_version = Column(String(50))
-    generated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), unique=True)
+    rule_version: Mapped[str | None] = mapped_column(String(50))
+    generated_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
 class EmailSubscriber(Base):
@@ -81,14 +83,14 @@ class EmailSubscriber(Base):
     __tablename__ = "email_subscribers"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String(255), unique=True, nullable=False)
-    subscribed_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    confirmed = Column(Boolean, default=False)
-    confirmation_token = Column(String(64), unique=True)
-    confirmed_at = Column(TIMESTAMP(timezone=True))
-    last_email_sent_at = Column(TIMESTAMP(timezone=True))
-    unsubscribed = Column(Boolean, default=False)
-    unsubscribe_token = Column(String(64), unique=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    subscribed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    confirmation_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+    confirmed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+    last_email_sent_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+    unsubscribed: Mapped[bool] = mapped_column(Boolean, default=False)
+    unsubscribe_token: Mapped[str | None] = mapped_column(String(64), unique=True)
 
 
 class SentNotification(Base):
@@ -106,13 +108,13 @@ class Backtest(Base):
     __tablename__ = "backtests"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    symbol = Column(String(20), ForeignKey("symbols.symbol", ondelete="CASCADE"))
-    range_label = Column(String(10))
-    start_timestamp = Column(TIMESTAMP(timezone=True))
-    end_timestamp = Column(TIMESTAMP(timezone=True))
-    trades = Column(Integer)
+    symbol: Mapped[str] = mapped_column(String(20), ForeignKey("symbols.symbol", ondelete="CASCADE"))
+    range_label: Mapped[str | None] = mapped_column(String(10))
+    start_timestamp: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    end_timestamp: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    trades: Mapped[int | None] = mapped_column(Integer)
     win_rate = Column(DECIMAL(5, 2))
     avg_return = Column(DECIMAL(6, 2))
     total_return = Column(DECIMAL(10, 2))
-    rule_version = Column(String(50))
-    generated_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    rule_version: Mapped[str | None] = mapped_column(String(50))
+    generated_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())

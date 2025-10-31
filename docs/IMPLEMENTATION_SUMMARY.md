@@ -40,7 +40,7 @@ The project has moved beyond the single-flow MVP. This document summarizes what 
 | `signal_replay.py` | Iterates over historical indicators, regenerates signals, writes `backtests` summaries, gracefully handles duplicates. |
 | `notification_sender.py` | Queries the latest strong signals above `SIGNAL_NOTIFY_THRESHOLD`, loads confirmed subscribers, and sends Resend emails. |
 
-All flows are executable via `python -m flows.<name>` from the `pipe/` directory and are Prefect-ready.
+All flows are executable via `python -m pipe.flows.<name>` from the `pipe/` directory and are Prefect-ready.
 
 ---
 
@@ -94,9 +94,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8000 bun run dev
 
 - Manual QA steps:
   1. `docker-compose up -d`
-  2. `python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y`
-  3. `python -m flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y`
-  4. `python -m flows.signal_generation --symbols BTC-USD,AAPL`
+  2. `python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y`
+  3. `python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y`
+  4. `python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL`
   5. `uvicorn api.main:app --reload`
   6. `bun run dev`
 - Automated tests are still TODO; strategy-level unit tests are the next priority.

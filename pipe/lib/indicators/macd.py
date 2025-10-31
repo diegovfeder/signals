@@ -15,7 +15,7 @@ Interpretation:
 
 import pandas as pd
 from typing import Tuple
-from ..utils import calculate_ema
+from .ema import calculate_ema
 
 def calculate_macd(
     df: pd.DataFrame,

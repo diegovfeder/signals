@@ -31,10 +31,10 @@ All Prefect tasks now live under `pipe/tasks/`. Flows in `pipe/flows/` orchestra
 
 | Flow | Path | What it does | Typical command |
 | --- | --- | --- | --- |
-| **Historical Backfill** | `flows/historical_backfill.py` | Fetches ~N days of daily OHLCV per symbol (Yahoo fallback), upserts into `market_data`, recomputes the entire indicator history. | `python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` |
-| **Intraday Signal Generation** | `flows/signal_generation.py` | Fetches the latest intraday slice from Alpha Vantage, upserts new bars, recomputes indicators for the tail window, and emits the *current* BUY/SELL/HOLD signal per symbol. | `python -m flows.signal_generation --symbols BTC-USD` |
-| **Historical Signal Replay / Backtest** | `flows/signal_replay.py` | Replays stored indicator + price history, regenerates signals for every bar, stores them, and writes win-rate/return summaries to the `backtests` table. | `python -m flows.signal_replay --symbols BTC-USD --range-label 2y` |
-| **Notification Sender** | `flows/notification_sender.py` | Looks up recent strong signals, fetches confirmed subscribers, and sends Resend emails with rate limiting. | `python -m flows.notification_sender --min-strength 70` |
+| **Historical Backfill** | `flows/historical_backfill.py` | Fetches ~N days of daily OHLCV per symbol (Yahoo fallback), upserts into `market_data`, recomputes the entire indicator history. | `python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` |
+| **Intraday Signal Generation** | `flows/signal_generation.py` | Fetches the latest intraday slice from Alpha Vantage, upserts new bars, recomputes indicators for the tail window, and emits the *current* BUY/SELL/HOLD signal per symbol. | `python -m pipe.flows.signal_generation --symbols BTC-USD` |
+| **Historical Signal Replay / Backtest** | `flows/signal_replay.py` | Replays stored indicator + price history, regenerates signals for every bar, stores them, and writes win-rate/return summaries to the `backtests` table. | `python -m pipe.flows.signal_replay --symbols BTC-USD --range-label 2y` |
+| **Notification Sender** | `flows/notification_sender.py` | Looks up recent strong signals, fetches confirmed subscribers, and sends Resend emails with rate limiting. | `python -m pipe.flows.notification_sender --min-strength 70` |
 
 ### 2.3 Strategy Registry (`pipe/data/signals/strategies/`)
 
@@ -94,7 +94,7 @@ All Prefect tasks now live under `pipe/tasks/`. Flows in `pipe/flows/` orchestra
 3. **Backfill data**
 
    ```bash
-   python -m flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
+   python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
    ```
 
    This seeds `market_data` and `indicators`.
@@ -102,7 +102,7 @@ All Prefect tasks now live under `pipe/tasks/`. Flows in `pipe/flows/` orchestra
 4. **Generate live signals**
 
    ```bash
-   python -m flows.signal_generation --mode intraday --symbols BTC-USD,AAPL,IVV,BRL=X
+   python -m pipe.flows.signal_generation --mode intraday --symbols BTC-USD,AAPL,IVV,BRL=X
    ```
 
    Register Prefect deployments when you are ready to automate (`python -m deployments.register --work-pool default-prefect-managed-wp`).
@@ -140,9 +140,9 @@ All Prefect tasks now live under `pipe/tasks/`. Flows in `pipe/flows/` orchestra
 | Action | Command |
 | --- | --- |
 | Install pipeline deps | `cd pipe && pip install -r requirements.txt` |
-| Seed 2y history | `python -m flows.historical_backfill --backfill-range 2y` |
-| Run intraday signals | `python -m flows.signal_generation` |
-| Replay/backtest 2y | `python -m flows.signal_replay --range-label 2y` |
+| Seed 2y history | `python -m pipe.flows.historical_backfill --backfill-range 2y` |
+| Run intraday signals | `python -m pipe.flows.signal_generation` |
+| Replay/backtest 2y | `python -m pipe.flows.signal_replay --range-label 2y` |
 | Register Prefect deployments | `python -m deployments.register --work-pool default-prefect-managed-wp` |
 | API Health | `curl http://localhost:8000/health` |
 | Frontend dev server | `cd frontend && bun run dev` |

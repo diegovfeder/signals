@@ -21,12 +21,12 @@ This document describes how data moves through the Signals stack after the strat
 ```mermaid
 graph TD
     subgraph Pipeline
-      A[Historical Backfill Flow<br/>python -m flows.historical_backfill] --> B(Indicators Task)
+      A[Historical Backfill Flow<br/>python -m pipe.flows.historical_backfill] --> B(Indicators Task)
       B --> C(Strategy Engine)
       C --> D[Signals Table]
       D --> E[Backtests Table]
       subgraph Intraday
-        F[Signal Generation Flow<br/>python -m flows.signal_generation] --> B
+        F[Signal Generation Flow<br/>python -m pipe.flows.signal_generation] --> B
       end
       G[Signal Replay Flow] --> C
       H[Notification Sender] --> RESEND
@@ -65,10 +65,10 @@ All reusable logic lives under `pipe/tasks/`. Flows in `pipe/flows/` are orchest
 
 | Flow | Module | Typical command | Notes |
 | --- | --- | --- | --- |
-| Historical backfill | `flows/historical_backfill.py` | `python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` | Fetches up to N days of daily data per symbol, backfills indicators, and guarantees enough history for replay. |
-| Intraday signal generation | `flows/signal_generation.py` | `python -m flows.signal_generation --symbols BTC-USD,AAPL` | Pulls the newest intraday slice (Alpha → Yahoo fallback), refreshes indicators for the tail window, generates a fresh signal per symbol, and logs BUY/SELL/HOLD decisions. |
-| Signal replay / backtest | `flows/signal_replay.py` | `python -m flows.signal_replay --symbols BTC-USD --range-label 2y` | Replays historical indicators to rebuild the `signals` table and writes summary rows into `backtests`. Conflict handling ensures timestamps are upserted instead of duplicated. |
-| Notification sender | `flows/notification_sender.py` | `python -m flows.notification_sender --min-strength 70` | Queries for the last strong signal per symbol and sends Resend emails to confirmed subscribers (real automation scheduled after MVP). |
+| Historical backfill | `flows/historical_backfill.py` | `python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y` | Fetches up to N days of daily data per symbol, backfills indicators, and guarantees enough history for replay. |
+| Intraday signal generation | `flows/signal_generation.py` | `python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL` | Pulls the newest intraday slice (Alpha → Yahoo fallback), refreshes indicators for the tail window, generates a fresh signal per symbol, and logs BUY/SELL/HOLD decisions. |
+| Signal replay / backtest | `flows/signal_replay.py` | `python -m pipe.flows.signal_replay --symbols BTC-USD --range-label 2y` | Replays historical indicators to rebuild the `signals` table and writes summary rows into `backtests`. Conflict handling ensures timestamps are upserted instead of duplicated. |
+| Notification sender | `flows/notification_sender.py` | `python -m pipe.flows.notification_sender --min-strength 70` | Queries for the last strong signal per symbol and sends Resend emails to confirmed subscribers (real automation scheduled after MVP). |
 
 Deployments live in `pipe/deployments/register.py`; run `python -m deployments.register --work-pool <pool>` to register schedules in Prefect Cloud (intraday every 15 min, replay nightly, notifications offset by 10 minutes).
 

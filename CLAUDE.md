@@ -21,7 +21,7 @@ Yahoo Finance API → Prefect Pipeline → Supabase → FastAPI → Next.js → 
 ### Component Responsibilities
 
 1. **Prefect Pipeline** (`pipe/`): Fetch data, calculate indicators, generate signals, send emails
-   - Includes `pipe/data/` - Indicator calculations (RSI, EMA) and signal generation logic
+   - Includes `pipe/lib/` - Indicator calculations (RSI, EMA) and signal generation logic
 2. **FastAPI Backend** (`backend/`): REST API serving signals and market data to frontend
 3. **Next.js Frontend** (`frontend/`): Public dashboard displaying signals and email signup
 4. **Database** (`db/`): Supabase PostgreSQL schema with 6 core tables
@@ -29,6 +29,12 @@ Yahoo Finance API → Prefect Pipeline → Supabase → FastAPI → Next.js → 
 **Data flow**: Pipeline writes → Database stores → API reads → Frontend displays
 
 ## Development Commands
+
+**Package Manager**: This project uses [uv](https://docs.astral.sh/uv/) for fast, reliable Python dependency management. Install it globally:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ### Database Setup
 
@@ -62,16 +68,16 @@ psql $DATABASE_URL -f db/seeds/symbols.sql
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+
+# Install dependencies with uv (faster than pip)
+uv sync
 
 # Create .env from template
 cp .env.example .env
 # Edit .env with your DATABASE_URL and RESEND_API_KEY
 
-# Run development server
-uvicorn api.main:app --reload --port 8000
+# Run development server (uv creates virtual environment automatically)
+uv run uvicorn api.main:app --reload --port 8000
 
 # API docs available at: http://localhost:8000/api/docs
 # Health check: http://localhost:8000/health
@@ -114,21 +120,23 @@ npm run type-check   # TypeScript check
 ### Prefect Pipeline
 
 ```bash
+# Setup (one-time) - from project root
 cd pipe
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync  # Install all dependencies using uv
+cd ..  # Back to project root
 
 # Create .env from template
-cp .env.example .env
+cp pipe/.env.example pipe/.env
 # Edit with DATABASE_URL and RESEND_API_KEY
 
-# Test single unified flow locally (dry run)
-python -m flows.signal_generation
+# IMPORTANT: Always run flows from project root, not from pipe/ directory
+
+# Test single unified flow locally
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
 
 # Deploy to Prefect Cloud (runs every 15 minutes)
 prefect cloud login
-python schedules.py
+uv run --directory pipe python -m pipe.deployments.register --work-pool default-prefect-managed-wp
 
 # View flow runs
 prefect flow-run ls
@@ -147,12 +155,11 @@ This replaces the separate flows mentioned in older docs (market_data_ingestion,
 ### Data Science (Indicators)
 
 ```bash
-# The data/ folder is inside pipe/ directory
-# Test indicators in isolation:
+# The lib/ folder contains all indicator logic
+# Test indicators in isolation (run from project root):
 
-cd pipe
-python -c "from data.indicators.rsi import calculate_rsi; print('RSI module loaded')"
-python -c "from data.signals.signal_generator import generate_signal; print('Signal generator loaded')"
+uv run --directory pipe python -c "from pipe.lib.indicators.rsi import calculate_rsi; print('RSI module loaded')"
+uv run --directory pipe python -c "from pipe.lib.signals.strategies import get_strategy; print('Signal strategies loaded')"
 ```
 
 ## Database Schema
@@ -190,21 +197,31 @@ pipe/
 
 **MVP Pattern**: Single `signal_generation_flow` with all tasks defined inline for simplicity. This can be refactored into separate flows in Phase 2 if needed.
 
-### Data Science (`pipe/data/`)
+### Data Science (`pipe/lib/`)
 
 ```bash
 pipe/
-├── data/                     # Indicator calculations (moved from root)
+├── lib/                      # Indicator calculations and signal logic
 │   ├── indicators/          # Technical indicator calculations
 │   │   ├── rsi.py          # RSI (14-period)
+│   │   ├── ema.py          # EMA (12, 26 period)
 │   │   └── macd.py         # MACD (not in MVP, use for Phase 2)
 │   ├── signals/            # Signal generation logic
+│   │   ├── strategies/     # Strategy implementations (crypto_momentum, stock_mean_reversion)
 │   │   ├── signal_generator.py  # Main signal rules
 │   │   └── signal_scorer.py     # Strength scoring (0-100)
-│   └── utils/              # Shared utilities
+│   ├── api/                # Data source integrations
+│   │   ├── alpha_vantage.py
+│   │   └── yahoo.py
+│   └── utils/              # Shared utilities (calculate_ema helper)
 ├── flows/                   # Prefect flow definitions
-│   └── signal_generation.py
-└── tasks/                   # Reusable tasks
+│   ├── signal_generation.py      # Main flow
+│   ├── historical_backfill.py    # Backfill historical data
+│   └── signal_replay.py          # Replay signals for backtesting
+└── tasks/                   # Reusable Prefect tasks
+    ├── market_data.py       # Fetch and store OHLCV
+    ├── indicators.py        # Calculate and store indicators
+    └── signals.py           # Generate and store signals
 ```
 
 **Pattern**: Each indicator is a pure function: `calculate_indicator(df) -> df_with_indicator`
@@ -478,21 +495,22 @@ def test_rsi_calculation():
 Each indicator follows this pattern:
 
 ```python
-# pipe/data/indicators/rsi.py
+# pipe/lib/indicators/rsi.py
 import pandas as pd
 
-def calculate_rsi(df: pd.DataFrame, period: int = 14) -> pd.Series:
+def calculate_rsi(df: pd.DataFrame, period: int = 14, price_column: str = 'close') -> pd.Series:
     """
     Calculate RSI (Relative Strength Index)
 
     Args:
-        df: DataFrame with 'Close' column
+        df: DataFrame with price column
         period: Lookback period (default 14)
+        price_column: Name of price column (default 'close')
 
     Returns:
         Series of RSI values (0-100)
     """
-    delta = df['Close'].diff()
+    delta = df[price_column].diff()
     gain = delta.where(delta > 0, 0).rolling(window=period).mean()
     loss = -delta.where(delta < 0, 0).rolling(window=period).mean()
     rs = gain / loss
@@ -502,14 +520,14 @@ def calculate_rsi(df: pd.DataFrame, period: int = 14) -> pd.Series:
 
 **To add a new indicator**:
 
-1. Create `pipe/data/indicators/new_indicator.py` with `calculate_new_indicator()` function
-2. Add to `pipe/flows/signal_generation.py` flow
-3. Add column to `indicators` table in schema
-4. Update `pipe/data/signals/signal_generator.py` to use it
+1. Create `pipe/lib/indicators/new_indicator.py` with `calculate_new_indicator()` function
+2. Import in `pipe/tasks/indicators.py` and add to `_build_indicator_frame()`
+3. Add column to `indicators` table in `db/schema.sql`
+4. Update `pipe/lib/signals/strategies/` to use it in signal generation
 
 ## Working with Signals
 
-Signal generation logic in `pipe/data/signals/signal_generator.py`:
+Signal generation logic uses strategy pattern in `pipe/lib/signals/strategies/`:
 
 ```python
 def generate_signal(df: pd.DataFrame) -> dict:
@@ -536,13 +554,120 @@ def generate_signal(df: pd.DataFrame) -> dict:
 
 ## Deployment
 
-**Frontend & Backend**: Vercel (zero-config, just `vercel deploy`)
+### Overview
 
-**Pipeline**: Prefect Cloud (managed scheduling, free tier)
+- **Frontend**: Vercel (Next.js)
+- **Backend**: Vercel (FastAPI serverless)
+- **Pipeline**: Prefect Cloud (scheduled flows)
+- **Database**: Supabase (managed PostgreSQL)
 
-**Database**: Supabase (managed PostgreSQL, free tier)
+All components deploy independently from repo root.
 
-**All deploy from repo root, each component independently.**
+### Database Setup (Supabase)
+
+1. **Create Supabase project** at [supabase.com](https://supabase.com)
+2. **Run schema**:
+   ```bash
+   # Get connection string from Supabase Dashboard → Settings → Database
+   psql "postgresql://postgres.[project]:[password]@[host]:5432/postgres" -f db/schema.sql
+   ```
+3. **Get connection string** for deployments:
+   - Go to: Dashboard → Project Settings → Database
+   - Copy "Connection string" under **Connection pooling**
+   - Select **Session mode** (port 6543)
+   - Format: `postgresql://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+
+### Backend Deployment (Vercel)
+
+```bash
+cd backend
+vercel deploy --prod
+```
+
+**Environment variables to set in Vercel dashboard:**
+
+```bash
+DATABASE_URL=postgresql+psycopg://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+ENVIRONMENT=production
+CORS_ORIGINS=["https://your-frontend.vercel.app"]
+```
+
+**Note:** Add `+psycopg` to Supabase URL for SQLAlchemy compatibility.
+
+### Frontend Deployment (Vercel)
+
+```bash
+cd frontend
+vercel deploy --prod
+```
+
+**Environment variables to set in Vercel dashboard:**
+
+```bash
+NEXT_PUBLIC_API_URL=https://your-backend.vercel.app
+NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxxxxxxxxxx
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+### Pipeline Deployment (Prefect Cloud)
+
+1. **Set DATABASE_URL in Prefect Cloud:**
+
+   Option A: Using Prefect Variables (simpler):
+   ```bash
+   prefect cloud login
+   prefect variable set DATABASE_URL "postgresql://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
+   ```
+
+   Option B: Using Prefect Secrets (more secure):
+   - Go to Prefect Cloud → Blocks → Add Block → Secret
+   - Name: `database-url`
+   - Value: Your Supabase connection string
+   - Reference in code: `from_secret("database-url")`
+
+2. **Deploy flow:**
+   ```bash
+   cd pipe
+   source venv/bin/activate
+   prefect cloud login
+   python deployments/register.py
+   ```
+
+3. **Set additional variables:**
+   ```bash
+   prefect variable set RESEND_API_KEY "re_xxxxxxxxxxxxx"
+   prefect variable set SIGNAL_SYMBOLS "AAPL,BTC-USD"
+   ```
+
+### Local vs Production
+
+**Local development** (uses Docker database):
+- Backend: `DATABASE_URL=postgresql+psycopg://signals_user:signals_password@localhost:5432/trading_signals`
+- Pipe: `DATABASE_URL=postgresql://signals_user:signals_password@localhost:5432/trading_signals`
+
+**Production** (uses Supabase):
+- Set `DATABASE_URL` in deployment platforms (Vercel, Prefect Cloud)
+- No code changes needed - same codebase reads from platform-provided env vars
+
+### Troubleshooting
+
+**Check backend is using correct database:**
+```bash
+# Backend logs on startup will show: "Connected to database: [host]"
+# Check Vercel logs after deployment
+```
+
+**Check pipeline is using correct database:**
+```bash
+# Prefect flow logs will show: "Database connection: [host]"
+# Check Prefect Cloud flow run logs
+```
+
+**Common issues:**
+- **Wrong port**: Supabase pooler uses 6543 (not 5432)
+- **Missing `+psycopg`**: Backend needs `postgresql+psycopg://...` for SQLAlchemy
+- **Transaction mode**: Use Session mode in Supabase pooler for long-running queries
 
 ## Documentation
 

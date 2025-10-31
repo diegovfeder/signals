@@ -289,7 +289,7 @@ export default function SignalDetail({
                     <span>
                       Run{" "}
                       <code className="font-mono text-xs">
-                        python -m flows.signal_generation --mode backfill
+                        python -m pipe.flows.signal_generation --mode backfill
                         --backfill-range 2y
                       </code>{" "}
                       to refresh history.
