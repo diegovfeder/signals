@@ -57,7 +57,19 @@ def _collect_job_env() -> Dict[str, str]:
     return env
 
 
-JOB_VARIABLES: Dict[str, Any] = {"pip_packages": ["prefect-github==0.3.1"]}
+DEFAULT_PIP_PACKAGES = [
+    "prefect>=2.19.0",
+    "prefect-github>=0.3.1",
+    "requests>=2.31.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.2",
+    "sqlalchemy>=2.0.35",
+    "psycopg[binary,pool]>=3.1.0",
+    "resend==0.7.0",
+    "python-dotenv==1.0.0",
+]
+
+JOB_VARIABLES: Dict[str, Any] = {"pip_packages": DEFAULT_PIP_PACKAGES}
 _job_env = _collect_job_env()
 if _job_env:
     JOB_VARIABLES["env"] = _job_env

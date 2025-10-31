@@ -54,6 +54,7 @@ def _load_connection_params() -> Dict[str, str]:
         raw_url = f"{scheme}://{remainder}"
     params = conninfo_to_dict(raw_url)
     params = _prefer_ipv4(params)
+    params.setdefault("prepare_threshold", 0)
     return params
 
 
@@ -63,4 +64,9 @@ _log_db_info(_CONN_PARAMS)
 
 def get_db_conn():
     """Return a psycopg connection using DATABASE_URL (accepts SQLAlchemy-style URLs)."""
-    return psycopg.connect(**_CONN_PARAMS)
+    conn = psycopg.connect(**_CONN_PARAMS)
+    try:
+        conn.prepare_threshold = 0
+    except AttributeError:
+        pass
+    return conn
