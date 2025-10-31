@@ -1,24 +1,36 @@
 """
-Notification Sender Flow
+Notification Dispatcher Flow
 
-Send email alerts for strong trading signals.
+Sends email alerts to subscribers for strong trading signals.
+Runs after signal_analyzer to notify users of opportunities.
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any
 
-from prefect import flow, task
+from prefect import flow, get_run_logger, task
 
-from tasks.db import get_db_conn
-from tasks.email_sending import send_signal_notification
-from settings import signal_notify_threshold
+try:
+    from tasks.db import get_db_conn
+    from tasks.email_sending import send_signal_notification
+    from settings import signal_notify_threshold
+except ImportError:
+    from pipe.tasks.db import get_db_conn
+    from pipe.tasks.email_sending import send_signal_notification
+    from pipe.settings import signal_notify_threshold
 
 
 @task(name="fetch-strong-signals")
-def fetch_strong_signals(min_strength: Optional[float] = None, window_minutes: int = 60) -> List[Dict]:
+def fetch_strong_signals(min_strength: float | None = None, window_minutes: int = 60) -> list[dict[str, Any]]:
     """Fetch signals above a strength threshold generated within the last `window_minutes`."""
+    logger = get_run_logger()
     threshold = min_strength if min_strength is not None else signal_notify_threshold()
+    logger.info(
+        "Fetching strong signals with min_strength=%s window=%d minute(s).",
+        threshold,
+        window_minutes,
+    )
     query = """
         SELECT id, symbol, signal_type, strength, reasoning, price_at_signal, generated_at
         FROM signals
@@ -30,7 +42,7 @@ def fetch_strong_signals(min_strength: Optional[float] = None, window_minutes: i
     with get_db_conn() as conn, conn.cursor() as cur:
         cur.execute(query, (threshold, interval))
         rows = cur.fetchall()
-    signals = []
+    signals: list[dict[str, Any]] = []
     for row in rows:
         signal_id, symbol, signal_type, strength, reasoning, price, generated_at = row
         signals.append(
@@ -44,12 +56,14 @@ def fetch_strong_signals(min_strength: Optional[float] = None, window_minutes: i
                 "at": generated_at.isoformat() if generated_at else None,
             }
         )
+    logger.info("Found %d signal(s) meeting strength criteria.", len(signals))
     return signals
 
 
 @task(name="get-subscribers")
-def get_email_subscribers() -> List[Dict]:
+def get_email_subscribers() -> list[dict[str, Any]]:
     """Return confirmed, active subscribers with their unsubscribe tokens."""
+    logger = get_run_logger()
     query = """
         SELECT email, unsubscribe_token
         FROM email_subscribers
@@ -68,6 +82,7 @@ def get_email_subscribers() -> List[Dict]:
                 "unsubscribe_token": token,
             }
         )
+    logger.info("Fetched %d active subscriber(s).", len(sanitized))
     return sanitized
 
 
@@ -76,6 +91,7 @@ def should_send_email(email: str, signal_id: str, symbol: str) -> bool:
     """
     Enforce rate limiting: max one email per subscriber per symbol per 6 hours.
     """
+    logger = get_run_logger()
     query = """
         SELECT 1
         FROM sent_notifications sn
@@ -87,14 +103,28 @@ def should_send_email(email: str, signal_id: str, symbol: str) -> bool:
     """
     with get_db_conn() as conn, conn.cursor() as cur:
         cur.execute(query, (email, symbol))
-        return cur.fetchone() is None
+        allowed = cur.fetchone() is None
+    if not allowed:
+        logger.info(
+            "Rate limit prevents sending to %s for symbol %s (signal_id=%s).",
+            email,
+            symbol,
+            signal_id,
+        )
+    return allowed
 
 
 @task(name="send-email")
-def send_signal_email(email: str, unsubscribe_token: str, signal: Dict) -> bool:
+def send_signal_email(email: str, unsubscribe_token: str, signal: dict[str, Any]) -> bool:
     """Send the signal email and log it to `sent_notifications` if successful."""
+    logger = get_run_logger()
     success = send_signal_notification.fn(email, signal, unsubscribe_token)
     if not success:
+        logger.warning(
+            "Failed to send email to %s (signal_id=%s).",
+            email,
+            signal.get("id"),
+        )
         return False
 
     with get_db_conn() as conn, conn.cursor() as cur:
@@ -103,24 +133,34 @@ def send_signal_email(email: str, unsubscribe_token: str, signal: Dict) -> bool:
             (email, signal["id"]),
         )
         conn.commit()
+    logger.info(
+        "Email sent to %s (signal_id=%s).",
+        email,
+        signal.get("id"),
+    )
     return True
 
 
-@flow(name="notification-sender", log_prints=True)
-def notification_sender_flow(min_strength: Optional[float] = None, window_minutes: int = 60):
+@flow(name="notification-dispatcher", log_prints=True)
+def notification_dispatcher_flow(min_strength: float | None = None, window_minutes: int = 60):
     """Fetch strong signals, find subscribers, and send notifications."""
+    logger = get_run_logger()
     threshold = min_strength if min_strength is not None else signal_notify_threshold()
-    print(f"Starting notification sender (min strength: {threshold})...")
+    logger.info(
+        "Starting notification dispatcher with min_strength=%s window=%d minute(s).",
+        threshold,
+        window_minutes,
+    )
     signals = fetch_strong_signals(threshold, window_minutes)
-    print(f"Found {len(signals)} strong signals")
+    logger.info("Evaluating %d strong signal(s) for notification.", len(signals))
     if not signals:
-        print("No strong signals to send")
+        logger.info("No signals exceeded threshold; exiting dispatcher.")
         return
 
     subscribers = get_email_subscribers()
-    print(f"Found {len(subscribers)} active subscribers")
+    logger.info("Processing %d subscriber(s).", len(subscribers))
     if not subscribers:
-        print("No active subscribers, skipping email send.")
+        logger.warning("No active subscribers; skipping email notifications.")
         return
 
     emails_sent = 0
@@ -132,8 +172,8 @@ def notification_sender_flow(min_strength: Optional[float] = None, window_minute
                 if send_signal_email(email, token, signal):
                     emails_sent += 1
 
-    print(f"✓ Sent {emails_sent} email notifications")
+    logger.info("Notification dispatcher completed; emails_sent=%d.", emails_sent)
 
 
 if __name__ == "__main__":
-    notification_sender_flow()
+    notification_dispatcher_flow()

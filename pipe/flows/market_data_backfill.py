@@ -1,52 +1,70 @@
 """
-Historical backfill flow.
+Market Data Backfill Flow.
 
-Fetches multi-year daily OHLCV data for each symbol and recomputes indicators.
+Fetches multi-year daily OHLCV history for new symbols.
+Used when onboarding new assets to populate initial historical data.
 """
 
 from __future__ import annotations
 
 import argparse
-from typing import List, Optional
 
-from prefect import flow
+from prefect import flow, get_run_logger
 
-from tasks.market_data import (
-    fetch_historical_ohlcv,
-    resolve_history_days,
-    resolve_symbols,
-    upsert_market_data,
-    HISTORICAL_RANGE_MAP,
-)
-from tasks.indicators import calculate_and_upsert_indicators
+try:
+    from tasks.market_data import (
+        fetch_historical_ohlcv,
+        resolve_history_days,
+        resolve_symbols,
+        upsert_market_data,
+        HISTORICAL_RANGE_MAP,
+    )
+    from tasks.indicators import calculate_and_upsert_indicators
+except ImportError:
+    from pipe.tasks.market_data import (
+        fetch_historical_ohlcv,
+        resolve_history_days,
+        resolve_symbols,
+        upsert_market_data,
+        HISTORICAL_RANGE_MAP,
+    )
+    from pipe.tasks.indicators import calculate_and_upsert_indicators
 
 
-@flow(name="historical-backfill", log_prints=True)
-def historical_backfill_flow(
-    symbols: Optional[List[str]] = None,
-    backfill_days: Optional[int] = None,
+@flow(name="market-data-backfill", log_prints=True)
+def market_data_backfill_flow(
+    symbols: list[str] | None = None,
+    backfill_days: int | None = None,
     backfill_range: str = "2y",
 ):
+    logger = get_run_logger()
+
     target_symbols = resolve_symbols(symbols)
     days = backfill_days if backfill_days is not None else resolve_history_days(None, backfill_range)
     if days is None:
         raise ValueError("Backfill requires --backfill-days or --backfill-range/BACKFILL_RANGE env var.")
 
-    print(f"Starting historical backfill for {len(target_symbols)} symbols (~{days} days)...")
+    logger.info(
+        "Starting historical backfill for %d symbol(s) over ~%d day window (range=%s).",
+        len(target_symbols),
+        days,
+        backfill_range,
+    )
     for symbol in target_symbols:
         try:
+            logger.info("Fetching historical OHLCV for %s.", symbol)
             history = fetch_historical_ohlcv(symbol, days)
             inserted = upsert_market_data(history) if not history.empty else 0
             calculate_and_upsert_indicators(symbol, window=None)
-            print(f"✓ {symbol}: stored {inserted} rows and refreshed indicators.")
+            logger.info("Completed backfill for %s: inserted=%d rows, indicators refreshed.", symbol, inserted)
         except Exception as exc:
-            print(f"✗ Error backfilling {symbol}: {exc}")
+            logger.exception("Error backfilling %s: %s", symbol, exc)
 
-    print("Historical backfill complete!")
+    logger.info("Historical backfill complete.")
 
 
 def _parse_cli_args():
-    parser = argparse.ArgumentParser(description="Run the historical backfill Prefect flow.")
+    parser = argparse.ArgumentParser(description="Backfill multi-year market data for new symbols.")
     parser.add_argument(
         "--symbols",
         type=str,
@@ -74,4 +92,4 @@ def _parse_cli_args():
 
 if __name__ == "__main__":
     cli_symbols, cli_days, cli_range = _parse_cli_args()
-    historical_backfill_flow(symbols=cli_symbols, backfill_days=cli_days, backfill_range=cli_range)
+    market_data_backfill_flow(symbols=cli_symbols, backfill_days=cli_days, backfill_range=cli_range)

@@ -35,5 +35,5 @@ class Settings(BaseSettings):
     )
 
 
-# Global settings instance
-settings = Settings()
+# Global settings instance (loads from .env automatically via BaseSettings)
+settings = Settings()  # type: ignore[call-arg]

@@ -41,6 +41,11 @@ export default function Dashboard(): JSX.Element {
     length: Math.max(latestSignals.length || 0, PLACEHOLDER_COUNT),
   });
 
+  const useFeatureFlag = (): boolean => {
+    // Placeholder for actual feature flag logic
+    return true; // Assume the feature flag is enabled for demonstration
+  };
+
   return (
     <>
       <AppHeader
@@ -130,8 +135,8 @@ export default function Dashboard(): JSX.Element {
                 No signals yet for your symbols
               </p>
               <p className="text-sm text-foreground-muted">
-                Run the Prefect flow (`python -m flows.signal_generation`) to
-                populate the database, then refresh this page.
+                Run the Prefect flow (`python -m pipe.flows.signal_generation`)
+                to populate the database, then refresh this page.
               </p>
             </div>
           )}

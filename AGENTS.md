@@ -14,7 +14,7 @@
 - `cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt` prepares the backend environment.
 - `uvicorn api.main:app --reload --port 8000` (from the backend venv) runs the API with live reload.
 - `cd frontend && bun install && bun run dev` serves the dashboard at `http://localhost:3000`.
-- `cd pipe && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt` installs pipeline deps; run once with `python -m flows.signal_generation`.
+- `cd pipe && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt` installs pipeline deps; run once with `python -m pipe.flows.signal_generation`.
 - `pytest backend/tests -q` verifies the API layer; `cd frontend && bun run lint && bun run type-check` gates UI changes.
 - Export `ALPHA_VANTAGE_API_KEY` before invoking Prefect flows; store it in `pipe/.env` for local runs.
 

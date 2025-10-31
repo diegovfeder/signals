@@ -173,7 +173,7 @@ RESEND_API_KEY=re_...
    # Edit with DATABASE_URL and RESEND_API_KEY
 
    # Test single unified flow locally
-   python -m flows.signal_generation
+   python -m pipe.flows.signal_generation
 
    # Deploy to Prefect Cloud (runs every 15 min)
    prefect cloud login
@@ -231,7 +231,7 @@ npm run lint
 
 ```bash
 # Test single unified flow locally
-cd pipe && python -m flows.signal_generation
+cd pipe && python -m pipe.flows.signal_generation
 
 # Check Prefect flow runs
 prefect flow-run ls --limit 10

@@ -8,11 +8,9 @@ REST API for serving our trading-signals, market data, and managing email subscr
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  
-# Windows: venv\Scripts\activate
 
-pip install -r requirements.txt
+# Install dependencies
+uv sync
 
 # Create .env file
 cp .env.example .env
@@ -21,7 +19,7 @@ cp .env.example .env
 #   RESEND_API_KEY=re_...
 
 # Run the server
-uvicorn api.main:app --reload --port 8000
+uv run uvicorn api.main:app --reload --port 8000
 
 # API available at http://localhost:8000
 # Docs at http://localhost:8000/api/docs
@@ -54,7 +52,7 @@ backend/
 │       ├── signals.py       # GET /api/signals endpoints
 │       ├── market_data.py   # GET /api/market-data endpoints
 │       └── subscribe.py     # POST /api/subscribe endpoints
-├── requirements.txt
+├── pyproject.toml          # Dependencies and project metadata
 ├── vercel.json             # Vercel deployment config
 └── README.md               # This file
 ```
@@ -217,13 +215,13 @@ LOG_LEVEL=INFO
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-asyncio httpx
+uv add --dev pytest pytest-asyncio httpx
 
 # Run tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=api tests/
+uv run pytest --cov=api tests/
 ```
 
 ### Example Test
@@ -269,11 +267,18 @@ vercel deploy
 FROM python:3.11-slim
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy project files
+COPY pyproject.toml .
+COPY api/ ./api/
+
+# Install dependencies
+RUN uv sync --frozen
+
+CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```bash
@@ -360,9 +365,9 @@ logging.basicConfig(
 **"uvicorn: command not found":**
 
 ```bash
-pip install uvicorn
+uv add uvicorn
 # or
-python -m uvicorn api.main:app --reload
+uv run uvicorn api.main:app --reload
 ```
 
 **Database connection error:**
@@ -387,7 +392,7 @@ CORS_ORIGINS=http://localhost:3000
 ```bash
 # Make sure you're in the backend directory
 cd backend
-python -m uvicorn api.main:app --reload
+uv run uvicorn api.main:app --reload
 ```
 
 ## Next Steps

@@ -9,8 +9,12 @@ from typing import Dict, List, Optional, Tuple
 import pandas as pd
 from prefect import task
 
-from data.sources import alpha_vantage, yahoo
-from tasks.db import get_db_conn
+try:
+    from ..lib.api import alpha_vantage, yahoo
+except ImportError:
+    from lib.api import alpha_vantage, yahoo
+
+from .db import get_db_conn
 
 HISTORICAL_RANGE_MAP: Dict[str, int] = {
     "1m": 30,

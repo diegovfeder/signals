@@ -4,10 +4,15 @@ Database Connection and Session Management
 SQLAlchemy setup for PostgreSQL.
 """
 
+import logging
+from urllib.parse import urlparse
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 # Create database engine
 engine = create_engine(
@@ -16,6 +21,13 @@ engine = create_engine(
     pool_size=10,
     max_overflow=20
 )
+
+# Log database connection info (without credentials)
+parsed_url = urlparse(settings.DATABASE_URL)
+db_host = parsed_url.hostname or "unknown"
+db_port = parsed_url.port or "unknown"
+db_name = parsed_url.path.lstrip('/') if parsed_url.path else "unknown"
+logger.info(f"Connected to database: {db_host}:{db_port}/{db_name} (environment: {settings.ENVIRONMENT})")
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -22,10 +22,10 @@ export default function AdminHome() {
         <h2 className="text-lg font-semibold text-foreground">Runbook</h2>
         <ol className="list-decimal list-inside space-y-2">
           <li>
-            Backfill data: <code className="code-block">python -m flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y</code>
+            Backfill data: <code className="code-block">python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y</code>
           </li>
           <li>
-            Recompute signals: <code className="code-block">python -m flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y</code>
+            Recompute signals: <code className="code-block">python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y</code>
           </li>
           <li>
             Check summaries here and refresh the dashboard if strategies changed.

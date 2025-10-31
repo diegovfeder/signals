@@ -114,7 +114,7 @@ Simple placeholder that emits HOLD with a neutral reasoning line. Useful for ass
 
 ```bash
 cd pipe
-python -m flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
+python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
 ```
 
 to regenerate historical signals and backtests with the new logic.
