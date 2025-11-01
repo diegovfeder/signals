@@ -15,11 +15,19 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
+# Normalize DATABASE_URL to use psycopg driver (not psycopg2)
+# Vercel environment variables may use postgresql:// which defaults to psycopg2
+# We need postgresql+psycopg:// to use the psycopg (v3) driver from requirements.txt
+database_url = settings.DATABASE_URL
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    logger.info("Normalized DATABASE_URL to use psycopg driver")
+
 # Configure engine based on environment
 if settings.ENVIRONMENT == "production":
     # Serverless environment (Vercel) - use NullPool to prevent connection exhaustion
     engine = create_engine(
-        settings.DATABASE_URL,
+        database_url,
         poolclass=NullPool,  # No connection pooling in serverless
         pool_pre_ping=True,
     )
@@ -27,7 +35,7 @@ if settings.ENVIRONMENT == "production":
 else:
     # Development environment - use connection pooling
     engine = create_engine(
-        settings.DATABASE_URL,
+        database_url,
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20
@@ -35,7 +43,7 @@ else:
     logger.info("Database engine configured for development (connection pooling)")
 
 # Log database connection info (without credentials)
-parsed_url = urlparse(settings.DATABASE_URL)
+parsed_url = urlparse(database_url)
 db_host = parsed_url.hostname or "unknown"
 db_port = parsed_url.port or "unknown"
 db_name = parsed_url.path.lstrip('/') if parsed_url.path else "unknown"
