@@ -3,7 +3,7 @@ name = "trading-signals-api"
 version = "0.1.0"
 description = "FastAPI backend for trading signals platform"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     # FastAPI and Web Framework
     "fastapi>=0.104.0,<0.110.0",
