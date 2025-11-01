@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { api } from '../api-client'
 
 export interface Signal {
@@ -147,6 +147,6 @@ export function useSubscribers(options: SubscriberQueryOptions = {}) {
         params,
       ),
     staleTime: 60_000,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   })
 }

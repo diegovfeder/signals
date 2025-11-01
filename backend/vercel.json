@@ -11,9 +11,5 @@
       "src": "/api/(.*)",
       "dest": "api/main.py"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "RESEND_API_KEY": "@resend_api_key"
-  }
+  ]
 }

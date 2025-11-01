@@ -10,17 +10,29 @@ from urllib.parse import urlparse
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from .config import settings
 
 logger = logging.getLogger(__name__)
 
-# Create database engine
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
-)
+# Configure engine based on environment
+if settings.ENVIRONMENT == "production":
+    # Serverless environment (Vercel) - use NullPool to prevent connection exhaustion
+    engine = create_engine(
+        settings.DATABASE_URL,
+        poolclass=NullPool,  # No connection pooling in serverless
+        pool_pre_ping=True,
+    )
+    logger.info("Database engine configured for serverless (NullPool)")
+else:
+    # Development environment - use connection pooling
+    engine = create_engine(
+        settings.DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20
+    )
+    logger.info("Database engine configured for development (connection pooling)")
 
 # Log database connection info (without credentials)
 parsed_url = urlparse(settings.DATABASE_URL)
