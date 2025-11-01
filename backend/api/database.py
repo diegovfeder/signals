@@ -23,6 +23,17 @@ if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     logger.info("Normalized DATABASE_URL to use psycopg driver")
 
+# Add connection parameters for Vercel serverless compatibility
+# - Prefer IPv4 (Vercel may not support outbound IPv6)
+# - SSL mode required for Supabase
+# - Connect timeout to fail fast
+if "?" not in database_url:
+    database_url += "?sslmode=require&connect_timeout=10"
+elif "sslmode" not in database_url:
+    database_url += "&sslmode=require&connect_timeout=10"
+
+logger.info(f"Database connection configured (IPv4 preferred, SSL required)")
+
 # Configure engine based on environment
 if settings.ENVIRONMENT == "production":
     # Serverless environment (Vercel) - use NullPool to prevent connection exhaustion

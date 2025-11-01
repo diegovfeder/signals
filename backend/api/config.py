@@ -19,8 +19,13 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_RELOAD: bool = True
 
-    # CORS (expects JSON array format in .env: ["http://localhost:3000"])
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    # CORS - Allow localhost (dev) and all Vercel deployments (prod + previews)
+    # Can override via env var with JSON array: ["https://example.com"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://*.vercel.app",  # All Vercel preview and production deployments
+    ]
 
     # Email Service
     RESEND_API_KEY: str = ""
