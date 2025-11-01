@@ -6,6 +6,7 @@ FastAPI application for serving trading signals, market data, and email subscrip
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from .config import settings
@@ -23,8 +24,8 @@ app = FastAPI(
         "Designed for professionals who value clarity and transparency in data—no hype, no noise."
     ),
     version="0.1.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # CORS middleware
@@ -51,6 +52,13 @@ async def root():
         "message": "Trading Signals API",
         "version": "0.1.0"
     }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve favicon from public directory."""
+    # Vercel automatically serves files from public/** via CDN
+    return RedirectResponse("/favicon.ico", status_code=307)
 
 
 @app.get("/health")
