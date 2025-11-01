@@ -18,7 +18,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Lock files (not needed in production)
+# Force Vercel to use requirements.txt instead of pyproject.toml
+# When both exist, Vercel v48+ prioritizes pyproject.toml, which causes
+# editable install errors. Keep pyproject.toml for local dev only.
+pyproject.toml
 uv.lock
 
 # Development configs
