@@ -141,7 +141,7 @@ WHERE s.timestamp > NOW() - INTERVAL '30 days'
 GROUP BY s.symbol, s.signal_type;
 
 -- Comments
-COMMENT ON TABLE symbols IS 'Tracked assets (BTC-USD, AAPL, IVV, BRL=X for MVP - 4 asset classes)';
+COMMENT ON TABLE symbols IS 'Tracked assets (BTC-USD, AAPL for MVP)';
 COMMENT ON TABLE market_data IS 'Raw OHLCV data from Yahoo Finance, 15-min bars';
 COMMENT ON TABLE indicators IS 'Calculated technical indicators (RSI, EMA12, EMA26)';
 COMMENT ON TABLE signals IS 'Generated trading signals with confidence scores and idempotency';

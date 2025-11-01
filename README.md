@@ -4,23 +4,23 @@ Track automated trading signals across multiple asset classes. Get email alerts 
 
 ## What It Does
 
-Every 15 minutes, the system can:
+Daily at 10 PM UTC, the system:
 
-1. Fetch the latest intraday data from Alpha Vantage (with Yahoo Finance fallback for gaps).
-2. Calculate RSI / EMA / MACD indicators per asset.
-3. Run per-symbol strategies (crypto momentum, stock mean reversion) to emit BUY / SELL / HOLD signals.
-4. Send email notifications when strength exceeds `SIGNAL_NOTIFY_THRESHOLD`.
+1. Fetches the latest daily OHLCV data from Yahoo Finance.
+2. Calculates RSI / EMA indicators per asset.
+3. Runs signal analysis to generate BUY / SELL / HOLD signals with strength scores.
+4. Sends email notifications when strength exceeds threshold (≥70).
 
 See the **Data Pipeline Workflow** section below for the exact Prefect flows and schedules.
 
 ## MVP Asset Coverage
 
-Diversified across 4 major asset classes:
+Starting simple with 2 assets:
 
-- **Crypto**: BTC-USD (Bitcoin)
-- **Stocks**: AAPL (Apple)
-- **ETF**: IVV (iShares Core S&P 500)
-- **Forex**: BRL=X (Brazilian Real / US Dollar)
+- **BTC-USD** (Bitcoin)
+- **AAPL** (Apple)
+
+Expanding to ETFs and forex as the platform grows.
 
 ## Tech Stack
 
@@ -51,10 +51,10 @@ Provider clients live under `pipe/data/sources` (Alpha Vantage intraday + Yahoo 
 
 | Flow | Module | Purpose | Default Schedule |
 | --- | --- | --- | --- |
-| `historical-backfill` | `pipe/flows/historical_backfill.py` | Fetch multi-year daily OHLCV history and refresh indicators. | Manual (on demand) |
-| `signal-generation` | `pipe/flows/signal_generation.py` | Fetch intraday bars, update indicators, store BUY/SELL/HOLD signals. | Every 15 minutes |
-| `signal-replay` | `pipe/flows/signal_replay.py` | Rebuild historical signals and backtests (default: 2 years). | Nightly at 00:15 UTC |
-| `notification-sender` | `pipe/flows/notification_sender.py` | Email subscribers when strength ≥ threshold. | Every 15 minutes (offset 10 min) |
+| `market-data-backfill` | `pipe/flows/market_data_backfill.py` | Fetch multi-year daily OHLCV history for new symbols. | Manual (on demand) |
+| `market-data-sync` | `pipe/flows/market_data_sync.py` | Fetch the latest daily OHLCV bars for all symbols. | Daily at 10:00 PM UTC |
+| `signal-analyzer` | `pipe/flows/signal_analyzer.py` | Calculate indicators and generate BUY/SELL/HOLD signals. | Daily at 10:15 PM UTC |
+| `notification-dispatcher` | `pipe/flows/notification_dispatcher.py` | Email subscribers about strong signals (strength ≥70). | Daily at 10:30 PM UTC |
 
 Run flows ad-hoc with `python -m pipe.flows.<name>` or register the deployments with Prefect Cloud (see [docs/RUNBOOK.md](docs/RUNBOOK.md)).
 Enable schedules via `python -m deployments.register --work-pool <pool>` and manage them with Prefect Cloud or `prefect deployment pause|resume <flow>/<deployment>`.
@@ -70,8 +70,8 @@ export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/t
 
 # 2. Schema & Historical Data (~2 years of daily bars)
 python scripts/apply_db.py
-uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
-uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
+uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
 
 # 3. Backend API
 cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
@@ -80,7 +80,7 @@ cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
-uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
 uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
 ```
 
@@ -168,11 +168,11 @@ cp .env.example .env
 
 # Backfill + indicators (run from project root)
 cd ..
-uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL,IVV,BRL=X --backfill-range 2y
-uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL,IVV,BRL=X --range-label 2y
+uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
 
 # Generate latest intraday signals + send notifications
-uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL,IVV,BRL=X
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
 uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
 
 # Optional: register Prefect deployments / schedules
@@ -195,7 +195,7 @@ RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL="Signals Bot <onboarding@resend.dev>"
 SIGNAL_NOTIFY_THRESHOLD=60
 APP_BASE_URL=https://signalsapp.dev
-SIGNAL_SYMBOLS=BTC-USD,AAPL,IVV,BRL=X
+SIGNAL_SYMBOLS=BTC-USD,AAPL
 POSTHOG_API_KEY=phc_...
 ```
 

@@ -15,7 +15,7 @@ import resend
 
 load_dotenv()
 
-DEFAULT_FROM_EMAIL = "Signals Bot <alerts@resend.dev>"
+DEFAULT_FROM_EMAIL = "Signals <onboarding@resend.dev>"
 DEFAULT_APP_URL = "https://signalsapp.dev"
 
 

@@ -69,6 +69,7 @@ def generate_and_store_signal(
                 idempotency_key,
                 strategy.name,
             ),
+            prepare=False,
         )
         conn.commit()
     return {

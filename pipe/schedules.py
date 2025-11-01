@@ -8,15 +8,15 @@ from flows.signal_generation import signal_generation_flow
 
 
 def deploy_signal_flow():
-    """Deploy single signal_generation flow on 15-minute cron."""
+    """Deploy single signal_generation flow daily (deprecated - use deployments/register.py instead)."""
     deployment = Deployment.build_from_flow(
         flow=signal_generation_flow,
-        name="signal-generation-15min",
-        schedule=CronSchedule(cron="0,15,30,45 * * * *"),
+        name="signal-generation-daily",
+        schedule=CronSchedule(cron="0 22 * * *"),  # 10 PM UTC daily
         work_queue_name="default",
     )
     deployment.apply()
-    print("✓ Deployed: signal_generation (every 15 minutes)")
+    print("✓ Deployed: signal_generation (daily at 10 PM UTC)")
 
 
 if __name__ == "__main__":

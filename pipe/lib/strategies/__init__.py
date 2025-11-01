@@ -19,8 +19,6 @@ _STRATEGY_FACTORIES: Dict[str, type[Strategy]] = {
 _DEFAULT_SYMBOL_MAPPING: Dict[str, str] = {
     "BTC-USD": "crypto_momentum",
     "AAPL": "stock_mean_reversion",
-    "IVV": "stock_mean_reversion",
-    "BRL=X": "stock_mean_reversion",
 }
 
 _ENV_PREFIX = "SIGNAL_MODEL_"

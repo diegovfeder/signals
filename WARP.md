@@ -10,13 +10,11 @@ An automated trading signals system across multiple asset classes. Analyzes tech
 
 ## What It Does
 
-Every 15 minutes:
+Daily at 10 PM UTC:
 
-1. Fetches price data from Yahoo Finance (15-minute bars) for:
-   - **Crypto**: BTC-USD (Bitcoin)
-   - **Stocks**: AAPL (Apple)
-   - **ETF**: IVV (iShares Core S&P 500)
-   - **Forex**: BRL=X (Brazilian Real / US Dollar)
+1. Fetches daily price data from Yahoo Finance for:
+   - **BTC-USD** (Bitcoin)
+   - **AAPL** (Apple)
 2. Calculates RSI (14-period) and EMA (12/26 periods) for each asset
 3. Generates BUY/HOLD signals using same logic across all asset types
 4. Saves signals to Supabase (PostgreSQL)
@@ -51,7 +49,7 @@ Yahoo Finance → Prefect Flow → Supabase → FastAPI → Next.js → User
 
 - **No 5m → 15m resampling**: Fetch 15m data directly from Yahoo Finance
 - **Single Prefect flow**: `signal_generation.py` with all tasks inline (not separate flows)
-- **4 assets**: BTC-USD (crypto), AAPL (stock), IVV (ETF), BRL=X (forex)
+- **2 assets**: BTC-USD (crypto), AAPL (stock)
 - **2 indicators**: RSI + EMA (MACD in schema but NULL for MVP)
 - **Log notifications**: Email sending via Resend in Phase 2
 - **Public dashboard**: No authentication required (Phase 1)
@@ -296,7 +294,7 @@ Weighted score (0-100) based on:
 
 **6 Core Tables** (see `db/schema.sql`):
 
-1. `symbols` - BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+1. `symbols` - BTC-USD (crypto), AAPL (stock)
 2. `market_data` - 15-minute OHLCV price data for all assets
 3. `indicators` - RSI, EMA-12, EMA-26 (MACD fields available but NULL in MVP)
 4. `signals` - Generated signals with strength scores, idempotency_key, reasoning
@@ -455,7 +453,7 @@ npm run build
 
 **✅ Phase 1 (Implemented)**:
 
-- 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+- 2 assets: BTC-USD (crypto), AAPL (stock)
 - RSI + EMA indicators (same logic for all asset types)
 - 24/7 operation (ignore market hours for stocks/ETFs)
 - Complete backend API (all endpoints working)

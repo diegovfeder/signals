@@ -16,7 +16,7 @@ load_dotenv()
 
 ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
 
-DEFAULT_SYMBOLS = ["BTC-USD", "AAPL", "IVV", "BRL=X"]
+DEFAULT_SYMBOLS = ["BTC-USD", "AAPL"]
 
 ALPHA_VANTAGE_CONFIG: Dict[str, Dict] = {
     "BTC-USD": {
@@ -30,16 +30,6 @@ ALPHA_VANTAGE_CONFIG: Dict[str, Dict] = {
         "function": "TIME_SERIES_INTRADAY",
         "params": {"symbol": "AAPL"},
         "series_key": lambda interval: f"Time Series ({interval})",
-    },
-    "IVV": {
-        "function": "TIME_SERIES_INTRADAY",
-        "params": {"symbol": "IVV"},
-        "series_key": lambda interval: f"Time Series ({interval})",
-    },
-    "BRL=X": {
-        "function": "FX_INTRADAY",
-        "params": {"from_symbol": "BRL", "to_symbol": "USD"},
-        "series_key": lambda interval: f"Time Series FX ({interval})",
     },
 }
 
@@ -60,16 +50,6 @@ ALPHA_VANTAGE_HISTORICAL_CONFIG: Dict[str, Dict] = {
         "function": "TIME_SERIES_DAILY_ADJUSTED",
         "params": {"symbol": "AAPL"},
         "series_key": lambda _interval: "Time Series (Daily)",
-    },
-    "IVV": {
-        "function": "TIME_SERIES_DAILY_ADJUSTED",
-        "params": {"symbol": "IVV"},
-        "series_key": lambda _interval: "Time Series (Daily)",
-    },
-    "BRL=X": {
-        "function": "FX_DAILY",
-        "params": {"from_symbol": "BRL", "to_symbol": "USD"},
-        "series_key": lambda _interval: "Time Series FX (Daily)",
     },
 }
 

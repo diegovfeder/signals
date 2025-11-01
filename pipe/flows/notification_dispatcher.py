@@ -40,7 +40,7 @@ def fetch_strong_signals(min_strength: float | None = None, window_minutes: int 
     """
     interval = f"{max(window_minutes, 1)} minutes"
     with get_db_conn() as conn, conn.cursor() as cur:
-        cur.execute(query, (threshold, interval))
+        cur.execute(query, (threshold, interval), prepare=False)
         rows = cur.fetchall()
     signals: list[dict[str, Any]] = []
     for row in rows:
@@ -71,7 +71,7 @@ def get_email_subscribers() -> list[dict[str, Any]]:
           AND (unsubscribed = FALSE OR unsubscribed IS NULL)
     """
     with get_db_conn() as conn, conn.cursor() as cur:
-        cur.execute(query)
+        cur.execute(query, prepare=False)
         rows = cur.fetchall()
     sanitized = []
     for email, token in rows:
@@ -102,7 +102,7 @@ def should_send_email(email: str, signal_id: str, symbol: str) -> bool:
         LIMIT 1
     """
     with get_db_conn() as conn, conn.cursor() as cur:
-        cur.execute(query, (email, symbol))
+        cur.execute(query, (email, symbol), prepare=False)
         allowed = cur.fetchone() is None
     if not allowed:
         logger.info(
@@ -131,6 +131,7 @@ def send_signal_email(email: str, unsubscribe_token: str, signal: dict[str, Any]
         cur.execute(
             "INSERT INTO sent_notifications (email, signal_id) VALUES (%s, %s)",
             (email, signal["id"]),
+            prepare=False,
         )
         conn.commit()
     logger.info(

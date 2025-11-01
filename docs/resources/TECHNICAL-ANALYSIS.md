@@ -1,8 +1,11 @@
-# Data Science & Signal Logic
+# Technical Analysis & Signal Generation
 
-_Last updated: October 2025_
+> **Last Updated**: 2025-10-31
+> **Applies to**: MVP Phase 1 (Daily signals using RSI + EMA)
 
-This note explains how we fetch data, compute indicators, and translate them into BUY/SELL/HOLD decisions after the strategy-registry refactor. Share it with anyone designing new heuristics or reviewing signal quality.
+This document explains the technical indicators (RSI, EMA) and signal generation strategies used to produce BUY/SELL/HOLD decisions. Reference this when designing new strategies or reviewing signal quality.
+
+**Related**: [MVP](../MVP.md) | [Architecture](../ARCHITECTURE.md) | [Operations](OPERATIONS.md)
 
 ---
 
@@ -55,7 +58,7 @@ and returns a `StrategyResult(signal_type, reasoning: list[str], strength: float
 | Symbol | Strategy | Rationale |
 | --- | --- | --- |
 | `BTC-USD` | `CryptoMomentumStrategy` | BTC trends violently — we prioritize momentum bursts and overbought profit-taking. |
-| `AAPL`, `IVV`, `BRL=X` | `StockMeanReversionStrategy` | These behave more mean-reverting on the daily timeframe — RSI reclaims and EMA compression work better. |
+| `AAPL` | `StockMeanReversionStrategy` | Behaves more mean-reverting on the daily timeframe — RSI reclaims and EMA compression work better. |
 | Any unmapped symbol | `HoldStrategy` | Keeps us in HOLD until a bespoke model is defined. |
 
 Override mappings via environment variables, e.g. `SIGNAL_MODEL_ETH_USD=crypto_momentum`.

@@ -54,11 +54,13 @@ def _load_price_history(symbol: str, window: Optional[int]) -> pd.DataFrame:
                 ORDER BY timestamp ASC
                 """,
                 (symbol, window),
+                prepare=False,
             )
         else:
             cur.execute(
                 "SELECT timestamp, close FROM market_data WHERE symbol=%s ORDER BY timestamp ASC",
                 (symbol,),
+                prepare=False,
             )
         rows = cur.fetchall()
     if not rows:
@@ -137,7 +139,7 @@ def _bulk_upsert_indicator_rows(indicator_df: pd.DataFrame) -> int:
             macd_histogram = EXCLUDED.macd_histogram
     """
     with get_db_conn() as conn, conn.cursor() as cur:
-        cur.executemany(query, rows)
+        cur.executemany(query, rows, prepare=False)
         conn.commit()
     return len(rows)
 

@@ -134,7 +134,7 @@ cp pipe/.env.example pipe/.env
 # Test single unified flow locally
 uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
 
-# Deploy to Prefect Cloud (runs every 15 minutes)
+# Deploy to Prefect Cloud (runs daily at 10 PM UTC)
 prefect cloud login
 uv run --directory pipe python -m pipe.deployments.register --work-pool default-prefect-managed-wp
 
@@ -166,7 +166,7 @@ uv run --directory pipe python -c "from pipe.lib.signals.strategies import get_s
 
 **6 Core Tables** (see `db/schema.sql`):
 
-1. **symbols** - Assets we track: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+1. **symbols** - Assets we track: BTC-USD (crypto), AAPL (stock)
 2. **market_data** - Raw OHLCV from Yahoo Finance for all assets
 3. **indicators** - Calculated RSI, MACD (note: docs mention EMA, schema has MACD - use RSI+EMA for MVP)
 4. **signals** - Generated BUY/HOLD signals with strength scores per asset
@@ -393,7 +393,7 @@ Email sending will be added in Phase 2 with:
 
 **What's IN** (build this first):
 
-- 4 representative assets: BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+- 2 assets: BTC-USD (crypto), AAPL (stock)
 - 2 indicators: RSI + EMA (MACD fields in schema but NULL for MVP)
 - Asset-agnostic approach: Same indicator logic for all asset types
 - 24/7 operation: Ignore market hours (even for stocks/ETFs that close on weekends)

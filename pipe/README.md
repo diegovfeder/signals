@@ -4,7 +4,7 @@ Simple orchestration for fetching market data, calculating indicators, generatin
 
 ## Quick Overview
 
-**One flow, four tasks, runs every 15 minutes:**
+**Four separate flows, run daily:**
 
 ```bash
 generate_signals_flow():
@@ -89,7 +89,7 @@ import yfinance as yf
 from sqlalchemy import create_engine
 import os
 
-SYMBOLS = ['BTC-USD', 'AAPL', 'IVV', 'BRL=X']
+SYMBOLS = ['BTC-USD', 'AAPL']
 
 @task(name="fetch-market-data", retries=3, retry_delay_seconds=60)
 def fetch_market_data(symbol: str):
@@ -143,7 +143,7 @@ def send_notifications():
 
 @flow(name="generate-signals", log_prints=True)
 def generate_signals_flow():
-    """Main flow: runs every 15 minutes."""
+    """Main flow: runs daily."""
     print("🚀 Starting signal generation flow...")
     
     for symbol in SYMBOLS:

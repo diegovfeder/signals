@@ -26,7 +26,7 @@ class SignalResponse(BaseModel):
     symbol: str
     timestamp: datetime
     signal_type: SignalType
-    strength: float = Field(..., ge=0, le=100, description="Confidence score 0-100")
+    strength: float = Field(..., ge=0, le=100, description="Strength score 0-100")
     reasoning: List[str]
     price_at_signal: float | None
 
@@ -46,7 +46,7 @@ class SignalListResponse(BaseModel):
 
 
 class MarketDataResponse(BaseModel):
-    """Market data response."""
+    """Market data OHLCV bars."""
     symbol: str
     timestamp: datetime
     open: float
@@ -60,7 +60,7 @@ class MarketDataResponse(BaseModel):
 
 
 class IndicatorResponse(BaseModel):
-    """Indicator data response."""
+    """Technical indicators (RSI, EMA, MACD)."""
     symbol: str
     timestamp: datetime
     rsi: float | None

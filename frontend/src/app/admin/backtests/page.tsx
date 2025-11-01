@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useSignals, useMarketData, useBacktestSummary } from "@/lib/hooks/useSignals"
 
 const RANGE_OPTIONS = ["1m", "3m", "6m", "1y", "2y"] as const
-const DEFAULT_SYMBOLS = ["BTC-USD", "AAPL", "IVV", "BRL=X"]
+const DEFAULT_SYMBOLS = ["BTC-USD", "AAPL"]
 
 export default function AdminBacktestsPage() {
   const {

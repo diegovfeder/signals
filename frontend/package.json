@@ -14,26 +14,30 @@
     "@tanstack/react-query": "^5.90.5",
     "chart.js": "^4.4.0",
     "chartjs-adapter-date-fns": "^3.0.0",
-    "next": "15.3.0",
+    "next": "^16.0.1",
     "posthog-js": "^1.280.1",
-    "react": "19.0.0",
+    "react": "^19.2.0",
     "react-chartjs-2": "^5.2.0",
-    "react-dom": "19.0.0",
-    "zustand": "^4.5.5",
-    "zod": "^3.23.8"
+    "react-dom": "^19.2.0",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
     "autoprefixer": "^10.4.0",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "15.3.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "16.0.1",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.0"
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "overrides": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2"
   }
 }

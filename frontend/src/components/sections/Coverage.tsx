@@ -1,6 +1,6 @@
 /**
  * Coverage Component
- * Four asset tiles showing market coverage
+ * Two asset tiles showing market coverage
  */
 
 export default function Coverage() {
@@ -16,18 +16,6 @@ export default function Coverage() {
       label: 'Stock',
       color: 'text-success',
       delay: '100ms'
-    },
-    {
-      symbol: 'IVV',
-      label: 'ETF',
-      color: 'text-warning',
-      delay: '200ms'
-    },
-    {
-      symbol: 'BRL=X',
-      label: 'Forex',
-      color: 'text-foreground-muted',
-      delay: '300ms'
     }
   ]
 
@@ -38,7 +26,7 @@ export default function Coverage() {
           Coverage
         </h2>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
           {assets.map((asset) => (
             <div
               key={asset.symbol}

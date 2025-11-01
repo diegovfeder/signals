@@ -14,11 +14,17 @@ from .routers import signals, market_data, subscribe, backtests
 
 # Create FastAPI app
 app = FastAPI(
-    title="Trading Signals API",
-    description="Automated trading signals based on technical analysis",
+    title="Signals API — Market insights made human",
+    description=(
+        "The Signals API delivers automated trading insights derived from RSI and EMA indicators. "
+        "Currently supports AAPL and BTC-USD, with plans to expand into ETFs and forex. "
+        "Signals refresh daily at 10 PM UTC, each including both a confidence score (0–100) "
+        "and a plain-English summary of the market condition.\n\n"
+        "Designed for professionals who value clarity and transparency in data—no hype, no noise."
+    ),
     version="0.1.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
 )
 
 # CORS middleware

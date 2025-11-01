@@ -227,10 +227,10 @@ SELECT COUNT(*) FROM market_data
 WHERE symbol NOT IN (SELECT symbol FROM symbols);
 -- Should return 0
 
--- Check for signals without notifications (>15 min old, strength ≥ 70)
+-- Check for signals without notifications (>24 hours old, strength ≥ 70)
 SELECT COUNT(*) FROM signals s
 WHERE s.strength >= 70
-  AND s.generated_at < NOW() - INTERVAL '15 minutes'
+  AND s.generated_at < NOW() - INTERVAL '24 hours'
   AND NOT EXISTS (
     SELECT 1 FROM sent_notifications WHERE signal_id = s.id
   );

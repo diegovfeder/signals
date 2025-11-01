@@ -20,7 +20,7 @@ import Footer from '@/components/sections/Footer'
 
 export const metadata: Metadata = {
   title: 'SIGNALS — Automated Trading Signals (RSI & EMA)',
-  description: 'Multi-asset signals every 15 minutes with plain-English explanations. Email alerts for high-confidence setups.',
+  description: 'Daily multi-asset signals with plain-English explanations. Email alerts for high-confidence setups.',
 }
 
 export default function Home() {

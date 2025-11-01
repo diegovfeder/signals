@@ -15,7 +15,7 @@ export default function Hero() {
           <div className="inline-flex items-center gap-2 card px-3 py-1.5 mb-8 animate-fade-in">
             <span className="status-live" />
             <span className="text-xs text-foreground-muted">
-              Live · scans every 15 minutes
+              Live · daily scans at 10 PM UTC
             </span>
           </div>
 

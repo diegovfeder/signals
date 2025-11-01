@@ -1,5 +1,5 @@
--- Seed data for MVP: 4 symbols representing different asset classes
--- BTC-USD (crypto), AAPL (stocks), IVV (ETF), BRL=X (forex)
+-- Seed data for MVP: 2 symbols
+-- BTC-USD (crypto), AAPL (stock)
 
 INSERT INTO symbols (symbol, name, asset_type, active) VALUES
     ('BTC-USD', 'Bitcoin', 'crypto', true),

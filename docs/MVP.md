@@ -8,36 +8,47 @@ An automated trading signals system that helps busy professionals catch opportun
 
 "Get automated trading signals across crypto, stocks, ETFs, and forex—explained in plain English, so you don't miss opportunities while you're at work."
 
-## Target User
-
-### Maria - The Busy Professional
+## Target User: The Analytical Amateur
 
 **Profile:**
 
-- 32-year-old software engineer
-- Works 9am-5pm, often in meetings
-- Has $15K to invest across crypto, stocks, and ETFs
-- Overwhelmed by multiple markets and conflicting advice
+- Age: 28-40
+- Profession: Software engineer, designer, analyst, or product manager
+- Location: Urban, tech-centric cities (São Paulo, Austin, Berlin, London, San Francisco)
+- Income: $60K-150K USD per year
+- Portfolio: $10K-25K across crypto and large-cap equities
+- Time Available: Minimal; checks markets briefly after work or during breaks
+- Decision Style: Rational and data-oriented, seeks confidence before acting
 
-**Pain Points:**
+**Goals:**
 
-- "I missed the BTC dip because I was working"
-- "I can't track crypto, stocks, ETFs, and forex all at once"
-- "I don't know what RSI means or how most technical indicators work"
-- "I don't trust myself trying to make self-directed trading decisions"
+- Understand short-term market behavior without scanning multiple apps
+- Receive trustworthy signals with context, not vague "buy/sell" calls
+- Build intuition about timing and momentum
+- Simplify portfolio awareness across asset types
 
-**What She Needs:**
+**Frustrations:**
 
-- Actionable signals in plain English
-- Notifications only for high-confidence opportunities
-- Understand WHY a signal occurred
-- Build trading intuition over time
+- Overload of conflicting information and "expert opinions"
+- Tools that assume deep technical analysis skills
+- Lack of transparency in how most signals are generated
+- Products that sound speculative or predatory
+
+**Motivations:**
+
+- Empowerment through comprehension, not luck
+- Calm, factual communication instead of hype
+- Desire to learn—wants tools that teach patterns over time
+- Sees design, UX, and tone as trust indicators
+
+**Psychological Trigger:**
+"If I can understand the signal, I can trust it."
 
 ## Core Features
 
 ### 1. Signal Generation
 
-- Monitor 4 assets across different classes every 15 minutes
+- Monitor 4 assets across different classes daily
 - Calculate RSI, EMA, and MACD indicators
   - Flexibility to add more indicators later (Bollinger Bands, ADX, etc.)
   - Assets can opt into different strategies as the library grows
@@ -70,13 +81,12 @@ An automated trading signals system that helps busy professionals catch opportun
 
 ### ✅ In Scope
 
-**Assets (4 diversified types):**
+**Assets (starting with 2):**
 
-- **Crypto**: BTC-USD (Bitcoin)
-- **Stocks**: AAPL (Apple)
-- **ETF**: IVV (iShares Core S&P 500)
-- **Forex**: BRL=X (Brazilian Real / US Dollar)
-- 15-minute candles for all assets
+- **BTC-USD** (Bitcoin)
+- **AAPL** (Apple)
+- Daily candles for both assets
+- Expanding to ETFs and forex as the platform grows
 
 **Indicators:**
 
@@ -125,14 +135,20 @@ An automated trading signals system that helps busy professionals catch opportun
 ### Technical Flow
 
 ```text
-Every 15 minutes:
-1. Prefect intraday flow triggers
-2. Fetch the latest slice from Alpha Vantage (Yahoo fallback if throttled)
-3. Recompute RSI, EMA(12/26), MACD for the updated window
-4. Lookup the mapped strategy per symbol and generate BUY/SELL/HOLD + reasoning
-5. Save/overwrite signals in PostgreSQL
-6. If any signal >= 70 strength, enqueue downstream notifications (Resend flow)
-7. Track key events in PostHog
+Daily at 10 PM UTC:
+1. Market data sync flow triggers (10:00 PM UTC)
+2. Fetch the latest daily bars from Yahoo Finance for all symbols
+3. Save OHLCV data to PostgreSQL
+
+4. Signal analyzer flow triggers (10:15 PM UTC)
+5. Calculate RSI, EMA(12/26) for all symbols
+6. Generate BUY/SELL/HOLD signals with strength scores using per-symbol strategies
+7. Save signals to PostgreSQL
+
+8. Notification dispatcher flow triggers (10:30 PM UTC)
+9. Query signals with strength >= 70
+10. Email confirmed subscribers via Resend
+11. Track notification events in PostHog
 ```
 
 ## Signal Rules (Simplified)
