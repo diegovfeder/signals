@@ -8,7 +8,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY as string, {
       api_host:
-        process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com",
+        process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
       person_profiles: "identified_only", // Only create profiles for identified users
       defaults: "2025-05-24", // Use latest defaults
       capture_pageview: true, // Automatic pageview tracking
@@ -22,7 +22,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         // }
         console.log(
           "PostHog initialized and ready to capture events",
-          posthog._isIdentified()
+          posthog._isIdentified(),
         );
       },
     });
