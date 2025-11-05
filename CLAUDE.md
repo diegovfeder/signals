@@ -8,6 +8,22 @@ Trading Signals MVP - An automated system that monitors multiple asset classes (
 
 **Small dev team project** designed for incremental learning and building. Start small, add complexity as you understand each piece.
 
+## 🚀 Production Status
+
+**Deployed**: November 1, 2025
+
+- **Frontend**: https://signals-dvf.vercel.app (Next.js on Vercel)
+- **Backend**: https://signals-api-dvf.vercel.app (FastAPI on Vercel)
+- **Database**: Supabase PostgreSQL with Session Mode Pooler
+- **Pipeline**: Prefect Cloud (daily at 10 PM UTC)
+- **Status**: ✅ Fully operational, auto-deploys on git push
+
+**Key Configuration**:
+- CORS: Regex pattern for all `*.vercel.app` domains (prod + previews)
+- Database: IPv4 via Supabase pooler (port 6543, Session mode)
+- Driver: Auto-normalized to `psycopg` (v3) in backend code
+- Deployment: GitHub-connected, auto-deploys to Vercel
+
 ## Architecture
 
 This is a **multi-component system** with 4 independent parts:
@@ -79,11 +95,12 @@ cp .env.example .env
 # Run development server (uv creates virtual environment automatically)
 uv run uvicorn api.main:app --reload --port 8000
 
-# API docs available at: http://localhost:8000/api/docs
+# API docs available at: http://localhost:8000/docs (Swagger UI)
 # Health check: http://localhost:8000/health
+# Production docs: https://signals-api-dvf.vercel.app/docs
 ```
 
-**Backend Requirements** (Python 3.11+):
+**Backend Requirements** (Python 3.12+):
 
 - FastAPI + Uvicorn
 - SQLAlchemy 2.0+
@@ -579,6 +596,9 @@ All components deploy independently from repo root.
 
 ### Backend Deployment (Vercel)
 
+**Current Setup**: GitHub-connected auto-deploy (push to main = deploy)
+
+**Manual Deployment** (if needed):
 ```bash
 cd backend
 vercel deploy --prod
@@ -587,16 +607,27 @@ vercel deploy --prod
 **Environment variables to set in Vercel dashboard:**
 
 ```bash
-DATABASE_URL=postgresql+psycopg://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+# Database - Use Supabase Session Mode Pooler (IPv4, port 6543)
+DATABASE_URL=postgresql://postgres.[project]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+
+# Email service
 RESEND_API_KEY=re_xxxxxxxxxxxxx
+
+# Environment flag
 ENVIRONMENT=production
-CORS_ORIGINS=["https://your-frontend.vercel.app"]
 ```
 
-**Note:** Add `+psycopg` to Supabase URL for SQLAlchemy compatibility.
+**Important Notes:**
+- ✅ Backend code auto-normalizes `DATABASE_URL` to add `+psycopg` prefix (no manual edit needed)
+- ✅ CORS configured in code via regex (supports all `*.vercel.app` domains)
+- ✅ No need to set `CORS_ORIGINS` env var (handled in `backend/api/main.py`)
+- ✅ Database connection uses IPv4 via Supabase pooler (Vercel can't do outbound IPv6)
 
 ### Frontend Deployment (Vercel)
 
+**Current Setup**: GitHub-connected auto-deploy (push to main = deploy)
+
+**Manual Deployment** (if needed):
 ```bash
 cd frontend
 vercel deploy --prod
@@ -605,10 +636,18 @@ vercel deploy --prod
 **Environment variables to set in Vercel dashboard:**
 
 ```bash
-NEXT_PUBLIC_API_URL=https://your-backend.vercel.app
+# Backend API URL (production)
+NEXT_PUBLIC_API_URL=https://signals-api-dvf.vercel.app
+
+# Optional analytics
 NEXT_PUBLIC_POSTHOG_KEY=phc_xxxxxxxxxxxxx
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```
+
+**Important Notes:**
+- ✅ Frontend auto-deploys on every push to main branch
+- ✅ Preview deployments created for all pull requests
+- ✅ CORS handled by backend (no frontend config needed)
 
 ### Pipeline Deployment (Prefect Cloud)
 
@@ -656,6 +695,7 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 ```bash
 # Backend logs on startup will show: "Connected to database: [host]"
 # Check Vercel logs after deployment
+# Health check: curl https://signals-api-dvf.vercel.app/health
 ```
 
 **Check pipeline is using correct database:**
@@ -664,10 +704,38 @@ NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 # Check Prefect Cloud flow run logs
 ```
 
-**Common issues:**
-- **Wrong port**: Supabase pooler uses 6543 (not 5432)
-- **Missing `+psycopg`**: Backend needs `postgresql+psycopg://...` for SQLAlchemy
-- **Transaction mode**: Use Session mode in Supabase pooler for long-running queries
+**Common Deployment Issues (Solved Nov 1, 2025)**:
+
+1. **ModuleNotFoundError: No module named 'psycopg2'**
+   - ✅ **Fixed**: Backend auto-normalizes `DATABASE_URL` from `postgresql://` to `postgresql+psycopg://`
+   - ✅ **Fixed**: Code automatically handles both formats in `backend/api/database.py`
+   - Requirements.txt has `psycopg` (v3), not `psycopg2`
+
+2. **FUNCTION_INVOCATION_FAILED - Cannot import api.main**
+   - ✅ **Fixed**: Created `backend/api/__init__.py` to initialize Python package
+   - ✅ **Fixed**: Added `.vercelignore` to exclude `.venv/` (79MB) from deployment
+   - ✅ **Fixed**: Ignore `pyproject.toml` in Vercel (forces use of clean `requirements.txt`)
+
+3. **IPv6 Connection Error - "Cannot assign requested address"**
+   - ✅ **Fixed**: Use Supabase **Session Mode Pooler** (not direct connection)
+   - Port 6543 (not 5432), IPv4-only connection
+   - Connection string ends in `.pooler.supabase.com`
+   - Database code adds `sslmode=require&connect_timeout=10`
+
+4. **CORS Policy Blocking Frontend**
+   - ✅ **Fixed**: Use `allow_origin_regex=r"https://.*\.vercel\.app"` in CORS middleware
+   - Supports all Vercel preview and production deployments
+   - No need to update env vars for each preview deploy
+
+5. **Editable Install Error with uv**
+   - ✅ **Fixed**: Add `pyproject.toml` to `.vercelignore`
+   - Forces Vercel to use `requirements.txt` (no editable installs)
+   - Local dev still uses `pyproject.toml` with `uv`
+
+**Configuration Files Required**:
+- `backend/api/__init__.py` - Package initialization
+- `backend/.vercelignore` - Exclude dev files
+- `backend/index.py` - Vercel entrypoint for FastAPI auto-detection
 
 ## Documentation
 
@@ -682,22 +750,35 @@ When stuck, read docs in this order: MVP.md → ARCHITECTURE.md → IMPLEMENTATI
 
 ## Current Implementation Status
 
-### ✅ Completed (MVP Phase 1)
+### ✅ Completed (MVP Phase 1) - **DEPLOYED NOV 1, 2025** 🚀
 
-1. **Database**: Complete schema with EMA support, double opt-in, idempotency (`db/schema.sql`)
-2. **Backend API**: All endpoints implemented and ready for testing
+1. **Production Deployments**:
+   - ✅ Frontend: https://signals-dvf.vercel.app
+   - ✅ Backend: https://signals-api-dvf.vercel.app
+   - ✅ Auto-deploy on git push (GitHub-connected)
+   - ✅ CORS configured for all Vercel domains
+   - ✅ Database connected via Supabase Session Mode Pooler
+
+2. **Database**: Complete schema with EMA support, double opt-in, idempotency (`db/schema.sql`)
+
+3. **Backend API**: All endpoints live and operational
    - Signals endpoints (list, get by symbol, history)
    - Market data endpoints (OHLCV, indicators)
    - Subscribe/unsubscribe endpoints (stores to DB)
    - Health check with DB connection test
-3. **Prefect Pipeline**: Single unified flow working with all 4 assets
-   - Fetches 15m data from Yahoo Finance
+   - Swagger docs at `/docs`
+
+4. **Prefect Pipeline**: Deployed to Prefect Cloud (runs daily at 10 PM UTC)
+   - Fetches daily data from Yahoo Finance
    - Calculates RSI + EMA indicators
    - Generates and stores signals with idempotency
    - Logs strong signals (strength >= 70)
-4. **Data Science**: RSI, EMA (MACD available but not used)
-5. **Frontend**: Dashboard with `useSignals()` hook, signal cards
-6. **Testing**: pytest structure configured
+
+5. **Data Science**: RSI, EMA (MACD available but not used)
+
+6. **Frontend**: Dashboard with `useSignals()` hook, signal cards, email signup
+
+7. **Testing**: pytest structure configured
 
 ### 🔜 Next Steps (Phase 2)
 
