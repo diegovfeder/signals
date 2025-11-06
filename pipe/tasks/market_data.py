@@ -10,11 +10,14 @@ import pandas as pd
 from prefect import task
 
 try:
-    from ..lib.api import alpha_vantage, yahoo
+    from ..lib.api import yahoo
 except ImportError:
-    from lib.api import alpha_vantage, yahoo
+    from lib.api import yahoo
 
 from .db import get_db_conn
+
+# Default symbols for signal generation
+DEFAULT_SYMBOLS = ["BTC-USD", "AAPL"]
 
 HISTORICAL_RANGE_MAP: Dict[str, int] = {
     "1m": 30,
@@ -37,7 +40,7 @@ def resolve_symbols(explicit: Optional[List[str]] = None) -> List[str]:
         candidates = [sym.strip() for sym in env_value.split(",") if sym.strip()]
         if candidates:
             return candidates
-    return alpha_vantage.DEFAULT_SYMBOLS
+    return DEFAULT_SYMBOLS
 
 
 def resolve_history_days(explicit_days: Optional[int], range_label: Optional[str]) -> Optional[int]:
@@ -79,42 +82,31 @@ def _limit_df_to_days(df: pd.DataFrame, range_days: Optional[int]) -> pd.DataFra
     return filtered.reset_index(drop=True)
 
 
-def _should_fallback_to_yahoo(exc: Exception) -> bool:
-    message = str(exc).lower()
-    keywords = [
-        "premium endpoint",
-        "thank you for using alpha vantage",
-        "please visit https://www.alphavantage.co/premium",
-        "api call frequency",
-        "rate limit",
-        "history incomplete",
-    ]
-    return any(keyword in message for keyword in keywords)
+# Removed _should_fallback_to_yahoo - no longer needed (Yahoo-only approach)
 
 
 @task(name="fetch-intraday-ohlcv", retries=3, retry_delay_seconds=10)
 def fetch_intraday_ohlcv(symbol: str, interval: str = "15m") -> pd.DataFrame:
-    return alpha_vantage.fetch_intraday(symbol, interval)
+    # Yahoo Finance doesn't support intraday intervals well, use daily instead
+    # For MVP, we use daily data only (fetched at 10 PM UTC)
+    return yahoo.fetch_daily(symbol, range_days=1)
 
 
 @task(name="fetch-historical-ohlcv", retries=3, retry_delay_seconds=30)
 def fetch_historical_ohlcv(symbol: str, range_days: Optional[int] = None) -> pd.DataFrame:
-    try:
-        df = alpha_vantage.fetch_daily(symbol, range_days)
-        limited = _limit_df_to_days(df, range_days)
-        if range_days:
-            cutoff = pd.Timestamp.now(tz=timezone.utc) - pd.Timedelta(days=range_days)
-            earliest = limited["timestamp"].min() if not limited.empty else None
-            if earliest is None or earliest > cutoff + pd.Timedelta(days=14):
-                raise RuntimeError(
-                    f"Alpha Vantage history incomplete for {symbol}; earliest {earliest} but cutoff {cutoff}"
-                )
-        return limited
-    except Exception as exc:
-        if _should_fallback_to_yahoo(exc):
-            fallback = yahoo.fetch_daily(symbol, range_days)
-            return _limit_df_to_days(fallback, range_days)
-        raise
+    # Use Yahoo Finance directly (Alpha Vantage removed for MVP simplicity)
+    df = yahoo.fetch_daily(symbol, range_days)
+    limited = _limit_df_to_days(df, range_days)
+
+    # Validate we have sufficient data
+    if range_days:
+        cutoff = pd.Timestamp.now(tz=timezone.utc) - pd.Timedelta(days=range_days)
+        earliest = limited["timestamp"].min() if not limited.empty else None
+        if earliest is None or earliest > cutoff + pd.Timedelta(days=14):
+            raise RuntimeError(
+                f"Yahoo Finance history incomplete for {symbol}; earliest {earliest} but cutoff {cutoff}"
+            )
+    return limited
 
 
 @task(name="upsert-market-data")

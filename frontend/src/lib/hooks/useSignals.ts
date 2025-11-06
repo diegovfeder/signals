@@ -61,7 +61,9 @@ export function useSignals() {
   return useQuery({
     queryKey: ['signals'],
     queryFn: fetchSignals,
-    refetchInterval: 60_000,
+    staleTime: 60 * 60 * 1000, // 1 hour - refetch if visited >1hr after last fetch
+    gcTime: 24 * 60 * 60 * 1000, // Keep in cache for 24 hours
+    refetchOnWindowFocus: false, // Don't refetch on tab focus
   })
 }
 
@@ -70,7 +72,9 @@ export function useSignalBySymbol(symbol: string) {
     queryKey: ['signals', symbol],
     queryFn: async () => api.get<Signal>(`/api/signals/${symbol}`),
     enabled: Boolean(symbol),
-    refetchInterval: 60_000,
+    staleTime: 60 * 60 * 1000, // 1 hour - refetch if visited >1hr after last fetch
+    gcTime: 24 * 60 * 60 * 1000, // Keep in cache for 24 hours
+    refetchOnWindowFocus: false, // Don't refetch on tab focus
   })
 }
 
@@ -78,7 +82,9 @@ export function useMarketData(symbol: string, range: string) {
   return useQuery({
     queryKey: ['market-data', symbol, range],
     enabled: Boolean(symbol),
-    refetchInterval: 300_000,
+    staleTime: 60 * 60 * 1000, // 1 hour - refetch if visited >1hr after last fetch
+    gcTime: 24 * 60 * 60 * 1000, // Keep in cache for 24 hours
+    refetchOnWindowFocus: false, // Don't refetch on tab focus
     queryFn: async () =>
       api.get<MarketBar[]>(
         `/api/market-data/${encodeURIComponent(symbol)}/ohlcv`,

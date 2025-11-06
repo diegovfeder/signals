@@ -11,7 +11,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     # Database
     "sqlalchemy>=2.0.35",
-    "psycopg[binary,pool]>=3.1.0",  # Python 3.13 compatible
+    "psycopg[binary,pool]>=3.1.0", # Python 3.13 compatible
     # Data Validation
     "pydantic>=2.8.0",
     "pydantic-settings>=2.5.0",
@@ -21,6 +21,7 @@ dependencies = [
     # Utilities
     "python-dotenv>=1.0.0",
     "python-jose[cryptography]>=3.3.0",
+    "slowapi>=0.1.9",
 ]
 
 [build-system]

@@ -4,9 +4,12 @@ Email Subscription Router
 Endpoints for managing email subscriptions.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from ..database import get_db
 from ..models import EmailSubscriber
 from ..schemas import (
@@ -15,9 +18,11 @@ from ..schemas import (
     EmailSubscriberListResponse,
     EmailSubscriberSummary,
     )
+from ..email import send_confirmation_email, send_reactivation_email
 import secrets
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 def _normalize_email(raw_email: str) -> str:
@@ -26,7 +31,9 @@ def _normalize_email(raw_email: str) -> str:
 
 
 @router.get("/", response_model=EmailSubscriberListResponse)
+@limiter.limit("60/minute")
 async def list_subscribers(
+    request: Request,
     include_unsubscribed: bool = True,
     include_tokens: bool = False,
     limit: int = Query(100, ge=1, le=500),
@@ -84,8 +91,10 @@ async def list_subscribers(
 
 
 @router.post("/", response_model=EmailSubscribeResponse)
+@limiter.limit("5/minute")
 async def subscribe_email(
-    request: EmailSubscribeRequest,
+    request: Request,
+    body: EmailSubscribeRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -101,7 +110,7 @@ async def subscribe_email(
         409: Email already subscribed
         422: Invalid email format
     """
-    normalized_email = _normalize_email(request.email)
+    normalized_email = _normalize_email(body.email)
 
     # Check if email already exists
     existing = db.query(EmailSubscriber)\
@@ -116,10 +125,17 @@ async def subscribe_email(
             existing.confirmation_token = secrets.token_urlsafe(32)
             existing.email = normalized_email
             db.commit()
-            # TODO Phase 2: Send confirmation email via Resend
+
+            # Send reactivation confirmation email
+            try:
+                send_reactivation_email(existing.email, existing.confirmation_token)
+            except Exception as e:
+                print(f"[subscribe] Failed to send reactivation email: {e}")
+                # Don't fail the request - subscriber is reactivated, email is best-effort
+
             return EmailSubscribeResponse(
                 message="Subscription reactivated. Please check your email for confirmation.",
-                email=request.email
+                email=body.email
             )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -139,13 +155,17 @@ async def subscribe_email(
     
     db.add(subscriber)
     db.commit()
-    
-    # TODO Phase 2: Send confirmation email via Resend
-    # Email should contain link: /api/subscribe/confirm/{confirmation_token}
-    
+
+    # Send confirmation email
+    try:
+        send_confirmation_email(subscriber.email, subscriber.confirmation_token)
+    except Exception as e:
+        print(f"[subscribe] Failed to send confirmation email: {e}")
+        # Don't fail the request - subscriber is created, email is best-effort
+
     return EmailSubscribeResponse(
         message="Subscription pending confirmation. Please check your email.",
-        email=request.email
+        email=body.email
     )
 
 
@@ -180,8 +200,50 @@ async def unsubscribe_email(
     # Set unsubscribed flag
     subscriber.unsubscribed = True
     db.commit()
-    
+
     return {
         "message": "Successfully unsubscribed from trading signals",
+        "email": subscriber.email
+    }
+
+
+@router.get("/confirm/{token}")
+@limiter.limit("20/minute")
+async def confirm_email(
+    request: Request,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Confirm email subscription using confirmation token from email link.
+
+    Path Parameters:
+        - token: Confirmation token from email
+
+    Returns:
+        Success message with email address
+
+    Raises:
+        404: Invalid or already used confirmation token
+    """
+    # Find subscriber by confirmation_token
+    subscriber = db.query(EmailSubscriber)\
+        .filter(EmailSubscriber.confirmation_token == token)\
+        .filter(EmailSubscriber.confirmed == False)\
+        .first()
+
+    if not subscriber:
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid or already used confirmation token"
+        )
+
+    # Mark as confirmed
+    subscriber.confirmed = True
+    subscriber.confirmed_at = datetime.now()
+    db.commit()
+
+    return {
+        "message": "Email confirmed! You'll now receive trading signals.",
         "email": subscriber.email
     }

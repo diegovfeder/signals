@@ -2,6 +2,48 @@
 
 Track automated trading signals across multiple asset classes. Get email alerts when technical indicators detect high-confidence opportunities in crypto, stocks, ETFs, and forex.
 
+## 🚀 Quick Start - 1 Minute Overview
+
+**What This Does**: Automated trading signals for crypto & stocks with plain-English explanations
+
+**Core Stack**:
+- **Frontend**: Next.js 16 on Vercel → https://signals-dvf.vercel.app
+- **Backend**: FastAPI on Vercel → https://signals-api-dvf.vercel.app/docs
+- **Pipeline**: Prefect Cloud (daily at 10 PM UTC)
+- **Database**: Supabase PostgreSQL
+
+**Data Flow**: Yahoo Finance → Prefect → Supabase → FastAPI → Next.js → User
+
+**Who It's For**: "The Analytical Amateur" (28-40, tech professionals, $10K-25K portfolio)
+→ Wants to understand markets, not gamble. Values transparency over hype.
+
+**Current Value**:
+- BTC-USD + AAPL signals with confidence scores (0-100)
+- RSI + EMA momentum analysis
+- Plain-English reasoning: "RSI is at 28 (oversold) and turning upward..."
+
+**Where to Edit for Maximum User Value**:
+1. **Signal Quality**: `pipe/lib/signals/strategies/` - Tune crypto_momentum.py thresholds
+2. **User Trust**: `frontend/src/components/dashboard/SignalCard.tsx` - Expand reasoning display
+3. **Actionability**: `pipe/lib/signals/signal_scorer.py` - Adjust strength calculation
+
+**Key Principle**: Trust through transparency. User motto: "If I can understand it, I can trust it."
+
+**Environment Setup**:
+```bash
+# Global setup
+cp .env.example .env
+
+# Backend
+cd backend && cp .env.example .env
+
+# Frontend
+cd frontend && cp .env.example .env.local
+
+# Pipeline
+cd pipe && cp .env.example .env
+```
+
 ## What It Does
 
 Daily at 10 PM UTC, the system:
@@ -45,7 +87,7 @@ signals/
     └── DATA-SCIENCE.md # Indicators explained
 ```
 
-Provider clients live under `pipe/data/sources` (Alpha Vantage intraday + Yahoo chart fallback).
+Provider clients live under `pipe/lib/api/` (Yahoo Finance for daily OHLCV data).
 
 ## Data Pipeline Workflow
 
@@ -70,8 +112,8 @@ export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/t
 
 # 2. Schema & Historical Data (~2 years of daily bars)
 python scripts/apply_db.py
-uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y
-uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
+uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols BTC-USD,AAPL --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL --range-label 2y
 
 # 3. Backend API
 cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
@@ -80,8 +122,8 @@ cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
-uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
-uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60
 ```
 
 **See** `scripts/README.md` for production setup (Supabase) and troubleshooting.

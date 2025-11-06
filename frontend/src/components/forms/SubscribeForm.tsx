@@ -36,11 +36,12 @@ export function SubscribeForm({
   helperText = "Free during MVP. Unsubscribe anytime.",
   buttonLabel = "Get email alerts",
   placeholder = "you@email.com",
-  successTitle = "You are on the list!",
+  successTitle = "Check your email!",
   className,
 }: SubscribeFormProps) {
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const subscribedEmail = useSubscriptionStore((state) => state.email);
   const setSubscribedEmail = useSubscriptionStore((state) => state.setEmail);
   const posthog = usePostHog();
@@ -56,6 +57,7 @@ export function SubscribeForm({
     onSuccess: (response) => {
       setEmail("");
       setSubscribedEmail(response.email);
+      setSuccessMessage(response.message);
       setFormError(null);
     },
   });
@@ -144,27 +146,30 @@ export function SubscribeForm({
         <div className="space-y-3">
           <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
             <p className="font-medium">{successTitle}</p>
-            <p className="text-foreground-muted mt-1">
+            <p className="text-foreground mt-2">
+              {successMessage || "Subscription pending confirmation. Please check your email."}
+            </p>
+            <p className="text-foreground-muted mt-2 text-xs">
               Subscribed as{" "}
               <span className="font-mono text-foreground">
                 {subscribedEmail}
               </span>
-              .
             </p>
           </div>
-          <p className="text-xs text-foreground-muted">
-            Every alert email will include a one-click unsubscribe link:
-            <br />
-            <code className="code-block mt-2 block text-xs">
-              {unsubscribeExample}
-            </code>
-            Keep this for reference until automated emails roll out.
-          </p>
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 text-xs text-foreground-muted">
+            <p className="font-medium text-foreground mb-1">📧 Next steps:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>Check your inbox for a confirmation email</li>
+              <li>Click the confirmation link to activate your subscription</li>
+              <li>Check spam folder if you don't see it within a few minutes</li>
+            </ol>
+          </div>
           <button
             type="button"
             className="text-xs text-foreground-muted underline hover:text-foreground transition-colors"
             onClick={() => {
               setSubscribedEmail(null);
+              setSuccessMessage(null);
               reset();
               setFormError(null);
             }}
