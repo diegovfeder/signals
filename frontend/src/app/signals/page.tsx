@@ -9,6 +9,9 @@
 import { useSignals, type Signal } from '@/lib/hooks/useSignals'
 import Link from 'next/link'
 import { useState, useMemo } from 'react'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 type SignalType = 'BUY' | 'SELL' | 'HOLD' | 'ALL'
 type SortKey = 'timestamp' | 'symbol' | 'strength'
@@ -70,18 +73,18 @@ export default function SignalsPage() {
   const getSignalBadgeClasses = (signalType: string) => {
     switch (signalType) {
       case 'BUY':
-        return 'bg-success/20 text-success border-success/30'
+        return 'bg-primary text-primary-foreground border-0'
       case 'SELL':
-        return 'bg-danger/20 text-danger border-danger/30'
+        return 'bg-red-600 text-white border-0'
       default:
-        return 'bg-neutral/20 text-neutral border-neutral/30'
+        return 'bg-muted text-muted-foreground border-0'
     }
   }
 
   const getStrengthColor = (strength: number) => {
-    if (strength >= 70) return 'bg-success'
-    if (strength >= 40) return 'bg-warning'
-    return 'bg-danger'
+    if (strength >= 70) return 'bg-primary'
+    if (strength >= 40) return 'bg-yellow-500'
+    return 'bg-red-500'
   }
 
   return (
@@ -91,14 +94,14 @@ export default function SignalsPage() {
         <div className="mb-8 animate-fade-in">
           <Link
             href="/"
-            className="inline-block text-sm text-muted hover:text-foreground-secondary mb-4 transition-colors"
+            className="inline-block text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
           >
             ← Home
           </Link>
-          <h1 className="text-4xl md:text-5xl font-bold text-gradient mb-2">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
             All Signals
           </h1>
-          <p className="text-foreground-muted">
+          <p className="text-muted-foreground">
             Complete history of trading signals across all tracked symbols
           </p>
         </div>
@@ -106,48 +109,48 @@ export default function SignalsPage() {
         {/* Filters */}
         <div className="mb-6 flex flex-wrap gap-4 items-center animate-slide-up">
           <div className="flex gap-2">
-            <button
+            <Badge
               onClick={() => setFilterType('ALL')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 cursor-pointer transition-all ${
                 filterType === 'ALL'
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-background-card text-foreground-muted border border-border hover:border-border-hover'
+                  ? 'bg-primary/20 text-ring border border-primary/40'
+                  : 'bg-card text-muted-foreground border border-border hover:border-ring'
               }`}
             >
               All
-            </button>
-            <button
+            </Badge>
+            <Badge
               onClick={() => setFilterType('BUY')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 cursor-pointer transition-all ${
                 filterType === 'BUY'
-                  ? 'bg-success/20 text-success border border-success/30'
-                  : 'bg-background-card text-foreground-muted border border-border hover:border-border-hover'
+                  ? 'bg-primary text-primary-foreground border-0'
+                  : 'bg-card text-muted-foreground border border-border hover:border-ring'
               }`}
             >
               Buy
-            </button>
-            <button
+            </Badge>
+            <Badge
               onClick={() => setFilterType('SELL')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 cursor-pointer transition-all ${
                 filterType === 'SELL'
-                  ? 'bg-danger/20 text-danger border border-danger/30'
-                  : 'bg-background-card text-foreground-muted border border-border hover:border-border-hover'
+                  ? 'bg-red-600 text-white border-0'
+                  : 'bg-card text-muted-foreground border border-border hover:border-ring'
               }`}
             >
               Sell
-            </button>
-            <button
+            </Badge>
+            <Badge
               onClick={() => setFilterType('HOLD')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 cursor-pointer transition-all ${
                 filterType === 'HOLD'
-                  ? 'bg-neutral/20 text-neutral border border-neutral/30'
-                  : 'bg-background-card text-foreground-muted border border-border hover:border-border-hover'
+                  ? 'bg-muted text-muted-foreground border-0'
+                  : 'bg-card text-muted-foreground border border-border hover:border-ring'
               }`}
             >
               Hold
-            </button>
+            </Badge>
           </div>
-          <div className="ml-auto text-sm text-foreground-muted">
+          <div className="ml-auto text-sm text-muted-foreground">
             {filteredSignals.length} signal
             {filteredSignals.length !== 1 ? 's' : ''}
           </div>
@@ -179,13 +182,13 @@ export default function SignalsPage() {
 
         {/* Signals Table */}
         {!isLoading && !isError && filteredSignals.length > 0 && (
-          <div className="card overflow-hidden animate-slide-up">
+          <Card className="overflow-hidden animate-slide-up border-2">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
                     <th
-                      className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary cursor-pointer hover:text-foreground transition-colors"
+                      className="text-left px-6 py-4 text-sm font-semibold text-foreground cursor-pointer hover:text-ring transition-colors"
                       onClick={() => handleSort('symbol')}
                     >
                       <div className="flex items-center gap-2">
@@ -197,11 +200,11 @@ export default function SignalsPage() {
                         )}
                       </div>
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
                       Signal
                     </th>
                     <th
-                      className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary cursor-pointer hover:text-foreground transition-colors"
+                      className="text-left px-6 py-4 text-sm font-semibold text-foreground cursor-pointer hover:text-ring transition-colors"
                       onClick={() => handleSort('strength')}
                     >
                       <div className="flex items-center gap-2">
@@ -213,11 +216,11 @@ export default function SignalsPage() {
                         )}
                       </div>
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
                       Price
                     </th>
                     <th
-                      className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary cursor-pointer hover:text-foreground transition-colors"
+                      className="text-left px-6 py-4 text-sm font-semibold text-foreground cursor-pointer hover:text-ring transition-colors"
                       onClick={() => handleSort('timestamp')}
                     >
                       <div className="flex items-center gap-2">
@@ -229,7 +232,7 @@ export default function SignalsPage() {
                         )}
                       </div>
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground-secondary">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">
                       Actions
                     </th>
                   </tr>
@@ -238,29 +241,25 @@ export default function SignalsPage() {
                   {filteredSignals.map((signal, idx) => (
                     <tr
                       key={signal.id}
-                      className="border-b border-border hover:bg-background-card/50 transition-colors"
+                      className="border-b border-border hover:bg-muted/30 transition-colors"
                       style={{ animationDelay: `${idx * 30}ms` }}
                     >
                       <td className="px-6 py-4">
                         <Link
                           href={`/signals/${signal.symbol}`}
-                          className="font-mono font-semibold text-foreground hover:text-primary transition-colors"
+                          className="font-mono font-semibold text-foreground hover:text-ring transition-colors"
                         >
                           {signal.symbol}
                         </Link>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold border ${getSignalBadgeClasses(
-                            signal.signal_type
-                          )}`}
-                        >
+                        <Badge className={getSignalBadgeClasses(signal.signal_type)}>
                           {signal.signal_type}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-20 h-2 bg-background-tertiary rounded-full overflow-hidden">
+                          <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
                             <div
                               className={`h-full transition-all ${getStrengthColor(
                                 signal.strength
@@ -268,15 +267,15 @@ export default function SignalsPage() {
                               style={{ width: `${signal.strength}%` }}
                             />
                           </div>
-                          <span className="text-sm font-mono text-foreground-muted">
+                          <span className="text-sm font-mono text-muted-foreground">
                             {Math.round(signal.strength)}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-mono text-sm text-foreground-secondary">
+                      <td className="px-6 py-4 font-mono text-sm text-foreground">
                         ${signal.price_at_signal?.toFixed(2) || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-foreground-muted">
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
                         {new Date(signal.timestamp).toLocaleString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -287,7 +286,7 @@ export default function SignalsPage() {
                       <td className="px-6 py-4">
                         <Link
                           href={`/signals/${signal.symbol}`}
-                          className="text-sm text-primary hover:text-primary-hover transition-colors"
+                          className="text-sm text-ring hover:text-primary transition-colors"
                         >
                           Details →
                         </Link>
@@ -297,7 +296,7 @@ export default function SignalsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Empty state */}
@@ -315,9 +314,9 @@ export default function SignalsPage() {
         {/* Quick navigation */}
         {!isLoading && !isError && signals.length > 0 && (
           <div className="mt-8 text-center animate-fade-in">
-            <Link href="/dashboard" className="btn-secondary inline-block">
-              View Dashboard
-            </Link>
+            <Button asChild variant="secondary" size="lg">
+              <Link href="/dashboard">View Dashboard</Link>
+            </Button>
           </div>
         )}
       </div>

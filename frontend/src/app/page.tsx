@@ -9,6 +9,7 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import AppHeader from '@/components/layout/AppHeader'
 import Hero from '@/components/sections/Hero'
 import ValueProps from '@/components/sections/ValueProps'
@@ -29,9 +30,9 @@ export default function Home() {
       <main>
         <AppHeader
           rightSlot={
-            <Link href="/dashboard" className="btn-primary text-sm">
-              Go to Dashboard
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
           }
         />
         <Hero />

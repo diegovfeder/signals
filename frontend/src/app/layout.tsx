@@ -21,7 +21,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased bg-gray-50 text-gray-900">
+      <head>
+        <script
+          async
+          crossOrigin="anonymous"
+          src="https://tweakcn.com/live-preview.min.js"
+        />
+      </head>
+      <body className="antialiased">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
