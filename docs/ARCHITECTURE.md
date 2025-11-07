@@ -141,7 +141,7 @@ Set `DATABASE_URL`, `RESEND_API_KEY`, and `CORS_ORIGINS` in `backend/.env`.
 
 ## 6. Frontend
 
-Next.js 15 (App Router) with Bun.
+Next.js 16 (App Router) with Bun.
 
 - `src/app/page.tsx` – marketing landing page made of modular sections (Hero, Value props, Coverage, CTA). The Hero now embeds the shared `<SubscribeForm />` so visitors can join the email list immediately.
 - `src/app/dashboard/page.tsx` – authenticated-lite dashboard that fetches signals via TanStack Query (`useSignals`) and shows the same subscribe component for visitors coming from emails.

@@ -32,5 +32,4 @@ class Strategy(Protocol):
 
     name: str
 
-    def generate(self, inputs: StrategyInputs) -> StrategyResult:
-        ...
+    def generate(self, inputs: StrategyInputs) -> StrategyResult: ...
