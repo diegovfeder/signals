@@ -139,6 +139,6 @@ def upsert_market_data(df: pd.DataFrame) -> int:
         "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (symbol, timestamp) DO NOTHING"
     )
     with get_db_conn() as conn, conn.cursor() as cur:
-        cur.executemany(query, rows, prepare=False)
+        cur.executemany(query, rows)
         conn.commit()
         return len(rows)
