@@ -1,81 +1,190 @@
 @import "tailwindcss";
 
-@theme {
-  /* Custom colors for trading signals */
+/* ==========================================================================
+   Supabase Dark Theme - Always On
+   No light mode. Dark mode only.
+   ========================================================================== */
+
+:root {
+  /* Primary Theme Colors */
+  --background: #121212;
+  --foreground: #e2e8f0;
+  --primary: #006239;
+  --primary-foreground: #dde8e3;
+
+  /* Secondary & Accent Colors */
+  --secondary: #242424;
+  --secondary-foreground: #fafafa;
+  --accent: #313131;
+  --accent-foreground: #fafafa;
+
+  /* UI Component Colors */
+  --card: #171717;
+  --card-foreground: #e2e8f0;
+  --popover: #242424;
+  --popover-foreground: #a9a9a9;
+  --muted: #1f1f1f;
+  --muted-foreground: #a2a2a2;
+
+  /* Utility & Form Colors */
+  --border: #292929;
+  --input: #242424;
+  --ring: #4ade80;
+
+  /* Status & Feedback Colors */
+  --destructive: #541c15;
+  --destructive-foreground: #ede9e8;
+
+  /* Chart & Visualization Colors */
+  --chart-1: #4ade80;
+  --chart-2: #60a5fa;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #2dd4bf;
+
+  /* Sidebar & Navigation Colors */
+  --sidebar: #121212;
+  --sidebar-foreground: #898989;
+  --sidebar-primary: #006239;
+  --sidebar-primary-foreground: #dde8e3;
+  --sidebar-accent: #313131;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #292929;
+  --sidebar-ring: #4ade80;
+
+  /* Typography */
+  --font-sans: Outfit, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: monospace;
+  --tracking-normal: 0.025em;
+
+  /* Spacing & Borders */
+  --radius: 0.5rem;
+  --spacing: 0.25rem;
+
+  /* Shadows */
+  --shadow-x: 0px;
+  --shadow-y: 1px;
+  --shadow-blur: 3px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 0.17;
+  --shadow-color: #000000;
+  --shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
+  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
+  --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
+  --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
+  --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
+  --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
+
+  /* Green Glow Effects */
+  --glow-primary: 0 0 20px rgba(0, 98, 57, 0.4);
+  --glow-primary-strong: 0 0 40px rgba(0, 98, 57, 0.6);
+  --glow-ring: 0 0 20px rgba(74, 222, 128, 0.4);
+}
+
+/* Tailwind v4 Color Mapping */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
+  --tracking-tight: calc(var(--tracking-normal) - 0.025em);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: calc(var(--tracking-normal) + 0.025em);
+  --tracking-wider: calc(var(--tracking-normal) + 0.05em);
+  --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+
+  /* Custom Trading Signal Colors (preserved from original) */
   --color-buy-light: #10b981;
-  --color-buy: #059669;
+  --color-buy: var(--chart-5);
   --color-buy-dark: #047857;
 
   --color-sell-light: #ef4444;
-  --color-sell: #dc2626;
+  --color-sell: var(--destructive);
   --color-sell-dark: #b91c1c;
 
   --color-neutral-light: #94a3b8;
   --color-neutral: #64748b;
   --color-neutral-dark: #475569;
 
-  /* Custom animation */
+  /* Custom Animations */
   --animate-pulse-slow: pulse 3s ease-in-out infinite;
-}
-
-:root {
-  /* Enhanced dark theme with Resend-inspired colors */
-  --background: #0a0a0a;
-  --background-secondary: #111111;
-  --background-tertiary: #1a1a1a;
-  --background-card: rgba(255, 255, 255, 0.08);
-  --background-card-hover: rgba(255, 255, 255, 0.12);
-  --foreground: #ffffff;
-  --foreground-secondary: #e4e4e7;
-  --foreground-muted: #a1a1aa;
-  --foreground-subtle: #71717a;
-  --border: rgba(255, 255, 255, 0.1);
-  --border-hover: rgba(255, 255, 255, 0.2);
-  --border-accent: rgba(255, 255, 255, 0.15);
-  --border-premium: rgba(255, 255, 255, 0.25);
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --primary-alpha-10: rgba(59, 130, 246, 0.1);
-  --primary-alpha-20: rgba(59, 130, 246, 0.2);
-  --primary-alpha-30: rgba(59, 130, 246, 0.3);
-  --primary-alpha-80: rgba(59, 130, 246, 0.8);
-  --primary-alpha-100: rgba(59, 130, 246, 1);
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --black-15: rgba(0, 0, 0, 0.15);
-  --black-20: rgba(0, 0, 0, 0.2);
-  --black-30: rgba(0, 0, 0, 0.3);
-  --black-60: rgba(0, 0, 0, 0.6);
-  --black-80: rgba(0, 0, 0, 0.8);
-  --white-02: rgba(255, 255, 255, 0.02);
-  --white-10: rgba(255, 255, 255, 0.1);
-  --white-20: rgba(255, 255, 255, 0.2);
-  --white-30: rgba(255, 255, 255, 0.3);
-  --purple-10: rgba(147, 51, 234, 0.1);
-  --pink-10: rgba(236, 72, 153, 0.1);
-  --gradient-primary: linear-gradient(135deg, #ffffff 0%, #a1a1aa 50%, #71717a 100%);
-  --gradient-card: linear-gradient(135deg, var(--background-card) 0%, var(--white-02) 100%);
-  --gradient-premium: linear-gradient(135deg, #000000 0%, #111111 50%, #000000 100%);
-  --gradient-accent: linear-gradient(135deg, var(--primary-alpha-10) 0%, var(--purple-10) 50%, var(--pink-10) 100%);
-  --gradient-topbar: linear-gradient(90deg, transparent, var(--white-30), transparent);
-  --gradient-button-active: linear-gradient(135deg, var(--primary-alpha-10) 0%, transparent 50%);
-  --shadow-card: 0 8px 25px var(--black-15);
-  --shadow-card-premium: 0 12px 40px var(--black-30);
-  --shadow-button: 0 4px 20px var(--black-20);
-  --shadow-button-primary: 0 4px 20px rgba(59, 130, 246, 0.4);
-  --shadow-button-primary-glow: 0 0 20px var(--primary-alpha-20);
-  --shadow-focus: 0 0 0 3px var(--white-10);
-  --shadow-inset-white: inset 0 1px 0 var(--white-10);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+}
+
+/* Typography fix for descenders (g, y, p, etc.) */
+h1, h2, h3, h4, h5, h6, p, li, span, div {
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.3;
+  padding-bottom: 0.1em;
+}
+
+/* Ensure text doesn't get clipped */
+.text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl, .text-6xl, .text-7xl, .text-8xl, .text-9xl {
+  line-height: 1.2;
+  padding-bottom: 0.1em;
 }
 
 @layer base {
@@ -86,7 +195,7 @@ body {
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--background-secondary);
+    background: var(--muted);
     border-radius: 4px;
   }
 
@@ -97,71 +206,56 @@ body {
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-hover);
+    background: var(--accent);
   }
 
   /* Enhanced form elements */
   input, textarea, select {
-    background: var(--black-60);
+    background: var(--input);
     border: 1px solid var(--border);
-    color: var(--foreground-secondary);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
+    color: var(--foreground);
+    border-radius: calc(var(--radius) - 2px);
   }
 
   input:focus, textarea:focus, select:focus {
-    border-color: var(--border-hover);
+    border-color: var(--ring);
     outline: none;
-    box-shadow: var(--shadow-focus);
-    background: var(--black-80);
+    box-shadow: 0 0 0 3px hsl(from var(--ring) h s l / 0.1);
+    background: var(--background);
   }
 
   /* Selection styling */
   ::selection {
-    background: var(--white-20);
-    color: var(--foreground);
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 }
 
 @layer components {
-  /* Glass morphism card */
+  /* Enhanced card with tweakcn styling */
   .card {
     @apply relative overflow-hidden;
-    background: var(--gradient-card);
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
+    border-radius: calc(var(--radius) + 4px);
+    box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
   }
 
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--gradient-topbar);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
   .card:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-card);
-  }
-
-  .card:hover::before {
-    opacity: 1;
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
   }
 
   /* Premium card for special sections */
   .card-premium {
     @apply relative overflow-hidden;
-    background: var(--gradient-premium);
-    border: 1px solid var(--border-accent);
-    border-radius: 24px;
+    background: linear-gradient(to bottom, var(--card), var(--muted));
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 8px);
     transition: all 0.4s ease;
+    box-shadow: var(--shadow-md);
   }
 
   .card-premium::before {
@@ -171,113 +265,100 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--gradient-accent);
+    background: linear-gradient(135deg, var(--primary) 0%, transparent 100%);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
   }
 
   .card-premium:hover {
-    border-color: var(--border-premium);
-    box-shadow: var(--shadow-card-premium);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
   }
 
   .card-premium:hover::before {
-    opacity: 1;
+    opacity: 0.05;
   }
 
-  /* Enhanced buttons */
+  /* Enhanced buttons with dark green and glow */
   .btn-primary {
-    @apply relative font-medium px-6 py-3 rounded-xl transition-all duration-300 focus:outline-none overflow-hidden;
+    @apply relative font-medium px-6 py-3 rounded-full transition-all duration-300 focus:outline-none overflow-hidden;
     background: linear-gradient(
       130deg,
-      color-mix(in srgb, var(--color-buy-light) 85%, transparent) 0%,
-      var(--color-buy) 55%,
-      color-mix(in srgb, var(--color-buy-dark) 90%, black 5%) 100%
+      #007a47 0%,
+      var(--primary) 50%,
+      #004d2e 100%
     );
-    border: 1px solid color-mix(in srgb, var(--color-buy-light) 50%, var(--white-20));
-    color: #f8fafc;
-    box-shadow: 0 8px 30px rgba(5, 150, 105, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(12px);
+    border: 1px solid var(--ring);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow-md), var(--glow-primary);
   }
 
   .btn-primary:hover {
     background: linear-gradient(
       130deg,
-      color-mix(in srgb, var(--color-buy-light) 95%, white 5%) 0%,
-      color-mix(in srgb, var(--color-buy) 90%, white 10%) 50%,
-      color-mix(in srgb, var(--color-buy-dark) 90%, black 10%) 100%
+      #008c52 0%,
+      #007a47 50%,
+      var(--primary) 100%
     );
-    border-color: color-mix(in srgb, var(--color-buy-light) 70%, var(--white-30));
-    box-shadow: 0 12px 35px rgba(5, 150, 105, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: var(--shadow-xl), var(--glow-primary-strong);
+    transform: translateY(-2px);
   }
 
   .btn-secondary {
-    @apply relative font-medium px-6 py-3 rounded-xl transition-all duration-300 focus:outline-none overflow-hidden;
-    background: var(--background-card);
+    @apply relative font-medium px-6 py-3 rounded-full transition-all duration-300 focus:outline-none overflow-hidden;
+    background: var(--secondary);
     border: 1px solid var(--border);
-    color: var(--foreground-secondary);
-    backdrop-filter: blur(10px);
+    color: var(--secondary-foreground);
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-secondary:hover {
-    background: var(--background-card-hover);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-button);
+    background: var(--accent);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
 
   /* Symbol button specific styling */
   .btn-symbol {
     @apply relative font-medium px-4 py-3 rounded-xl focus:outline-none overflow-hidden text-center;
-    background: var(--background-card);
+    background: var(--card);
     border: 2px solid var(--border);
-    color: var(--foreground-secondary);
-    backdrop-filter: blur(10px);
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--foreground);
+    transition: all 0.3s ease;
   }
 
   .btn-symbol:hover {
-    background: var(--background-card-hover);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-button);
+    background: var(--accent);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-symbol.active {
-    background: var(--background-card);
-    border: 2px solid var(--primary-alpha-80);
-    color: #ffffff;
-    box-shadow: var(--shadow-button-primary-glow), var(--shadow-inset-white);
-  }
-
-  .btn-symbol.active::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--gradient-button-active);
-    border-radius: inherit;
-    pointer-events: none;
+    background: var(--primary);
+    border: 2px solid var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: var(--shadow-md), 0 0 20px hsl(from var(--primary) h s l / 0.3);
   }
 
   /* Code blocks */
   .code-block {
-    @apply font-mono text-sm px-5 py-3 rounded-xl transition-all duration-200 inline-block;
-    background: var(--black-60);
+    @apply font-mono text-sm px-5 py-3 rounded-lg transition-all duration-200 inline-block;
+    background: var(--muted);
     border: 1px solid var(--border);
-    color: var(--foreground-secondary);
-    backdrop-filter: blur(10px);
+    color: var(--muted-foreground);
   }
 
   .code-block:hover {
-    background: var(--black-80);
-    border-color: var(--border-hover);
+    background: var(--accent);
+    border-color: var(--ring);
   }
 
   /* Gradient text */
   .text-gradient {
-    background: var(--gradient-primary);
+    background: linear-gradient(135deg, var(--foreground) 0%, var(--muted-foreground) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -285,32 +366,35 @@ body {
 
   /* Status indicators */
   .status-live {
-    @apply w-2 h-2 rounded-full bg-green-500 animate-pulse;
+    @apply w-2 h-2 rounded-full animate-pulse;
+    background: var(--chart-1);
   }
 
   .status-manual {
-    @apply w-2 h-2 rounded-full bg-gray-500;
+    @apply w-2 h-2 rounded-full;
+    background: var(--muted-foreground);
   }
 
   /* Enhanced text utilities */
   .text-success {
-    @apply text-green-400;
+    color: var(--chart-1);
   }
 
   .text-danger {
-    @apply text-red-400;
+    color: var(--destructive);
   }
 
   .text-warning {
-    @apply text-yellow-400;
+    color: var(--chart-4);
   }
 
   .text-muted {
-    color: var(--foreground-muted);
+    color: var(--muted-foreground);
   }
 
   .text-subtle {
-    color: var(--foreground-subtle);
+    color: var(--muted-foreground);
+    opacity: 0.8;
   }
 
   /* Container utilities */
@@ -397,6 +481,43 @@ body {
       opacity: 1;
       transform: scale(1);
     }
+  }
+
+  /* Green-themed animations */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) translateX(0);
+    }
+    33% {
+      transform: translateY(-20px) translateX(10px);
+    }
+    66% {
+      transform: translateY(-10px) translateX(-10px);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: var(--glow-primary);
+    }
+    50% {
+      box-shadow: var(--glow-primary-strong);
+    }
+  }
+
+  .particle-green {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .glow-green {
+    box-shadow: var(--glow-primary);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .glow-ring {
+    box-shadow: var(--glow-ring);
   }
 
   /* Signal type specific card styles */

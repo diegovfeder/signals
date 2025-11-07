@@ -59,10 +59,10 @@ export default function Dashboard(): JSX.Element {
       <main className="min-h-screen py-10 px-4">
         <div className="container-app">
           <div className="mb-8 animate-fade-in text-center md:text-left">
-            <h1 className="text-4xl md:text-5xl font-bold text-gradient mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               Trading Signals
             </h1>
-            <p className="text-foreground-muted">
+            <p className="text-muted-foreground">
               Live signals powered by RSI + EMA + MACD strategies
             </p>
           </div>
@@ -145,8 +145,8 @@ export default function Dashboard(): JSX.Element {
             <div className="mt-12 text-center animate-fade-in">
               <div className="inline-flex items-center gap-2 card px-4 py-2">
                 <span className="status-live" />
-                <span className="text-sm text-foreground-muted">
-                  Auto-refreshes every 60 seconds
+                <span className="text-sm text-muted-foreground">
+                  Daily signals at 10 PM UTC
                 </span>
               </div>
             </div>

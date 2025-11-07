@@ -14,6 +14,9 @@ import {
   useMarketData,
   useSignalBySymbol,
 } from "@/lib/hooks/useSignals";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type RangeValue = "1m" | "3m" | "6m" | "1y" | "2y";
 
@@ -73,10 +76,10 @@ export default function SignalDetail({
     confidence >= 70 ? "Strong" : confidence >= 40 ? "Moderate" : "Weak";
   const confidenceBarClass =
     confidence >= 70
-      ? "bg-success"
+      ? "bg-primary"
       : confidence >= 40
-      ? "bg-warning"
-      : "bg-danger";
+      ? "bg-yellow-500"
+      : "bg-red-500";
 
   return (
     <main className="min-h-screen py-8 px-4">
@@ -84,12 +87,12 @@ export default function SignalDetail({
         {/* Header */}
         <div className="mb-8 flex items-center justify-between gap-6 flex-wrap">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="btn-secondary px-4 py-2 text-sm">
-              ← Back
-            </Link>
-            <h1 className="text-3xl font-bold text-gradient">{symbol}</h1>
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/dashboard">← Back</Link>
+            </Button>
+            <h1 className="text-3xl font-bold text-foreground">{symbol}</h1>
           </div>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             Last updated {formatDate(signal?.timestamp)}
           </p>
         </div>
@@ -110,38 +113,38 @@ export default function SignalDetail({
           <>
             <div className="grid gap-6 lg:grid-cols-3 mb-8">
               {/* Current Signal */}
-              <div className="card-premium p-8 flex flex-col justify-between">
+              <Card className="p-8 flex flex-col justify-between border-2">
                 <div>
-                  <p className="text-sm text-muted mb-3">Current Signal</p>
+                  <p className="text-sm text-muted-foreground mb-3">Current Signal</p>
                   <div
                     className={`text-5xl font-bold mb-4 ${
                       signal.signal_type === "BUY"
-                        ? "text-success"
+                        ? "text-primary"
                         : signal.signal_type === "SELL"
-                        ? "text-danger"
-                        : "text-muted"
+                        ? "text-red-600"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {signal.signal_type}
                   </div>
-                  <p className="text-xl text-foreground-secondary mb-1">
+                  <p className="text-xl text-foreground mb-1">
                     ${signal.price_at_signal?.toFixed(2) ?? "-"}
                   </p>
-                  <p className="text-sm text-foreground-muted mb-6">
+                  <p className="text-sm text-muted-foreground mb-6">
                     Generated at {formatDate(signal.timestamp)}
                   </p>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm text-muted uppercase">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground uppercase">
                       <span>Confidence</span>
                       <span>{confidenceLabel}</span>
                     </div>
-                    <div className="h-3 bg-background-tertiary rounded-full overflow-hidden">
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-500 ${confidenceBarClass}`}
                         style={{ width: `${confidence}%` }}
                       />
                     </div>
-                    <p className="text-3xl font-semibold text-foreground-secondary font-mono">
+                    <p className="text-3xl font-semibold text-foreground font-mono">
                       {confidence}%
                     </p>
                   </div>
@@ -149,60 +152,59 @@ export default function SignalDetail({
 
                 {signal.reasoning && signal.reasoning.length > 0 && (
                   <div className="mt-8 text-left">
-                    <p className="text-sm text-muted uppercase mb-2">
+                    <p className="text-sm text-muted-foreground uppercase mb-2">
                       Reasoning
                     </p>
-                    <ul className="space-y-2 text-sm text-foreground-secondary">
+                    <ul className="space-y-2 text-sm text-foreground/90">
                       {signal.reasoning.map((reason: string, idx: number) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="text-primary mt-0.5">•</span>
+                          <span className="text-ring mt-0.5">•</span>
                           <span>{reason}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-              </div>
+              </Card>
 
               {/* Price chart */}
-              <div className="card lg:col-span-2 p-6 flex flex-col">
+              <Card className="lg:col-span-2 p-6 flex flex-col border-2">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                  <h2 className="text-xl font-semibold text-foreground-secondary">
+                  <h2 className="text-xl font-semibold text-foreground">
                     Price Chart
                   </h2>
                   <div className="flex flex-wrap gap-2">
                     {RANGE_OPTIONS.map((option) => (
-                      <button
+                      <Badge
                         key={option.value}
-                        type="button"
                         onClick={() => setSelectedRange(option.value)}
-                        className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                        className={`px-3 py-1.5 cursor-pointer text-sm transition-all ${
                           selectedRange === option.value
-                            ? "bg-primary/20 text-primary border border-primary/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                            : "border-border text-foreground-secondary hover:text-foreground"
+                            ? "bg-primary text-primary-foreground border-0"
+                            : "bg-card text-muted-foreground border border-border hover:border-ring"
                         }`}
                       >
                         {option.label}
-                      </button>
+                      </Badge>
                     ))}
                   </div>
                 </div>
 
                 {marketLoading && (
-                  <div className="h-64 flex items-center justify-center text-muted animate-pulse bg-background-tertiary rounded-xl">
+                  <div className="h-64 flex items-center justify-center text-muted-foreground animate-pulse bg-muted rounded-xl">
                     Fetching {selectedRange.toUpperCase()} data...
                   </div>
                 )}
 
                 {marketError && (
-                  <div className="h-64 flex items-center justify-center text-danger bg-danger/10 rounded-xl text-center px-6">
+                  <div className="h-64 flex items-center justify-center text-red-600 bg-red-600/10 rounded-xl text-center px-6">
                     Failed to load market data:{" "}
                     {String(marketErrorObj?.message ?? marketErrorObj)}
                   </div>
                 )}
 
                 {!marketLoading && !marketError && marketData.length === 0 && (
-                  <div className="h-64 flex items-center justify-center text-muted bg-background-tertiary rounded-xl">
+                  <div className="h-64 flex items-center justify-center text-muted-foreground bg-muted rounded-xl">
                     No market data found. Run the Prefect backfill to seed
                     history.
                   </div>
@@ -221,14 +223,14 @@ export default function SignalDetail({
                     {rangeStats && (
                       <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div>
-                          <p className="text-xs text-muted uppercase mb-1">
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
                             Range return
                           </p>
                           <p
                             className={`text-lg font-semibold ${
                               rangeStats.change >= 0
-                                ? "text-success"
-                                : "text-danger"
+                                ? "text-primary"
+                                : "text-red-600"
                             }`}
                           >
                             {rangeStats.change >= 0 ? "+" : ""}
@@ -236,24 +238,24 @@ export default function SignalDetail({
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted uppercase mb-1">
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
                             Start
                           </p>
-                          <p className="font-mono text-foreground-secondary">
+                          <p className="font-mono text-foreground">
                             ${rangeStats.start.close.toFixed(2)}
                           </p>
-                          <p className="text-xs text-muted">
+                          <p className="text-xs text-muted-foreground">
                             {formatDate(rangeStats.start.timestamp)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-muted uppercase mb-1">
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
                             End
                           </p>
-                          <p className="font-mono text-foreground-secondary">
+                          <p className="font-mono text-foreground">
                             ${rangeStats.end.close.toFixed(2)}
                           </p>
-                          <p className="text-xs text-muted">
+                          <p className="text-xs text-muted-foreground">
                             {formatDate(rangeStats.end.timestamp)}
                           </p>
                         </div>
@@ -261,34 +263,34 @@ export default function SignalDetail({
                     )}
                   </>
                 )}
-              </div>
+              </Card>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="card p-6 animate-slide-up">
-                <h3 className="text-lg font-semibold mb-4 text-foreground-secondary">
+              <Card className="p-6 animate-slide-up border-2">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Next Steps
                 </h3>
-                <ul className="space-y-3 text-sm text-foreground-secondary">
+                <ul className="space-y-3 text-sm text-foreground/90">
                   <li className="flex gap-2">
-                    <span className="text-primary">•</span>
+                    <span className="text-ring">•</span>
                     <span>
                       Compare the chart above with your preferred broker to
                       validate pricing.
                     </span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-primary">•</span>
+                    <span className="text-ring">•</span>
                     <span>
                       Use the range selector to inspect 1M–2Y performance before
                       tweaking rules.
                     </span>
                   </li>
                   <li className="flex gap-2">
-                    <span className="text-primary">•</span>
+                    <span className="text-ring">•</span>
                     <span>
                       Run{" "}
-                      <code className="font-mono text-xs">
+                      <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
                         python -m pipe.flows.signal_generation --mode backfill
                         --backfill-range 2y
                       </code>{" "}
@@ -296,14 +298,14 @@ export default function SignalDetail({
                     </span>
                   </li>
                 </ul>
-              </div>
+              </Card>
 
-              <div className="card p-6 animate-slide-up">
-                <h3 className="text-lg font-semibold mb-4 text-foreground-secondary">
+              <Card className="p-6 animate-slide-up border-2">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Backtest Preview
                 </h3>
                 {backtestLoading && (
-                  <div className="h-32 flex items-center justify-center text-muted animate-pulse">
+                  <div className="h-32 flex items-center justify-center text-muted-foreground animate-pulse">
                     Loading summary...
                   </div>
                 )}
@@ -311,49 +313,49 @@ export default function SignalDetail({
                   <>
                     <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                       <div>
-                        <p className="text-xs text-muted uppercase mb-1">
+                        <p className="text-xs text-muted-foreground uppercase mb-1">
                           Win Rate
                         </p>
-                        <p className="text-2xl font-semibold">
+                        <p className="text-2xl font-semibold text-foreground">
                           {(backtestSummary?.win_rate ?? 0).toFixed(1)}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted uppercase mb-1">
+                        <p className="text-xs text-muted-foreground uppercase mb-1">
                           Trades
                         </p>
-                        <p className="text-2xl font-semibold">
+                        <p className="text-2xl font-semibold text-foreground">
                           {backtestSummary?.trades ?? 0}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted uppercase mb-1">
+                        <p className="text-xs text-muted-foreground uppercase mb-1">
                           Avg Return / Trade
                         </p>
-                        <p className="text-2xl font-semibold">
+                        <p className="text-2xl font-semibold text-foreground">
                           {(backtestSummary?.avg_return ?? 0).toFixed(2)}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted uppercase mb-1">
+                        <p className="text-xs text-muted-foreground uppercase mb-1">
                           Total Return
                         </p>
-                        <p className="text-2xl font-semibold">
+                        <p className="text-2xl font-semibold text-foreground">
                           {(backtestSummary?.total_return ?? 0).toFixed(2)}%
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-foreground-muted">
+                    <p className="text-xs text-muted-foreground">
                       {backtestSummary?.notes ??
                         "Detailed backtesting metrics will appear here once the pipeline is ready."}
                     </p>
-                    <p className="text-xs text-muted mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Last trained{" "}
                       {formatDate(backtestSummary?.last_trained_at)}
                     </p>
                   </>
                 )}
-              </div>
+              </Card>
             </div>
           </>
         )}
