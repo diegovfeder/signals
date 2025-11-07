@@ -4,14 +4,24 @@ Trading Signals API
 FastAPI application for serving trading signals, market data, and email subscriptions.
 """
 
-from fastapi import FastAPI, Depends
+import logging
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from .config import settings
 from .database import get_db
 from .routers import signals, market_data, subscribe, backtests
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Initialize rate limiter (per IP)
+limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,15 +38,32 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS middleware - allow localhost + all Vercel deployments
+# Register rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS middleware - allow localhost + all Vercel deployments (restricted methods/headers)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_origin_regex=r"https://.*\.vercel\.app",  # Match all Vercel deployments
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],  # Only needed methods
+    allow_headers=["Content-Type", "Authorization"],  # Only needed headers
 )
+
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # Include routers
 app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
@@ -73,8 +100,11 @@ async def health_check(db: Session = Depends(get_db)):
             "database": "connected"
         }
     except Exception as e:
+        # Log full error internally
+        logger.error(f"Health check failed: {e}", exc_info=True)
+        # Return generic error to API (don't leak connection details)
         return {
             "status": "degraded",
             "database": "disconnected",
-            "error": str(e)
+            "error": "Database connection failed"
         }

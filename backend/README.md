@@ -17,6 +17,8 @@ cp .env.example .env
 # Edit .env with:
 #   DATABASE_URL=postgresql://user:pass@localhost:5432/trading_signals
 #   RESEND_API_KEY=re_...
+#
+# See root .env.example for all available variables and production examples
 
 # Run the server
 uv run uvicorn api.main:app --reload --port 8000

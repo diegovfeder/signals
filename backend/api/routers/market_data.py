@@ -7,14 +7,17 @@ Endpoints for fetching OHLCV market data and indicators.
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from ..database import get_db
 from ..models import Indicator, MarketData
 from ..schemas import IndicatorResponse, MarketDataResponse
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 RANGE_TO_DAYS = {
     "1d": 1,
@@ -39,8 +42,15 @@ def _resolve_range_days(range_label: Optional[str]) -> Optional[int]:
 
 
 @router.get("/{symbol}/ohlcv", response_model=List[MarketDataResponse])
+@limiter.limit("60/minute")
 async def get_market_data(
-    symbol: str,
+    request: Request,
+    symbol: str = Path(
+        ...,
+        regex="^[A-Z0-9-=]+$",
+        max_length=20,
+        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+    ),
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,
@@ -85,8 +95,15 @@ async def get_market_data(
 
 
 @router.get("/{symbol}/indicators", response_model=List[IndicatorResponse])
+@limiter.limit("60/minute")
 async def get_indicators(
-    symbol: str,
+    request: Request,
+    symbol: str = Path(
+        ...,
+        regex="^[A-Z0-9-=]+$",
+        max_length=20,
+        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+    ),
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,

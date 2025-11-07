@@ -24,6 +24,23 @@ Trading Signals MVP - An automated system that monitors multiple asset classes (
 - Driver: Auto-normalized to `psycopg` (v3) in backend code
 - Deployment: GitHub-connected, auto-deploys to Vercel
 
+## 🎯 Quick Start for Developers
+
+**Target User**: "The Analytical Amateur" (28-40, tech professionals, $10K-25K portfolio)
+
+**Value Proposition**: Trust through transparency - plain-English signal explanations
+
+**Where to Edit for Maximum Impact**:
+1. **Signal Quality**: `pipe/lib/signals/strategies/` - Tune asset-specific thresholds
+2. **User Trust**: `frontend/src/components/dashboard/SignalCard.tsx` - Expand reasoning
+3. **Actionability**: `pipe/lib/signals/signal_scorer.py` - Refine strength calculation
+
+**4-Flow Pipeline** (runs daily at 10 PM UTC):
+1. `market_data_backfill` - Historical data (manual)
+2. `market_data_sync` - Daily OHLCV fetch (10:00 PM)
+3. `signal_analyzer` - RSI/EMA → BUY/HOLD (10:15 PM)
+4. `notification_dispatcher` - Email strong signals (10:30 PM)
+
 ## Architecture
 
 This is a **multi-component system** with 4 independent parts:
@@ -148,8 +165,10 @@ cp pipe/.env.example pipe/.env
 
 # IMPORTANT: Always run flows from project root, not from pipe/ directory
 
-# Test single unified flow locally
-uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
+# Test individual flows locally
+uv run --directory pipe python -m pipe.flows.market_data_sync --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 70
 
 # Deploy to Prefect Cloud (runs daily at 10 PM UTC)
 prefect cloud login
@@ -159,15 +178,35 @@ uv run --directory pipe python -m pipe.deployments.register --work-pool default-
 prefect flow-run ls
 ```
 
-**Important**: MVP uses a **single unified flow** (`signal_generation.py`) that handles all steps:
+**Important**: MVP uses a **4-flow architecture** for modularity and independent scheduling:
 
-1. Fetch OHLCV from Yahoo Finance
-2. Calculate RSI + EMA indicators
-3. Generate BUY/HOLD signals
-4. Store in database
-5. Notify if strength >= 70
+### 4-Flow Architecture
 
-This replaces the separate flows mentioned in older docs (market_data_ingestion, indicator_calculation, notification_sender).
+1. **`market_data_backfill`** (`pipe/flows/market_data_backfill.py`)
+   - **Purpose**: Fetch multi-year historical OHLCV data for new symbols
+   - **Schedule**: Manual (on-demand)
+   - **Use Case**: Initial setup, adding new symbols
+
+2. **`market_data_sync`** (`pipe/flows/market_data_sync.py`)
+   - **Purpose**: Fetch latest daily OHLCV bars for all symbols
+   - **Schedule**: Daily at 10:00 PM UTC
+   - **Data Source**: Yahoo Finance
+
+3. **`signal_analyzer`** (`pipe/flows/signal_analyzer.py`)
+   - **Purpose**: Calculate RSI + EMA indicators, generate BUY/HOLD signals
+   - **Schedule**: Daily at 10:15 PM UTC (after data sync)
+   - **Output**: Signals with strength scores (0-100) and plain-English reasoning
+
+4. **`notification_dispatcher`** (`pipe/flows/notification_dispatcher.py`)
+   - **Purpose**: Email subscribers about strong signals (strength >= 70)
+   - **Schedule**: Daily at 10:30 PM UTC (after signal analysis)
+   - **Service**: Resend API
+
+**Benefits of 4-Flow Design**:
+- Independent testing and debugging
+- Flexible scheduling (different times, different triggers)
+- Clear separation of concerns
+- Easy to disable/enable specific flows
 
 ### Data Science (Indicators)
 

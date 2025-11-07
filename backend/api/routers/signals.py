@@ -4,19 +4,24 @@ Signals Router
 Endpoints for fetching trading signals.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timedelta
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from ..database import get_db
 from ..models import Signal
 from ..schemas import SignalResponse, SignalListResponse
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/", response_model=SignalListResponse)
+@limiter.limit("60/minute")
 async def get_all_signals(
+    request: Request,
     limit: int = Query(default=20, le=100),
     offset: int = Query(default=0, ge=0),
     signal_type: Optional[str] = Query(default=None, regex="^(BUY|SELL|HOLD)$"),
@@ -57,8 +62,15 @@ async def get_all_signals(
 
 
 @router.get("/{symbol}", response_model=SignalResponse)
+@limiter.limit("60/minute")
 async def get_signal_by_symbol(
-    symbol: str,
+    request: Request,
+    symbol: str = Path(
+        ...,
+        regex="^[A-Z0-9-=]+$",
+        max_length=20,
+        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+    ),
     db: Session = Depends(get_db)
 ):
     """
@@ -81,13 +93,20 @@ async def get_signal_by_symbol(
             status_code=404,
             detail=f"No signals found for symbol: {symbol}"
         )
-    
+
     return signal
 
 
 @router.get("/{symbol}/history", response_model=SignalListResponse)
+@limiter.limit("60/minute")
 async def get_signal_history(
-    symbol: str,
+    request: Request,
+    symbol: str = Path(
+        ...,
+        regex="^[A-Z0-9-=]+$",
+        max_length=20,
+        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+    ),
     days: int = Query(default=30, le=90),
     db: Session = Depends(get_db)
 ):

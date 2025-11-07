@@ -5,14 +5,17 @@ Temporary stub endpoints for backtest summaries until the pipeline computes real
 """
 
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from ..database import get_db
 from ..models import Signal, Backtest
 from ..schemas import BacktestSummaryResponse
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 BACKTEST_RANGE_CHOICES = {"1m", "3m", "6m", "1y", "2y"}
 
@@ -26,7 +29,9 @@ def _normalize_range(range_label: str) -> str:
 
 
 @router.get("/{symbol}", response_model=BacktestSummaryResponse)
+@limiter.limit("60/minute")
 async def get_backtest_summary(
+    request: Request,
     symbol: str,
     range: str = Query(default="1y", description="Historical range evaluated for the backtest summary."),
     db: Session = Depends(get_db),

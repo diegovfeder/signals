@@ -59,6 +59,8 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/trading_signals
 RESEND_API_KEY=re_...
 ```
 
+**See root `.env.example` for all available variables and production examples**
+
 ### 3. Test locally
 
 ```bash
