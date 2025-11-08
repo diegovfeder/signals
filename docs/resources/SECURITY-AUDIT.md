@@ -1,4 +1,6 @@
-# Security Audit Report
+# Security Audit Report *(Historical + Remediation Summary)*
+
+> **Note**: Sections 1–9 capture the pre-hardening state from October 31, 2025. The final section summarizes the fixes deployed on November 8, 2025 so this remains the single source of truth.
 
 **Date**: 2025-10-31
 **Auditor**: Security Review (Automated + Manual)
@@ -18,7 +20,7 @@ Security audit identified **14 vulnerabilities** across the stack. **5 CRITICAL*
 5. ❌ Actual .env files exist in repository (need verification they're never committed)
 
 **Risk Level**: HIGH - Product is not safe for public launch
-**Recommendation**: Complete Phase 0 security hardening before any deployment
+**Recommendation (Oct 31)**: Complete Phase 0 security hardening before any deployment. *(Status: ✅ Completed Nov 8 – see Remediation Summary at the end.)*
 
 ---
 
@@ -586,15 +588,54 @@ sqlmap -u "http://localhost:8000/api/signals?symbol=BTC-USD" --batch
 
 ## ✅ Next Steps
 
-1. **Complete Phase 0 Week 1 tasks** (database security)
-2. **Complete Phase 0 Week 2 tasks** (API security)
-3. **Run automated security scans**
-4. **Manual penetration testing**
-5. **Update this document** with test results
-6. **Get security review** from third party (optional but recommended)
-7. **Proceed to Phase 1** (stability testing) only after all CRITICAL + HIGH fixed
+1. *(Oct 31)* Complete Phase 0 Week 1 tasks (database security) — ✅ finished Nov 5.
+2. *(Oct 31)* Complete Phase 0 Week 2 tasks (API security) — ✅ finished Nov 7.
+3. Run automated security scans (pip-audit, OWASP ZAP) whenever dependencies change.
+4. Perform manual penetration testing before major releases.
+5. Keep this audit updated with new mitigations and attach logs for noteworthy findings.
+6. Consider third-party reviews as the surface area grows.
+7. Proceed to Phase 1 (stability testing) once substantive product changes land.
 
 ---
 
-**Document last updated**: 2025-10-31
-**Next review**: After Phase 0 completion (Week 2 done)
+## Remediation Summary – November 8, 2025
+
+**Goal**: Close all critical/high issues from the Oct 31 audit and ensure malicious input attempts return deterministic 422 responses in production (`https://signals-api-dvf.vercel.app`).
+
+### Key Improvements
+- Added malicious-pattern middleware to intercept traversal (`../`, `%2e%2e`), XSS (`<script>`, `%3cscript`), SQL injection (`UNION SELECT`, `%27or%27`), system-file patterns, and similar payloads. Responses now return `422 value_error.malicious_input` with structured details; null-byte payloads are blocked earlier by Vercel edge (400).
+- Introduced slowapi rate limiting (5/min subscribe, 20/min confirm, 60/min GET endpoints) and tightened CORS to required methods/headers only.
+- Enforced TLS/timeout defaults on all Postgres connections (`sslmode=require`, `connect_timeout`, `statement_timeout`).
+- Sanitized health/error handlers, added standard security headers, and validated symbols via strict regex.
+- Confirmed double opt-in tokens + unsubscribe flow operate end-to-end with Resend sandbox credentials.
+
+### Production Test Matrix (Nov 8)
+
+| Attack | Example | Result |
+| --- | --- | --- |
+| Path traversal | `/api/signals/../../../etc/passwd` | 422 (`value_error.malicious_input`) |
+| URL-encoded traversal | `/api/signals/%2e%2e%2fetc%2fpasswd` | 422 |
+| XSS | `/api/signals/<script>alert(1)</script>` | 422 |
+| URL-encoded XSS | `/api/signals/%3cscript%3ealert(1)%3c/script%3e` | 422 |
+| SQL injection | `/api/signals/BTC';DROP TABLE signals--` | 422 (regex validation) |
+| URL-encoded SQL | `/api/signals/BTC%27%3BDROP%20TABLE--` | 422 |
+| Null byte | `/api/signals/BTC%00USD` | 400 (blocked by Vercel edge runtime) |
+| Valid health check | `/health` | 200 `{ "status": "healthy" }` |
+
+### Defense-in-Depth Overview
+1. **Vercel Edge Runtime** blocks malformed payloads (e.g., null bytes) before FastAPI runs.
+2. **Middleware** normalizes suspicious inputs to 422 and logs them for monitoring.
+3. **Pydantic validation** enforces strict symbol patterns and limits path params.
+4. **slowapi** throttles abusive IPs per endpoint.
+5. **Security headers + TLS enforcement** protect browser clients and database connections.
+
+### Follow-Up Ideas
+- Emit metrics/logs for blocked requests and consider rate limiting based on repeated 422 responses.
+- Schedule quarterly security reviews (or after major features such as auth/payments) to ensure new surfaces adhere to the same controls.
+
+**Status**: All CRITICAL/HIGH findings from the Oct 31 audit are mitigated and verified in production as of Nov 8, 2025.
+
+---
+
+**Document last updated**: 2025-11-08
+**Next review**: Quarterly or after significant launches

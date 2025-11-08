@@ -1,7 +1,7 @@
 # Technical Analysis & Signal Generation
 
-> **Last Updated**: 2025-10-31
-> **Applies to**: MVP Phase 1 (Daily signals using RSI + EMA)
+> **Last Updated**: 2025-11-06
+> **Applies to**: Production MVP (daily Yahoo candles, RSI/EMA/MACD strategies)
 
 This document explains the technical indicators (RSI, EMA) and signal generation strategies used to produce BUY/SELL/HOLD decisions. Reference this when designing new strategies or reviewing signal quality.
 
@@ -13,9 +13,8 @@ This document explains the technical indicators (RSI, EMA) and signal generation
 
 | Source | Usage | Notes |
 | --- | --- | --- |
-| **Alpha Vantage** | Intraday slices (1–60 min) for live signals. | Rate-limited to ~5 req/min on the free tier. We throttle via `_ALPHA_RATE_LOCK`. |
-| **Yahoo Finance chart API** | Daily history (up to ~20 years) and fallback when Alpha throttles. | Used by the historical backfill + replay flow. |
-| **PostgreSQL** | Canonical storage (`market_data`, `indicators`, `signals`). | All downstream tasks read/write here. |
+| **Yahoo Finance chart API** | Daily OHLCV history (up to ~10y) for every tracked symbol. | Powering `market_data_backfill` + `market_data_sync`. |
+| **PostgreSQL (Supabase)** | Canonical storage (`market_data`, `indicators`, `signals`, `email_subscribers`). | Prefect tasks read/write here; backend serves the data. |
 
 All timestamps are stored in UTC. Daily history is backfilled at the start to guarantee enough bars for RSI/EMA and backtesting.
 
@@ -23,7 +22,7 @@ All timestamps are stored in UTC. Daily history is backfilled at the start to gu
 
 ## 2. Indicators
 
-We currently calculate three indicators per bar:
+We currently calculate three indicators per daily bar:
 
 | Indicator | Settings | Why |
 | --- | --- | --- |
@@ -31,13 +30,13 @@ We currently calculate three indicators per bar:
 | **EMA Fast / Slow** | 12-period and 26-period | Captures short vs. medium trend strength. |
 | **MACD Histogram** | `EMA(12) - EMA(26)` smoothed with 9-period signal line. | Provides momentum confirmation and divergence hints. |
 
-Implementation lives in `pipe/tasks/indicators.py` (pandas). We always round to 6 decimals before inserting to avoid float drift between replays.
+Implementation lives in `pipe/tasks/indicators.py` (Polars). Values are rounded to 6 decimals before insertion so replay runs remain stable.
 
 ---
 
 ## 3. Strategy Registry
 
-Every signal request flows through the registry at `pipe/data/signals/strategies/`. A strategy receives:
+Every signal request flows through the registry at `pipe/lib/strategies/`. A strategy receives:
 
 ```python
 StrategyInputs(
@@ -65,7 +64,7 @@ Override mappings via environment variables, e.g. `SIGNAL_MODEL_ETH_USD=crypto_m
 
 ### 3.2 Crypto Momentum Strategy
 
-Heuristics (`pipe/data/signals/strategies/crypto_momentum.py`):
+Heuristics (`pipe/lib/strategies/crypto_momentum.py`):
 
 - **BUY triggers**
   - RSI reclaiming 35–45 after a dip (`rsi > 35` and `rsi_delta > 3` over the past 3 bars).
@@ -80,7 +79,7 @@ Heuristics (`pipe/data/signals/strategies/crypto_momentum.py`):
 
 ### 3.3 Stock Mean-Reversion Strategy
 
-Heuristics (`pipe/data/signals/strategies/stock_mean_reversion.py`):
+Heuristics (`pipe/lib/strategies/stock_mean_reversion.py`):
 
 - **BUY triggers**
   - RSI between 28 and 40 and trending upward (oversold bounce).
@@ -88,7 +87,7 @@ Heuristics (`pipe/data/signals/strategies/stock_mean_reversion.py`):
   - EMA12 within 0.2% of EMA26 (compression encourages breakout).
 - **SELL triggers**
   - RSI above 70 with EMA12 rolling under EMA26 (take profits).
-  - MACD histogram negative for 2 consecutive bars while RSI stays >60.
+  - MACD histogram negative for 2 consecutive bars while RSI stays > 60.
 - **HOLD**
   - When neither bounce nor exhaustion conditions are satisfied.
 
@@ -111,16 +110,15 @@ Simple placeholder that emits HOLD with a neutral reasoning line. Useful for ass
 ## 5. Extending Strategies
 
 1. Create a new file next to the existing strategies, subclassing the `Strategy` protocol (or a dataclass implementing `generate`).
-2. Register it inside `pipe/data/signals/strategies/__init__.py`.
+2. Register it inside `pipe/lib/strategies/__init__.py`.
 3. Map a symbol via `_DEFAULT_SYMBOL_MAPPING` or an environment variable.
 4. Run:
 
 ```bash
-cd pipe
-python -m pipe.flows.signal_replay --symbols AAPL,BTC-USD --range-label 2y
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD
 ```
 
-to regenerate historical signals and backtests with the new logic.
+For historical comparisons, build a replay helper (see Task Seeds) to run over arbitrary windows before promoting changes.
 
 5. Update this document with the heuristics so downstream teams know what changed.
 
@@ -130,9 +128,9 @@ to regenerate historical signals and backtests with the new logic.
 
 Signals with `strength >= SIGNAL_NOTIFY_THRESHOLD` are candidates for email.
 
-- The intraday flow logs strong signals.
-- `flows/notification_sender.py` queries for the last strong signal per symbol, fetches confirmed subscribers, and hands the payload to Resend.
-- Until email templates ship, the frontend’s `<SubscribeForm />` stores intent so we have a warm list once notifications go live.
+- Prefect’s nightly analyzer stores every signal with reasoning + strength.
+- `pipe/flows/notification_dispatcher.py` queries strong signals, filters confirmed subscribers, and (when enabled) sends via Resend.
+- Frontend `<SubscribeForm />` feeds the `email_subscribers` table so users can opt into notifications as soon as deliverability is production-ready.
 
 ---
 

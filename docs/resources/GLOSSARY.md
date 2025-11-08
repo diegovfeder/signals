@@ -10,7 +10,7 @@ Quick reference for key terms used throughout the documentation.
 
 **OHLCV**: Open, High, Low, Close, Volume - the five data points that make up a price bar/candle.
 
-**Signal Strength**: 0-100 confidence score calculated from indicator values. Only signals ≥70 trigger email notifications.
+**Signal Strength**: 0-100 confidence score calculated from indicator alignment. Only signals ≥ `SIGNAL_NOTIFY_THRESHOLD` (currently 60) are considered for notifications.
 
 **Mean Reversion**: Trading strategy assuming price returns to average after extreme movements. Works best in ranging markets.
 
@@ -20,9 +20,9 @@ Quick reference for key terms used throughout the documentation.
 
 **Double Opt-In**: Two-step email subscription: 1) Subscribe → 2) Confirm via email link → 3) Receive notifications. Improves deliverability.
 
-**Cooldown** (Phase 2): Time between signals for same symbol (e.g., 8 hours). Prevents alert fatigue in choppy markets.
+**Cooldown** (Future): Time buffer between signals for the same symbol to prevent alert fatigue during choppy sessions. Not yet implemented.
 
-**Regime** (Phase 2): Market context classification - trending (use EMA) or ranging (use RSI). Determined by ADX indicator.
+**Regime** (Future): Market context classification—trending (EMA-led) vs. ranging (RSI-led)—used to pick strategies automatically.
 
 ## System Terms
 
@@ -30,16 +30,16 @@ Quick reference for key terms used throughout the documentation.
 
 **Task**: Unit of work within a flow (e.g., `fetch_market_data`, `send_notifications`).
 
-**Backfill**: Loading historical data into database before starting live pipeline. MVP uses ~60 days of 15-minute bars.
+**Backfill**: Loading multi-year *daily* OHLCV history (up to ~10y) before running nightly automation so indicators and backtests have enough context.
 
-**15m Bars**: 15-minute price candles (OHLCV data points). Yahoo Finance limit for 15m interval is ~60 days.
+**Daily Bars**: 1-day OHLCV candles fetched from Yahoo Finance. They are the canonical timeframe for the MVP pipeline.
 
-**Fat-Finger** (Phase 2): Data error detected by >5% price spike. Flagged as invalid to prevent false signals.
+**Fat-Finger** (Future): Detection rule for >5% price spikes/drops that flags bad provider data before indicators are recomputed.
 
 ---
 
 **For detailed explanations**, see:
 
-- Technical indicators: `docs/DATA-SCIENCE.md`
-- System architecture: `docs/ARCHITECTURE.md`
 - MVP scope: `docs/MVP.md`
+- System architecture: `docs/ARCHITECTURE.md`
+- Technical indicators: `docs/resources/TECHNICAL-ANALYSIS.md`

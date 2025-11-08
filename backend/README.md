@@ -1,30 +1,26 @@
 # FastAPI Backend
 
-REST API for serving our trading-signals, market data, and managing email subscriptions.
+REST API powering the Signals dashboard and email flows. Serves read-only market data/signals and manages double opt-in subscriptions.
 
 ## Quick Start
 
-### Local Development
-
 ```bash
-cd backend
-
-# Install dependencies
-uv sync
-
-# Create .env file
-cp .env.example .env
-# Edit .env with:
-#   DATABASE_URL=postgresql://user:pass@localhost:5432/trading_signals
-#   RESEND_API_KEY=re_...
-#
-# See root .env.example for all available variables and production examples
-
-# Run the server
-uv run uvicorn api.main:app --reload --port 8000
+# From repo root
+uv run --directory backend uvicorn api.main:app --reload --port 8000
 
 # API available at http://localhost:8000
 # Docs at http://localhost:8000/api/docs
+```
+
+**Environment**
+
+```bash
+cp backend/.env.example backend/.env
+# Set:
+#   DATABASE_URL=postgresql+psycopg://...
+#   RESEND_API_KEY=re_...
+#   RESEND_FROM_EMAIL="Signals Bot <onboarding@resend.dev>"
+#   APP_BASE_URL=http://localhost:3000
 ```
 
 ### Test the API
@@ -45,18 +41,18 @@ curl http://localhost:8000/api/signals/BTC-USD
 ```bash
 backend/
 ├── api/
-│   ├── main.py              # FastAPI app, CORS, routing
-│   ├── config.py            # Settings (env vars)
-│   ├── database.py          # DB connection, session
-│   ├── models.py            # SQLAlchemy models
-│   ├── schemas.py           # Pydantic request/response models
+│   ├── main.py            # FastAPI app (CORS, rate limiting, security headers)
+│   ├── config.py          # Settings (Pydantic BaseSettings)
+│   ├── database.py        # SQLAlchemy engine/session helpers
+│   ├── email.py           # Resend templates + send helpers
+│   ├── models.py / schemas.py
 │   └── routers/
-│       ├── signals.py       # GET /api/signals endpoints
-│       ├── market_data.py   # GET /api/market-data endpoints
-│       └── subscribe.py     # POST /api/subscribe endpoints
-├── pyproject.toml          # Dependencies and project metadata
-├── vercel.json             # Vercel deployment config
-└── README.md               # This file
+│       ├── signals.py     # `/api/signals/*`
+│       ├── market_data.py # `/api/market-data/*`
+│       └── subscribe.py   # `/api/subscribe/*`
+├── requirements.txt       # For Vercel (mirrors pyproject)
+├── pyproject.toml         # Development dependency lock
+└── vercel.json            # Deployment config
 ```
 
 ## API Endpoints
@@ -93,8 +89,9 @@ GET /api/market-data/{symbol}/indicators  # Calculated indicators
 ### Email Subscriptions
 
 ```http
-POST /api/subscribe/                    # Subscribe email
-POST /api/subscribe/unsubscribe/{token} # Unsubscribe via token
+POST /api/subscribe/                     # Subscribe (double opt-in)
+GET  /api/subscribe/confirm/{token}      # Confirm email
+POST /api/subscribe/unsubscribe/{token}  # Tokenized unsubscribe
 ```
 
 ## Interactive Docs
@@ -106,25 +103,9 @@ FastAPI auto-generates interactive documentation:
 
 Try endpoints directly in your browser!
 
-## Implementation Checklist
+## Deployment
 
-### Core Endpoints (MVP)
-
-**Signals:**
-
-- [ ] `GET /api/signals/` - Fetch from `signals` table with filters
-- [ ] `GET /api/signals/{symbol}` - Latest signal per symbol
-- [ ] `GET /api/signals/{symbol}/history` - Historical signals
-
-**Market Data:**
-
-- [ ] `GET /api/market-data/{symbol}/ohlcv` - Fetch from `market_data` table
-- [ ] `GET /api/market-data/{symbol}/indicators` - Fetch from `indicators` table
-
-**Subscriptions:**
-
-- [ ] `POST /api/subscribe/` - Create subscriber with double opt-in
-- [ ] `POST /api/subscribe/unsubscribe/{token}` - Mark as unsubscribed
+Vercel GitHub integration builds automatically from `main`. When adding dependencies use `uv add ...` then run `uv export --frozen --format requirements-txt > backend/requirements.txt` so Vercel stays in sync.
 
 ### Database Integration
 
@@ -338,29 +319,14 @@ For development, allow localhost:
 CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
 ```
 
-## Logging
+## Manual Validation
 
-Use Python's logging module:
+Because automated tests are paused, validate changes manually:
 
-```python
-import logging
-
-logger = logging.getLogger(__name__)
-
-@router.get("/api/signals/{symbol}")
-async def get_signal(symbol: str):
-    logger.info(f"Fetching signal for {symbol}")
-    # ... implementation
-```
-
-Configure in `main.py`:
-
-```python
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-```
+1. Run `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD` to seed the DB.
+2. Start the backend (`uv run --directory backend uvicorn api.main:app --reload`).
+3. Hit `GET /health`, `GET /api/signals/`, `POST /api/subscribe` + `GET /api/subscribe/confirm/{token}`.
+4. Check Resend dashboard to confirm emails hit the sandbox inbox.
 
 ## Troubleshooting
 
@@ -397,17 +363,8 @@ cd backend
 uv run uvicorn api.main:app --reload
 ```
 
-## Next Steps
+## See Also
 
-1. Implement signal endpoints (connect to `signals` table)
-2. Implement market data endpoints (connect to `market_data`, `indicators` tables)
-3. Implement subscription endpoints (double opt-in flow with Resend)
-4. Add request validation and error handling
-5. Write tests for all endpoints
-6. Deploy to Vercel or Docker
-
-**See also:**
-
-- `db/README.md` for database schema
-- `pipe/README.md` for data pipeline (populates the DB)
-- `docs/DATA-SCIENCE.md` for indicator calculations
+- `docs/ARCHITECTURE.md` – end-to-end flow descriptions.
+- `docs/resources/SECURITY-AUDIT.md` – historical findings + remediation summary.
+- `pipe/README.md` – Prefect flows that populate the DB.

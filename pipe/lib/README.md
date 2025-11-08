@@ -1,6 +1,6 @@
 # Data Science Module
 
-Pure Python functions for calculating indicators and generating signals. No database dependencies - works with pandas DataFrames.
+Pure Python functions for calculating indicators and generating signals. No database dependencies - works with Polars DataFrames for high performance.
 
 ## Structure
 
@@ -80,9 +80,9 @@ print(df['rsi'].iloc[-1])  # Latest RSI value
 **File:** `data/indicators/ema.py` (create this)
 
 ```python
-import pandas as pd
+import polars as pl
 
-def calculate_ema(df: pd.DataFrame, period: int, price_column: str = "close") -> pd.Series:
+def calculate_ema(series: pl.Series, span: int) -> pl.Series:
     """
     Calculate EMA (Exponential Moving Average).
     
@@ -100,7 +100,7 @@ def calculate_ema(df: pd.DataFrame, period: int, price_column: str = "close") ->
     return df[price_column].ewm(span=period, adjust=False).mean()
 
 
-def detect_ema_crossover(ema_12: pd.Series, ema_26: pd.Series) -> tuple[str, bool]:
+def detect_ema_crossover(ema_12: pl.Series, ema_26: pl.Series) -> tuple[str, bool]:
     """
     Detect EMA crossover (bullish or bearish).
     
@@ -108,8 +108,8 @@ def detect_ema_crossover(ema_12: pd.Series, ema_26: pd.Series) -> tuple[str, boo
         ('bullish' | 'bearish' | 'none', crossover_detected: bool)
     
     Example:
-        >>> ema_12 = pd.Series([100, 101, 102, 103])
-        >>> ema_26 = pd.Series([102, 102, 102, 102])
+        >>> ema_12 = pl.Series([100, 101, 102, 103])
+        >>> ema_26 = pl.Series([102, 102, 102, 102])
         >>> detect_ema_crossover(ema_12, ema_26)
         ('bullish', True)  # EMA-12 crossed above EMA-26
     """
@@ -117,8 +117,8 @@ def detect_ema_crossover(ema_12: pd.Series, ema_26: pd.Series) -> tuple[str, boo
         return "none", False
     
     # Current and previous values
-    curr_12, curr_26 = ema_12.iloc[-1], ema_26.iloc[-1]
-    prev_12, prev_26 = ema_12.iloc[-2], ema_26.iloc[-2]
+    curr_12, curr_26 = ema_12[-1], ema_26[-1]
+    prev_12, prev_26 = ema_12[-2], ema_26[-2]
     
     # Bullish crossover: EMA-12 crosses above EMA-26
     if prev_12 <= prev_26 and curr_12 > curr_26:
@@ -217,30 +217,33 @@ def generate_explanation(signal: dict, symbol: str, rsi: float) -> str:
 
 ```python
 # test_indicators.py
-import pandas as pd
+import polars as pl
 from data.indicators.rsi import calculate_rsi
 from data.indicators.ema import calculate_ema, detect_ema_crossover
 from data.signals.signal_generator import generate_signal
 
 # Sample data
-df = pd.DataFrame({
+df = pl.DataFrame({
     'close': [100, 102, 101, 105, 107, 103, 108, 106, 110, 109, 112, 115, 114, 116, 118]
 })
 
 # Calculate indicators
-df['rsi'] = calculate_rsi(df, period=14)
-df['ema_12'] = calculate_ema(df, period=12)
-df['ema_26'] = calculate_ema(df, period=26)
+rsi = calculate_rsi(df, period=14)
+ema_12 = calculate_ema(df["close"], span=12)
+ema_26 = calculate_ema(df["close"], span=26)
 
 # Get latest values
-latest = df.iloc[-1]
+latest_rsi = rsi[-1]
+latest_ema_12 = ema_12[-1]
+latest_ema_26 = ema_26[-1]
+latest_close = df["close"][-1]
 
 # Generate signal
 signal = generate_signal(
-    rsi=latest['rsi'],
-    ema_12=latest['ema_12'],
-    ema_26=latest['ema_26'],
-    price=latest['close']
+    rsi=latest_rsi,
+    ema_12=latest_ema_12,
+    ema_26=latest_ema_26,
+    price=latest_close
 )
 
 print(f"Signal: {signal['signal_type']}")
