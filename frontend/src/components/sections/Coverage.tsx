@@ -3,27 +3,27 @@
  * Asset coverage with shadcn Cards and green accents
  */
 
-import { Bitcoin, TrendingUp } from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Bitcoin, Cpu } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Coverage() {
   const assets = [
     {
-      symbol: 'BTC-USD',
-      label: 'Crypto',
-      icon: Bitcoin,
-      description: 'Bitcoin and major cryptocurrencies',
+      symbol: "AAPL",
+      label: "Stock",
+      icon: Cpu,
+      description: "Apple and blue-chip equities",
       delay: 0,
     },
     {
-      symbol: 'AAPL',
-      label: 'Stock',
-      icon: TrendingUp,
-      description: 'Apple and blue-chip equities',
+      symbol: "BTC-USD",
+      label: "Crypto",
+      icon: Bitcoin,
+      description: "Bitcoin and major cryptocurrencies",
       delay: 100,
     },
-  ]
+  ];
 
   return (
     <section className="relative py-20 px-4 md:py-32 bg-background">
@@ -44,20 +44,19 @@ export default function Coverage() {
           {assets.map((asset) => (
             <Card
               key={asset.symbol}
-              className="group relative overflow-hidden border-2 border-border/40 bg-gradient-to-br from-card to-card/50 p-8 shadow-lg transition-all duration-300 hover:border-primary hover:shadow-xl hover:translate-y-[-4px] animate-slide-up"
+              className="group relative overflow-hidden border-2 border-border/40 bg-linear-to-br from-card to-card/50 p-8 shadow-lg"
               style={{ animationDelay: `${asset.delay}ms` }}
             >
-              {/* Green left accent border */}
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
               <div className="flex flex-col items-center text-center">
                 {/* Icon */}
-                <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(0,98,57,0.5)]">
+                <div className="mb-6 flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
                   <asset.icon className="size-8" />
                 </div>
 
                 {/* Symbol */}
-                <div className="text-3xl font-bold text-foreground mb-2">{asset.symbol}</div>
+                <div className="text-3xl font-bold text-foreground mb-2">
+                  {asset.symbol}
+                </div>
 
                 {/* Asset Type Badge */}
                 <Badge variant="muted" className="mb-4">
@@ -72,5 +71,5 @@ export default function Coverage() {
         </div>
       </div>
     </section>
-  )
+  );
 }

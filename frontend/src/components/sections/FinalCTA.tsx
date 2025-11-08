@@ -43,18 +43,17 @@ export default function FinalCTA() {
             Start tracking signals today
           </h2>
           <p className="mx-auto max-w-[700px] text-xl text-white/90 md:text-2xl">
-            Never miss a high-confidence trading opportunity. Free during MVP
-            testing.
+            Never miss a high-confidence trading opportunity.
           </p>
           <div className="mt-6 flex flex-col gap-5 sm:flex-row">
             <Button
               asChild
               size="lg"
               variant="secondary"
-              className="text-lg px-12 py-7 bg-white text-primary hover:bg-white/90 shadow-2xl hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] border-0"
+              className="text-lg px-12 py-7 bg-white text-primary hover:bg-white/90 shadow-2xl border-0"
             >
-              <Link href="/dashboard">
-                Try it now
+              <Link href="/signals">
+                View Live Signals
                 <ArrowRight className="ml-2 size-5" />
               </Link>
             </Button>
@@ -71,9 +70,15 @@ export default function FinalCTA() {
               </Link>
             </Button>
           </div>
-          <p className="mt-6 text-base text-white/80">
-            No credit card required · Open source · Free to use
-          </p>
+          {/* Features list - vertical on mobile, horizontal on desktop */}
+          <ul className="mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1 text-base text-white/80">
+            <li className="flex items-center justify-center">
+              No credit card required
+            </li>
+            <li className="hidden sm:block text-white/50">·</li>
+            <li className="flex items-center justify-center">Open source</li>
+            <li className="hidden sm:block text-white/50">·</li>
+          </ul>
         </div>
       </div>
     </section>

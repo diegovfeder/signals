@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import Link from "next/link";
 
@@ -16,10 +14,7 @@ type AppHeaderProps = {
   logoLabel?: string;
 };
 
-const DEFAULT_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/admin/backtests", label: "Admin" },
-];
+const DEFAULT_NAV: NavItem[] = [{ href: "/admin", label: "Admin" }];
 
 const cn = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -29,20 +24,20 @@ export function AppHeader({
   rightSlot,
   children,
   className,
-  logoLabel = "Signals",
+  logoLabel = "SIGNALS",
 }: AppHeaderProps) {
   return (
     <header
       className={cn(
         "sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl",
-        className
+        className,
       )}
     >
       <div className="container-app">
         <div className="hidden sm:flex items-center justify-between gap-6 py-3 md:py-4">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-foreground hover:text-foreground-secondary transition-colors"
+            className="text-lg font-black tracking-tight text-foreground hover:text-foreground-secondary transition-colors"
           >
             {logoLabel}
           </Link>
@@ -66,7 +61,7 @@ export function AppHeader({
         <div className="flex sm:hidden items-center justify-between py-3">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-tight text-foreground hover:text-foreground-secondary transition-colors"
+            className="text-lg font-black tracking-tight text-foreground hover:text-foreground-secondary transition-colors"
           >
             {logoLabel}
           </Link>

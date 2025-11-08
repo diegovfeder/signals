@@ -4,37 +4,41 @@
  * Redesigned with tweakcn design system
  */
 
-import { MessageSquare, Globe, TrendingUp, Mail } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { FeatureCard } from '@/components/ui/feature-card'
+import { MessageSquare, Globe, TrendingUp, Mail } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { SubscribeForm } from "../forms/SubscribeForm";
 
 export default function ValueProps() {
   const props = [
     {
       icon: MessageSquare,
-      title: 'Clarity',
-      description: 'Signals explained in plain English, not cryptic jargon.',
+      title: "Clarity",
+      description: "Signals explained in plain English, not cryptic jargon.",
       delay: 0,
     },
     {
       icon: Globe,
-      title: 'Coverage',
-      description: 'Four core markets—crypto, stocks, ETFs, and forex—in one unified view.',
+      title: "Coverage",
+      description:
+        "Four core markets—crypto, stocks, ETFs, and forex—in one unified view.",
       delay: 100,
     },
     {
       icon: TrendingUp,
-      title: 'Confidence Score',
-      description: 'Each setup scored from 0–100 so you know the conviction behind every signal.',
+      title: "Confidence Score",
+      description:
+        "Each setup scored from 0–100 so you know the conviction behind every signal.",
       delay: 200,
     },
     {
       icon: Mail,
-      title: 'Inbox Alerts',
-      description: 'Strong signals delivered to your email when opportunities arise.',
+      title: "Inbox Alerts",
+      description:
+        "Strong signals delivered to your email when opportunities arise.",
       delay: 300,
     },
-  ]
+  ];
 
   return (
     <section className="relative isolate w-full py-20 px-4 md:py-32 bg-[#0a0a0a]">
@@ -43,15 +47,16 @@ export default function ValueProps() {
 
       <div className="container-app">
         {/* Section header with green accent */}
-        <div className="mb-16 flex flex-col items-center justify-center space-y-4 text-center">
-          <Badge className="inline-flex items-center gap-2 px-4 py-2 text-sm shadow-md bg-primary/20 text-ring border border-primary/40 glow-ring">
+        <div className="mb-14 sm:mb-20 flex flex-col items-center justify-center space-y-4 text-center">
+          <Badge className="mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm shadow-md bg-primary/20 text-ring border border-primary/40">
             <span className="text-ring">✦</span> Features
           </Badge>
           <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Powerful Signals, Simple Interface
+            Powerful signals, simple interface
           </h2>
           <p className="max-w-[800px] text-muted-foreground/80 md:text-xl">
-            All the tools you need to make informed trading decisions without the complexity.
+            All the tools you need to make informed trading decisions without
+            the complexity.
           </p>
         </div>
 
@@ -67,7 +72,19 @@ export default function ValueProps() {
             />
           ))}
         </div>
+
+        {/* Subscribe form */}
+        <div
+          id="subscribe"
+          className="mt-14 sm:mt-20 animate-slide-up"
+          style={{ animationDelay: "150ms" }}
+        >
+          <SubscribeForm
+            className="mx-auto max-w-2xl"
+            helperText="No spam. We only email when a conviction-level signal triggers."
+          />
+        </div>
       </div>
     </section>
-  )
+  );
 }

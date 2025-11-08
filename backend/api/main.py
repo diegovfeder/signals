@@ -42,14 +42,20 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware - allow localhost + all Vercel deployments (restricted methods/headers)
+# CORS middleware - allow localhost + all Vercel deployments (production-ready security)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_origin_regex=r"https://.*\.vercel\.app",  # Match all Vercel deployments
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],  # Only needed methods
-    allow_headers=["Content-Type", "Authorization"],  # Only needed headers
+    allow_credentials=False,  # API is stateless (no cookies/sessions)
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],  # OPTIONS required for CORS preflight
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+    ],  # Standard headers browsers may send
 )
 
 
@@ -61,9 +67,12 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
 
 # Include routers
 app.include_router(signals.router, prefix="/api/signals", tags=["signals"])
@@ -75,11 +84,7 @@ app.include_router(backtests.router, prefix="/api/backtests", tags=["backtests"]
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {
-        "status": "ok",
-        "message": "Trading Signals API",
-        "version": "0.1.0"
-    }
+    return {"status": "ok", "message": "Trading Signals API", "version": "0.1.0"}
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -95,10 +100,7 @@ async def health_check(db: Session = Depends(get_db)):
     try:
         # Test database connection
         db.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected"
-        }
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
         # Log full error internally
         logger.error(f"Health check failed: {e}", exc_info=True)
@@ -106,5 +108,5 @@ async def health_check(db: Session = Depends(get_db)):
         return {
             "status": "degraded",
             "database": "disconnected",
-            "error": "Database connection failed"
+            "error": "Database connection failed",
         }
