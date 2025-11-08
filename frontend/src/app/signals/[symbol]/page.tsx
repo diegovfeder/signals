@@ -17,18 +17,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const RANGE_OPTIONS = [
-  { label: "1M", value: "1m" },
-  { label: "3M", value: "3m" },
-  { label: "6M", value: "6m" },
-  { label: "1Y", value: "1y" },
-  { label: "2Y", value: "2y" },
-  { label: "5Y", value: "5y" },
-  { label: "10Y", value: "10y" },
-] as const;
-
-type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
+import { RANGE_OPTIONS, RangeValue } from "@/lib/utils/constants";
 
 const formatDate = (input?: string | null) => {
   if (!input) return "-";

@@ -10,9 +10,11 @@ import {
   useMarketData,
   useBacktestSummary,
 } from "@/lib/hooks/useSignals";
-
-const RANGE_OPTIONS = ["1m", "3m", "6m", "1y", "2y"] as const;
-const DEFAULT_SYMBOLS = ["AAPL", "BTC-USD"];
+import {
+  DEFAULT_SYMBOLS,
+  RANGE_OPTIONS,
+  RangeValue,
+} from "@/lib/utils/constants";
 
 export default function AdminBacktestsPage() {
   const {
@@ -31,7 +33,7 @@ export default function AdminBacktestsPage() {
   const [selectedSymbol, setSelectedSymbol] = useState(
     availableSymbols[0] || DEFAULT_SYMBOLS[0],
   );
-  const [range, setRange] = useState<(typeof RANGE_OPTIONS)[number]>("1y");
+  const [range, setRange] = useState<RangeValue>("1y");
 
   useEffect(() => {
     if (!availableSymbols.includes(selectedSymbol) && availableSymbols.length) {
@@ -113,15 +115,15 @@ export default function AdminBacktestsPage() {
           <div className="flex items-center gap-2">
             {RANGE_OPTIONS.map((option) => (
               <Badge
-                key={option}
-                onClick={() => setRange(option)}
+                key={option.value}
+                onClick={() => setRange(option.value)}
                 className={`px-3 py-1.5 cursor-pointer text-sm transition-all ${
-                  range === option
+                  range === option.value
                     ? "bg-primary border-primary text-white"
                     : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card"
                 }`}
               >
-                {option.toUpperCase()}
+                {option.label}
               </Badge>
             ))}
           </div>

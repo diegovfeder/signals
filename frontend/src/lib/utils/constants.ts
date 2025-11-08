@@ -37,6 +37,9 @@ export const STRENGTH_THRESHOLDS = {
   WEAK: 0,
 } as const;
 
+// Default symbols
+export const DEFAULT_SYMBOLS = ["AAPL", "BTC-USD"];
+
 // API endpoints
 export const API_ENDPOINTS = {
   SIGNALS: "/api/signals",
@@ -61,3 +64,15 @@ export const HERO = {
   DESCRIPTION:
     "Email alerts and a simple dashboard for opportunities across crypto, stocks, ETFs, and forex.",
 };
+
+export const RANGE_OPTIONS = [
+  { label: "1M", value: "1m" },
+  { label: "3M", value: "3m" },
+  { label: "6M", value: "6m" },
+  { label: "1Y", value: "1y" },
+  { label: "2Y", value: "2y" },
+  { label: "5Y", value: "5y" },
+  { label: "10Y", value: "10y" },
+] as const;
+
+export type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
