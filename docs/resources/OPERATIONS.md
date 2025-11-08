@@ -76,7 +76,7 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 | Name | Description | Required |
 | --- | --- | --- |
 | `DATABASE_URL` | Postgres connection string (same as backend) | ✅ Yes |
-| `SUPABASE_DATABASE_URL` *(optional override)* | Additional production Postgres override. Usually `SUPABASE_URL_SESSION_POOLER` lives in `pipe/.env`, and the deploy helper auto-injects it as `DATABASE_URL` for Prefect jobs. | No |
+| `SUPABASE_URL_SESSION_POOLER` | Supabase pooled connection string. Store this in `pipe/.env` and the deploy helper will always inject it as `DATABASE_URL` when registering Prefect deployments. | ✅ Yes (for production) |
 | `RESEND_API_KEY` | Resend email API key | ✅ Yes |
 | `RESEND_FROM_EMAIL` | Verified sender email (Resend) | ✅ Yes |
 | `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength before emails are sent (default: 60) | No |

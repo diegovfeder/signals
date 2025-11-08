@@ -50,7 +50,7 @@ SUGGESTED_ENV_VARS: tuple[str, ...] = (
 # Allow operators to provide production credentials without mutating their local dev env.
 # If one of these override env vars is set, we prefer it when populating Prefect job envs.
 ENVIRONMENT_OVERRIDES: dict[str, Sequence[str]] = {
-    "DATABASE_URL": ("SUPABASE_URL_SESSION_POOLER"),
+    "DATABASE_URL": ("SUPABASE_URL_SESSION_POOLER",),
 }
 
 
