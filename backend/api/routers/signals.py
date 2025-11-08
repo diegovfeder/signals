@@ -18,7 +18,8 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 
-@router.get("/", response_model=SignalListResponse)
+@router.get("", response_model=SignalListResponse)
+@router.get("/", response_model=SignalListResponse, include_in_schema=False)
 @limiter.limit("60/minute")
 async def get_all_signals(
     request: Request,

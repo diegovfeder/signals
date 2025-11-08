@@ -30,7 +30,8 @@ def _normalize_email(raw_email: str) -> str:
     return raw_email.strip().strip('"').lower()
 
 
-@router.get("/", response_model=EmailSubscriberListResponse)
+@router.get("", response_model=EmailSubscriberListResponse)
+@router.get("/", response_model=EmailSubscriberListResponse, include_in_schema=False)
 @limiter.limit("60/minute")
 async def list_subscribers(
     request: Request,
@@ -90,7 +91,8 @@ async def list_subscribers(
     return EmailSubscriberListResponse(subscribers=summaries, total=total)
 
 
-@router.post("/", response_model=EmailSubscribeResponse)
+@router.post("", response_model=EmailSubscribeResponse)
+@router.post("/", response_model=EmailSubscribeResponse, include_in_schema=False)
 @limiter.limit("5/minute")
 async def subscribe_email(
     request: Request,
