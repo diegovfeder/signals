@@ -9,7 +9,7 @@ import re
 from typing import List, Tuple
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -44,6 +44,16 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+ALLOWED_METHODS = ["GET", "POST", "DELETE", "OPTIONS"]
+ALLOWED_HEADERS = [
+    "Content-Type",
+    "Authorization",
+    "Accept",
+    "Accept-Language",
+    "Content-Language",
+]
+
+
 def _prepare_cors(values: List[str]) -> Tuple[List[str], str | None]:
     """Split exact origins and wildcard rules for CORSMiddleware."""
 
@@ -63,6 +73,18 @@ def _prepare_cors(values: List[str]) -> Tuple[List[str], str | None]:
 
 
 allowed_origins, allowed_regex = _prepare_cors(settings.CORS_ORIGINS)
+allowed_origin_set = set(allowed_origins)
+allowed_origin_pattern = re.compile(allowed_regex) if allowed_regex else None
+
+
+def _origin_allowed(origin: str | None) -> bool:
+    if not origin:
+        return False
+    if origin in allowed_origin_set:
+        return True
+    if allowed_origin_pattern and allowed_origin_pattern.fullmatch(origin):
+        return True
+    return False
 
 
 # CORS middleware - allow localhost + Vercel deployments (production-ready security)
@@ -71,15 +93,31 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_origin_regex=allowed_regex,
     allow_credentials=False,  # API is stateless (no cookies/sessions)
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],  # OPTIONS required for CORS preflight
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Accept-Language",
-        "Content-Language",
-    ],  # Standard headers browsers may send
+    allow_methods=ALLOWED_METHODS,
+    allow_headers=ALLOWED_HEADERS,  # Standard headers browsers may send
 )
+
+
+# Ensure Access-Control headers are always set, even if upstream rewrites strip them.
+@app.middleware("http")
+async def ensure_cors_headers(request: Request, call_next):
+    origin = request.headers.get("origin")
+
+    if request.method == "OPTIONS" and _origin_allowed(origin):
+        headers = {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": ", ".join(ALLOWED_METHODS),
+            "Access-Control-Allow-Headers": ", ".join(ALLOWED_HEADERS),
+            "Access-Control-Max-Age": "86400",
+            "Vary": "Origin",
+        }
+        return Response(status_code=204, headers=headers)
+
+    response = await call_next(request)
+    if _origin_allowed(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers.setdefault("Vary", "Origin")
+    return response
 
 
 # Security headers middleware
