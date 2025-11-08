@@ -18,15 +18,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type RangeValue = "1m" | "3m" | "6m" | "1y" | "2y";
-
-const RANGE_OPTIONS: { label: string; value: RangeValue }[] = [
+const RANGE_OPTIONS = [
   { label: "1M", value: "1m" },
   { label: "3M", value: "3m" },
   { label: "6M", value: "6m" },
   { label: "1Y", value: "1y" },
   { label: "2Y", value: "2y" },
-];
+  { label: "5Y", value: "5y" },
+  { label: "10Y", value: "10y" },
+] as const;
+
+type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 
 const formatDate = (input?: string | null) => {
   if (!input) return "-";
@@ -78,8 +80,8 @@ export default function SignalDetail({
     confidence >= 70
       ? "bg-primary"
       : confidence >= 40
-      ? "bg-yellow-500"
-      : "bg-red-500";
+        ? "bg-yellow-500"
+        : "bg-red-500";
 
   return (
     <main className="min-h-screen py-8 px-4">
@@ -115,14 +117,16 @@ export default function SignalDetail({
               {/* Current Signal */}
               <Card className="p-8 flex flex-col justify-between border border-border">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-3">Current Signal</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Current Signal
+                  </p>
                   <div
                     className={`text-5xl font-bold mb-4 ${
                       signal.signal_type === "BUY"
                         ? "text-primary"
                         : signal.signal_type === "SELL"
-                        ? "text-red-600"
-                        : "text-muted-foreground"
+                          ? "text-red-600"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {signal.signal_type}
@@ -180,8 +184,8 @@ export default function SignalDetail({
                         onClick={() => setSelectedRange(option.value)}
                         className={`px-3 py-1.5 cursor-pointer text-sm transition-all ${
                           selectedRange === option.value
-                            ? "bg-primary text-primary-foreground border-0"
-                            : "bg-card text-muted-foreground border border-border hover:border-ring"
+                            ? "bg-primary border-primary text-white"
+                            : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card"
                         }`}
                       >
                         {option.label}
@@ -227,11 +231,7 @@ export default function SignalDetail({
                             Range return
                           </p>
                           <p
-                            className={`text-lg font-semibold ${
-                              rangeStats.change >= 0
-                                ? "text-primary"
-                                : "text-red-600"
-                            }`}
+                            className={`text-lg font-semibold text-foreground`}
                           >
                             {rangeStats.change >= 0 ? "+" : ""}
                             {rangeStats.change.toFixed(2)}%

@@ -27,6 +27,7 @@ HISTORICAL_RANGE_MAP: Dict[str, int] = {
     "2y": 365 * 2,
     "3y": 365 * 3,
     "5y": 365 * 5,
+    "10y": 365 * 10,
     "max": 365 * 20,
 }
 MAX_BACKFILL_DAYS = HISTORICAL_RANGE_MAP["max"]

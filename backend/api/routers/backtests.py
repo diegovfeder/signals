@@ -17,13 +17,16 @@ from ..schemas import BacktestSummaryResponse
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
-BACKTEST_RANGE_CHOICES = {"1m", "3m", "6m", "1y", "2y"}
+BACKTEST_RANGE_CHOICES = ["1m", "3m", "6m", "1y", "2y", "5y", "10y"]
+BACKTEST_RANGE_SET = set(BACKTEST_RANGE_CHOICES)
+
+BACKTEST_RANGE_DESCRIPTION = ", ".join(BACKTEST_RANGE_CHOICES)
 
 
 def _normalize_range(range_label: str) -> str:
     normalized = range_label.lower()
-    if normalized not in BACKTEST_RANGE_CHOICES:
-        valid = ", ".join(sorted(BACKTEST_RANGE_CHOICES))
+    if normalized not in BACKTEST_RANGE_SET:
+        valid = BACKTEST_RANGE_DESCRIPTION
         raise HTTPException(status_code=400, detail=f"Invalid range '{range_label}'. Valid options: {valid}")
     return normalized
 
@@ -33,7 +36,10 @@ def _normalize_range(range_label: str) -> str:
 async def get_backtest_summary(
     request: Request,
     symbol: str,
-    range: str = Query(default="1y", description="Historical range evaluated for the backtest summary."),
+    range: str = Query(
+        default="1y",
+        description=f"Historical range evaluated for the backtest summary. Valid options: {BACKTEST_RANGE_DESCRIPTION}.",
+    ),
     db: Session = Depends(get_db),
 ):
     """

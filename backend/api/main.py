@@ -5,6 +5,8 @@ FastAPI application for serving trading signals, market data, and email subscrip
 """
 
 import logging
+import re
+from typing import List, Tuple
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -42,11 +44,32 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware - allow localhost + all Vercel deployments (production-ready security)
+def _prepare_cors(values: List[str]) -> Tuple[List[str], str | None]:
+    """Split exact origins and wildcard rules for CORSMiddleware."""
+
+    exact: List[str] = []
+    regexes: List[str] = []
+
+    for origin in values:
+        normalized = origin.rstrip("/")
+        if "*" in normalized:
+            pattern = "^" + re.escape(normalized).replace(r"\*", ".*") + "$"
+            regexes.append(pattern)
+        elif normalized:
+            exact.append(normalized)
+
+    combined_regex = "|".join(regexes) if regexes else None
+    return exact, combined_regex
+
+
+allowed_origins, allowed_regex = _prepare_cors(settings.CORS_ORIGINS)
+
+
+# CORS middleware - allow localhost + Vercel deployments (production-ready security)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Match all Vercel deployments
+    allow_origins=allowed_origins,
+    allow_origin_regex=allowed_regex,
     allow_credentials=False,  # API is stateless (no cookies/sessions)
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],  # OPTIONS required for CORS preflight
     allow_headers=[
