@@ -135,20 +135,26 @@ async def validate_malicious_patterns(request: Request, call_next):
     query = str(request.url.query)
 
     # Patterns that indicate malicious input
+    # Note: Check both raw and URL-decoded versions
     malicious_patterns = [
         r'\.\.[/\\]',           # Path traversal: ../ or ..\
         r'%2e%2e[/\\]',         # URL-encoded path traversal
         r'<script',              # XSS: <script>
+        r'%3cscript',            # URL-encoded <script>
         r'<iframe',              # XSS: <iframe>
+        r'%3ciframe',            # URL-encoded <iframe>
         r'javascript:',          # XSS: javascript:
         r'onerror=',            # XSS: onerror attribute
         r'onload=',             # XSS: onload attribute
         r'\x00',                # Null byte
-        r'%00',                 # URL-encoded null byte
+        r'%00',                 # URL-encoded null byte (caught by Vercel, but we log it)
         r'(union|select|drop|insert|delete|update|exec)\s+(from|table|database)',  # SQL injection
         r"('|\")(or|and)\s*('|\")?\s*=\s*('|\")?",  # SQL: ' OR '1'='1
+        r'%27(or|and)%27',      # URL-encoded SQL: 'or'
         r';\s*(drop|delete|truncate)',  # SQL: ; DROP TABLE
+        r'%3b.*(drop|delete)',  # URL-encoded ; DROP
         r'--\s*$',              # SQL comment
+        r'%2d%2d',              # URL-encoded --
         r'/etc/passwd',         # System file access
         r'/proc/self',          # Process info access
         r'\.\.;',               # Path traversal variant
@@ -177,13 +183,33 @@ async def validate_malicious_patterns(request: Request, call_next):
 
     try:
         response = await call_next(request)
+
+        # Catch 400 Bad Request from upstream (Vercel/ASGI) for null bytes
+        # and convert to 422 for consistency
+        if response.status_code == 400:
+            # Check if it's likely a malformed request (null bytes, etc.)
+            if '%00' in full_url or '\x00' in full_url:
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "detail": [
+                            {
+                                "loc": ["path"],
+                                "msg": "Invalid character detected (null byte)",
+                                "type": "value_error.malicious_input"
+                            }
+                        ]
+                    }
+                )
         return response
+
     except StarletteHTTPException as e:
         # If we get a 404 and the path contains suspicious characters,
         # convert to 422 for consistency
         if e.status_code == 404:
-            suspicious_chars = ['<', '>', '{', '}', '$', '%', '\\', '"', "'"]
-            if any(char in path for char in suspicious_chars):
+            # Check for URL-encoded suspicious patterns
+            suspicious_patterns = ['%3c', '%3e', '%7b', '%7d', '%24', '%5c', '%22', '%27']
+            if any(pattern in path.lower() for pattern in suspicious_patterns):
                 return JSONResponse(
                     status_code=422,
                     content={
