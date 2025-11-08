@@ -150,14 +150,14 @@ export default function AdminBacktestsPage() {
           </header>
           {marketError && (
             <div className="text-red-600 text-sm">
-              Failed to load market data:{" "}
+              Failed to load market data:&nbsp;
               {String(marketErrorObj?.message ?? marketErrorObj)}
             </div>
           )}
           {!marketError && (
             <>
               <p className="text-sm text-muted-foreground">
-                Showing {marketData.length} rows. Latest close:{" "}
+                Showing {marketData.length} rows. Latest close:&nbsp;
                 <span className="text-foreground font-semibold">
                   ${marketData[marketData.length - 1]?.close?.toFixed(2) ?? "-"}
                 </span>
@@ -179,7 +179,7 @@ export default function AdminBacktestsPage() {
           </header>
           {backtestError && (
             <div className="text-red-600 text-sm">
-              Failed to load backtest:{" "}
+              Failed to load backtest:&nbsp;
               {String(backtestErrorObj?.message ?? backtestErrorObj)}
             </div>
           )}
@@ -235,7 +235,7 @@ export default function AdminBacktestsPage() {
         </header>
         {signalsError && (
           <div className="text-red-600 text-sm">
-            Failed to load signals:{" "}
+            Failed to load signals:&nbsp;
             {String(signalsErrorObj?.message ?? signalsErrorObj)}
           </div>
         )}

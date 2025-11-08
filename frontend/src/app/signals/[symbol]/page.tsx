@@ -202,7 +202,7 @@ export default function SignalDetail({
 
                 {marketError && (
                   <div className="h-64 flex items-center justify-center text-red-600 bg-red-600/10 rounded-xl text-center px-6">
-                    Failed to load market data:{" "}
+                    Failed to load market data:&nbsp;
                     {String(marketErrorObj?.message ?? marketErrorObj)}
                   </div>
                 )}
@@ -289,12 +289,12 @@ export default function SignalDetail({
                   <li className="flex gap-2">
                     <span className="text-ring">•</span>
                     <span>
-                      Run{" "}
+                      Run&nbsp;
                       <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
                         python -m pipe.flows.signal_generation --mode backfill
                         --backfill-range 2y
-                      </code>{" "}
-                      to refresh history.
+                      </code>
+                      &nbsp; to refresh history.
                     </span>
                   </li>
                 </ul>
@@ -350,7 +350,7 @@ export default function SignalDetail({
                         "Detailed backtesting metrics will appear here once the pipeline is ready."}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Last trained{" "}
+                      Last trained&nbsp;
                       {formatDate(backtestSummary?.last_trained_at)}
                     </p>
                   </>
