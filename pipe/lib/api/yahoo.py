@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-import pandas as pd
+import polars as pl
 import requests
 
 YAHOO_CHART_BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 
 
-def fetch_daily(symbol: str, range_days: Optional[int]) -> pd.DataFrame:
+def fetch_daily(symbol: str, range_days: Optional[int]) -> pl.DataFrame:
     days = max(range_days or 365, 5)
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days + 5)
@@ -46,9 +46,12 @@ def fetch_daily(symbol: str, range_days: Optional[int]) -> pd.DataFrame:
     if not timestamps or not indicators:
         raise RuntimeError(f"Yahoo Finance chart API returned empty data for {symbol}")
 
-    df = pd.DataFrame(
+    # Convert Unix timestamps to datetime with UTC timezone
+    dt_timestamps = [datetime.fromtimestamp(ts, tz=timezone.utc) for ts in timestamps]
+
+    df = pl.DataFrame(
         {
-            "timestamp": pd.to_datetime(timestamps, unit="s", utc=True),
+            "timestamp": dt_timestamps,
             "open": indicators.get("open"),
             "high": indicators.get("high"),
             "low": indicators.get("low"),
@@ -56,12 +59,27 @@ def fetch_daily(symbol: str, range_days: Optional[int]) -> pd.DataFrame:
             "volume": indicators.get("volume"),
         }
     )
-    df = df.dropna(subset=["open", "high", "low", "close"])
-    if df.empty:
+
+    # Drop rows with null OHLC values
+    df = df.filter(
+        pl.col("open").is_not_null()
+        & pl.col("high").is_not_null()
+        & pl.col("low").is_not_null()
+        & pl.col("close").is_not_null()
+    )
+
+    if df.height == 0:
         raise RuntimeError(f"Yahoo Finance chart API returned NaN data for {symbol}")
-    df["symbol"] = symbol
-    df["volume"] = df["volume"].fillna(0).astype(int)
-    df = df.sort_values("timestamp").reset_index(drop=True)
+
+    # Add symbol column and fill null volumes with 0
+    df = df.with_columns([
+        pl.lit(symbol).alias("symbol"),
+        pl.col("volume").fill_null(0).cast(pl.Int64)
+    ])
+
+    # Sort by timestamp
+    df = df.sort("timestamp")
+
     return df
 
 

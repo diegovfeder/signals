@@ -2,6 +2,8 @@
 
 Track automated trading signals across multiple asset classes. Get email alerts when technical indicators detect high-confidence opportunities in crypto, stocks, ETFs, and forex.
 
+> **Doc map:** [MVP](docs/MVP.md) · [Architecture](docs/ARCHITECTURE.md) · [Task Seeds](docs/TASK_SEEDS.md) · [Operations](docs/resources/OPERATIONS.md)
+
 ## 🚀 Quick Start - 1 Minute Overview
 
 **What This Does**: Automated trading signals for crypto & stocks with plain-English explanations
@@ -66,12 +68,12 @@ Expanding to ETFs and forex as the platform grows.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 + TypeScript + TailwindCSS (deployed on Vercel)
-- **Backend**: FastAPI + Python 3.11
-- **Database**: Supabase (PostgreSQL)
-- **Pipeline**: Prefect for orchestration
-- **Email**: Resend API
-- **Analytics**: PostHog
+- **Frontend**: Next.js 16 + TypeScript + TailwindCSS (Vercel)
+- **Backend**: FastAPI + Python 3.11 (Vercel)
+- **Pipeline**: Prefect 2 (nightly flows in Prefect Cloud)
+- **Database**: Supabase PostgreSQL (Session Mode pooler)
+- **Email**: Resend API (sandbox sender for MVP)
+- **Analytics**: PostHog (optional)
 
 ## Project Structure
 
@@ -122,11 +124,12 @@ cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
+uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD
 uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD
 uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60
 ```
 
-**See** `scripts/README.md` for production setup (Supabase) and troubleshooting.
+Need more detail? See `docs/resources/OPERATIONS.md` for Prefect runbooks and troubleshooting.
 
 ---
 
@@ -153,7 +156,8 @@ export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/t
 # Initialize schema and seed 4 assets
 python scripts/apply_db.py
 
-# Backfill ~60 days of historical data
+# Backfill up to 10 years of daily history (once per symbol)
+uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 10y
 ```
 
 - **Option B: Production (Supabase)**
@@ -271,10 +275,12 @@ uv run --directory pipe python -m pipe.flows.signal_generation
 
 ## Documentation
 
-- **[MVP.md](docs/MVP.md)** - What we're building and why
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and data flow
-- **[DATA-SCIENCE.md](docs/DATA-SCIENCE.md)** - Indicators explained (concepts)
-- **[data/README.md](data/README.md)** - Implementation guide (code)
+- **[MVP.md](docs/MVP.md)** – what we’re building, target user, KPIs.
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** – component responsibilities + nightly cadence.
+- **[TASK_SEEDS.md](docs/TASK_SEEDS.md)** – backlog seeds; open an issue per row before coding.
+- **[resources/OPERATIONS.md](docs/resources/OPERATIONS.md)** – Prefect runbook + troubleshooting.
+- **[resources/DATA-SOURCES-AND-TOOLS.md](docs/resources/DATA-SOURCES-AND-TOOLS.md)** – alternate providers + research links.
+- **[resources/TECHNICAL-ANALYSIS.md](docs/resources/TECHNICAL-ANALYSIS.md)** – indicator math + strategy heuristics.
 
 ## Deployment
 
@@ -282,26 +288,26 @@ uv run --directory pipe python -m pipe.flows.signal_generation
 
 ```bash
 cd frontend
-vercel deploy
+vercel deploy --prod
 ```
 
 ### Backend (Vercel)
 
 ```bash
 cd backend
-vercel deploy
+vercel deploy --prod
 ```
 
 ### Prefect Flows (Prefect Cloud)
 
 ```bash
-cd prefect
-prefect deploy
+prefect cloud login
+uv run --directory pipe python -m deployments.register --work-pool <prefect-pool>
 ```
 
 ## Key Features
 
-- ✅ Real-time price monitoring (15-minute intervals)
+- ✅ Daily OHLCV ingestion + signal generation (Yahoo Finance)
 - ✅ Technical indicators (RSI, EMA)
 - ✅ Email notifications via Resend
 - ✅ Public dashboard (no login required)
@@ -310,13 +316,12 @@ prefect deploy
 
 ## MVP Scope
 
-**In Scope:**
+**In Scope (today):**
 
-- 4 representative assets (1 per type: crypto, stock, ETF, forex)
-- RSI and EMA indicators
-- Email notifications
-- Public dashboard
-- Multi-asset signal comparison
+- Daily BTC-USD + AAPL signals (more assets post-reliability goals)
+- RSI / EMA / MACD histogram indicators
+- Double opt-in subscriptions (notifications live once custom domain is ready)
+- Public dashboard + admin subscriber views
 
 **Out of Scope (Phase 2):**
 
@@ -345,10 +350,10 @@ prefect deploy
 
 MIT
 
-## Contributing
+## Working With This Repo
 
-This is an MVP project. Contributions welcome after initial launch.
-
-## Support
+- **Docs-first**: Update `docs/ARCHITECTURE.md`, `docs/MVP.md`, or ops guides when behavior changes.
+- **Issues before code**: Open a GitHub issue via `.github/ISSUE_TEMPLATE/task.md` and add it to the “Signals – Tasks” project board before starting non-trivial work.
+- **Manual validation**: Automated tests are paused; run the relevant Prefect flows, hit `/health`, and load the affected frontend pages after `bun run lint && bun run type-check`.
 
 For questions or issues, open a GitHub issue.

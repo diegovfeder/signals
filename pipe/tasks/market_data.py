@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Tuple
 
-import pandas as pd
+import polars as pl
 from prefect import task
 
 try:
@@ -17,9 +16,9 @@ except ImportError:
 from .db import get_db_conn
 
 # Default symbols for signal generation
-DEFAULT_SYMBOLS = ["BTC-USD", "AAPL"]
+DEFAULT_SYMBOLS = ["AAPL", "BTC-USD"]
 
-HISTORICAL_RANGE_MAP: Dict[str, int] = {
+HISTORICAL_RANGE_MAP: dict[str, int] = {
     "1m": 30,
     "3m": 90,
     "6m": 180,
@@ -33,7 +32,7 @@ HISTORICAL_RANGE_MAP: Dict[str, int] = {
 MAX_BACKFILL_DAYS = HISTORICAL_RANGE_MAP["max"]
 
 
-def resolve_symbols(explicit: Optional[List[str]] = None) -> List[str]:
+def resolve_symbols(explicit: list[str] | None = None) -> list[str]:
     if explicit:
         return explicit
     env_value = os.getenv("SIGNAL_SYMBOLS")
@@ -44,7 +43,9 @@ def resolve_symbols(explicit: Optional[List[str]] = None) -> List[str]:
     return DEFAULT_SYMBOLS
 
 
-def resolve_history_days(explicit_days: Optional[int], range_label: Optional[str]) -> Optional[int]:
+def resolve_history_days(
+    explicit_days: int | None = None, range_label: str | None = None
+) -> int | None:
     if explicit_days is not None:
         return max(1, min(explicit_days, MAX_BACKFILL_DAYS))
     if range_label:
@@ -75,35 +76,35 @@ def resolve_history_days(explicit_days: Optional[int], range_label: Optional[str
     return None
 
 
-def _limit_df_to_days(df: pd.DataFrame, range_days: Optional[int]) -> pd.DataFrame:
-    if not range_days or range_days <= 0 or df.empty:
+def _limit_df_to_days(df: pl.DataFrame, range_days: int | None = None) -> pl.DataFrame:
+    if not range_days or range_days <= 0 or df.height == 0:
         return df
-    cutoff = pd.Timestamp.now(tz=timezone.utc) - pd.Timedelta(days=range_days)
-    filtered = df[df["timestamp"] >= cutoff]
-    return filtered.reset_index(drop=True)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=range_days)
+    filtered = df.filter(pl.col("timestamp") >= cutoff)
+    return filtered
 
 
 # Removed _should_fallback_to_yahoo - no longer needed (Yahoo-only approach)
 
 
 @task(name="fetch-intraday-ohlcv", retries=3, retry_delay_seconds=10)
-def fetch_intraday_ohlcv(symbol: str, interval: str = "15m") -> pd.DataFrame:
+def fetch_intraday_ohlcv(symbol: str, interval: str = "15m") -> pl.DataFrame:
     # Yahoo Finance doesn't support intraday intervals well, use daily instead
     # For MVP, we use daily data only (fetched at 10 PM UTC)
     return yahoo.fetch_daily(symbol, range_days=1)
 
 
 @task(name="fetch-historical-ohlcv", retries=3, retry_delay_seconds=30)
-def fetch_historical_ohlcv(symbol: str, range_days: Optional[int] = None) -> pd.DataFrame:
+def fetch_historical_ohlcv(symbol: str, range_days: int | None = None) -> pl.DataFrame:
     # Use Yahoo Finance directly (Alpha Vantage removed for MVP simplicity)
     df = yahoo.fetch_daily(symbol, range_days)
     limited = _limit_df_to_days(df, range_days)
 
     # Validate we have sufficient data
     if range_days:
-        cutoff = pd.Timestamp.now(tz=timezone.utc) - pd.Timedelta(days=range_days)
-        earliest = limited["timestamp"].min() if not limited.empty else None
-        if earliest is None or earliest > cutoff + pd.Timedelta(days=14):
+        cutoff = datetime.now(timezone.utc) - timedelta(days=range_days)
+        earliest = limited["timestamp"].min() if limited.height > 0 else None
+        if earliest is None or earliest > cutoff + timedelta(days=14):
             raise RuntimeError(
                 f"Yahoo Finance history incomplete for {symbol}; earliest {earliest} but cutoff {cutoff}"
             )
@@ -111,22 +112,26 @@ def fetch_historical_ohlcv(symbol: str, range_days: Optional[int] = None) -> pd.
 
 
 @task(name="upsert-market-data")
-def upsert_market_data(df: pd.DataFrame) -> int:
-    if df.empty:
+def upsert_market_data(df: pl.DataFrame) -> int:
+    if df.height == 0:
         return 0
-    rows: List[Tuple] = []
-    for _, row in df.iterrows():
-        rows.append(
-            (
-                str(row["symbol"]),
-                pd.Timestamp(row["timestamp"]).to_pydatetime(),
-                float(row["open"]),
-                float(row["high"]),
-                float(row["low"]),
-                float(row["close"]),
-                int(row["volume"]),
-            )
+
+    # Convert polars DataFrame to list of tuples for database insertion
+    rows: list[tuple] = [
+        (
+            str(row["symbol"]),
+            row["timestamp"]
+            if isinstance(row["timestamp"], datetime)
+            else row["timestamp"],
+            float(row["open"]),
+            float(row["high"]),
+            float(row["low"]),
+            float(row["close"]),
+            int(row["volume"]),
         )
+        for row in df.iter_rows(named=True)
+    ]
+
     query = (
         "INSERT INTO market_data (symbol, timestamp, open, high, low, close, volume) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (symbol, timestamp) DO NOTHING"

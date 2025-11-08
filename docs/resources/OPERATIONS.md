@@ -1,7 +1,7 @@
 # Operations Guide
 
-> **Last Updated**: 2025-10-31
-> **Applies to**: MVP Phase 1 (Daily signals, 4 flows)
+> **Last Updated**: 2025-11-06
+> **Applies to**: Production MVP (Yahoo-only daily flows)
 
 _Primary audience_: developers and operators running the Signals pipeline in Prefect Cloud.
 
@@ -11,14 +11,14 @@ _Primary audience_: developers and operators running the Signals pipeline in Pre
 
 ## 1. Manual Flow Commands
 
-All commands run from the project root using `uv`:
+All commands run from the project root using `uv` (so env vars in `.env` files are respected):
 
 | Action | Command |
 | --- | --- |
-| Backfill historical data (new symbols) | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 2y` |
+| Backfill historical data (new symbols) | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 10y` |
 | Sync latest daily bars | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD` |
-| Generate signals from DB data | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD` |
-| Send email notifications | `uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60` |
+| Recompute indicators + signals | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD` |
+| Dispatch notifications | `uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60` |
 
 > **Tip:** For quick local testing, run flows directly: `cd pipe && uv run python -m flows.market_data_backfill --symbols BTC-USD --backfill-range 1m`
 
@@ -27,9 +27,8 @@ All commands run from the project root using `uv`:
 ## 2. Register Prefect Deployments
 
 ```bash
-cd pipe
 prefect cloud login  # once per environment
-uv run python -m deployments.register --work-pool default-prefect-managed-wp
+uv run --directory pipe python -m deployments.register --work-pool default-prefect-managed-wp
 ```
 
 > **Tip:** The deploy helper automatically loads `pipe/.env`. Keep your Supabase pooler string (`SUPABASE_URL_SESSION_POOLER`) there so deployments always override `DATABASE_URL` without touching your local dev settings.
@@ -76,7 +75,7 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 | Name | Description | Required |
 | --- | --- | --- |
 | `DATABASE_URL` | Postgres connection string (same as backend) | ✅ Yes |
-| `SUPABASE_URL_SESSION_POOLER` | Supabase pooled connection string. Store this in `pipe/.env` and the deploy helper will always inject it as `DATABASE_URL` when registering Prefect deployments. | ✅ Yes (for production) |
+| `SUPABASE_URL_SESSION_POOLER` | Supabase pooled connection string. Store this in `pipe/.env`; the deploy helper injects it as `DATABASE_URL` for Prefect deployments. | ✅ Yes (production) |
 | `RESEND_API_KEY` | Resend email API key | ✅ Yes |
 | `RESEND_FROM_EMAIL` | Verified sender email (Resend) | ✅ Yes |
 | `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength before emails are sent (default: 60) | No |
@@ -102,8 +101,8 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
    ORDER BY timestamp DESC
    LIMIT 10;
    ```
-3. **Admin dashboard** → `/admin/subscribers` to verify email subscriptions
-4. **Email inbox** → Check Resend dashboard for delivery status
+3. **Admin dashboard** → `/admin/subscribers` to verify email confirmations / unsubscribes
+4. **Resend dashboard** → Confirm deliverability + bounce metrics when notification dispatcher runs
 
 ### Expected Daily Flow Sequence
 
@@ -123,7 +122,7 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 ### Common Issues
 
 **Problem**: Backfill taking too long
-**Solution**: Run once manually for initial history, then daily sync maintains it automatically.
+**Solution**: Run the 10y backfill once per new symbol; nightly sync keeps data fresh. For partial reruns, reduce `--backfill-range` or pass `--backfill-days`.
 
 **Problem**: No signals generated
 **Solution**:
@@ -138,9 +137,9 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 
 **Problem**: Yahoo Finance data fetch fails
 **Solution**:
-- Check symbol format (e.g., `BTC-USD` not `BTCUSD`)
-- Verify internet connectivity
-- Check Prefect logs for specific error messages
+- Ensure symbol format (`BTC-USD`, `AAPL`)
+- Verify provider rate limits; rerun with `--symbols SYMBOL --backfill-range 1y` to reduce payload
+- Inspect Prefect run logs; if repeated failures occur, see Task Seeds → Provider fallback
 
 **Problem**: Database connection errors
 **Solution**:

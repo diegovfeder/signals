@@ -11,7 +11,7 @@ dependencies = [
     # Data Fetching
     "requests>=2.31.0",
     # Data Processing
-    "pandas>=2.2.0",
+    "polars>=1.0.0",
     "numpy>=1.26.2",
     # Database (Python 3.13 compatible)
     "sqlalchemy>=2.0.35",

@@ -2,6 +2,6 @@
 -- BTC-USD (crypto), AAPL (stock)
 
 INSERT INTO symbols (symbol, name, asset_type, active) VALUES
-    ('BTC-USD', 'Bitcoin', 'crypto', true),
-    ('AAPL', 'Apple Inc.', 'stock', true)
+    ('AAPL', 'Apple Inc.', 'stock', true),
+    ('BTC-USD', 'Bitcoin', 'crypto', true)
 ON CONFLICT (symbol) DO NOTHING;

@@ -10,11 +10,11 @@ Interpretation:
     RSI < 30: Oversold (potential BUY signal)
 """
 
-import pandas as pd
+import polars as pl
 import numpy as np
 
 
-def calculate_rsi(df: pd.DataFrame, period: int = 14, price_column: str = "close") -> pd.Series:
+def calculate_rsi(df: pl.DataFrame, period: int = 14, price_column: str = "close") -> pl.Series:
     """
     Calculate Relative Strength Index (RSI).
 
@@ -24,36 +24,64 @@ def calculate_rsi(df: pd.DataFrame, period: int = 14, price_column: str = "close
         price_column: Name of the price column to use (default: 'close')
 
     Returns:
-        pd.Series: RSI values (0-100), NaN for insufficient data
+        pl.Series: RSI values (0-100), null for insufficient data
 
     Example:
-        >>> df = pd.DataFrame({'close': [100, 102, 101, 105, 107, 103, 108]})
+        >>> df = pl.DataFrame({'close': [100, 102, 101, 105, 107, 103, 108]})
         >>> rsi = calculate_rsi(df, period=6)
-        >>> rsi.iloc[-1]  # Most recent RSI value
+        >>> rsi[-1]  # Most recent RSI value
         65.43
     """
-    prices = df[price_column].astype(float)
+    prices = df[price_column].cast(pl.Float64)
+
+    # Calculate price changes
     delta = prices.diff()
 
-    gains = delta.clip(lower=0.0)
-    losses = -delta.clip(upper=0.0)
+    # Separate gains and losses
+    gains = delta.clip(lower_bound=0.0)
+    losses = (-delta).clip(lower_bound=0.0)
 
-    # Wilder's smoothing approximation using EMA with alpha = 1/period
-    avg_gain = gains.ewm(alpha=1/period, adjust=False, min_periods=period).mean()
-    avg_loss = losses.ewm(alpha=1/period, adjust=False, min_periods=period).mean()
+    # Calculate EMA for gains and losses using Wilder's smoothing
+    alpha = 1.0 / period
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
+    # Convert to numpy for EMA calculation
+    gains_np = gains.to_numpy()
+    losses_np = losses.to_numpy()
+
+    avg_gain = np.zeros_like(gains_np, dtype=float)
+    avg_loss = np.zeros_like(losses_np, dtype=float)
+
+    # Initialize with first valid values
+    avg_gain[:period] = np.nan
+    avg_loss[:period] = np.nan
+
+    if len(gains_np) >= period:
+        # Use simple average for first period
+        avg_gain[period - 1] = np.nanmean(gains_np[:period])
+        avg_loss[period - 1] = np.nanmean(losses_np[:period])
+
+        # Apply EMA for subsequent values
+        for i in range(period, len(gains_np)):
+            if not np.isnan(gains_np[i]):
+                avg_gain[i] = alpha * gains_np[i] + (1 - alpha) * avg_gain[i - 1]
+                avg_loss[i] = alpha * losses_np[i] + (1 - alpha) * avg_loss[i - 1]
+            else:
+                avg_gain[i] = avg_gain[i - 1]
+                avg_loss[i] = avg_loss[i - 1]
+
+    # Calculate RS and RSI
+    rs = np.where(avg_loss == 0, np.nan, avg_gain / avg_loss)
     rsi = 100 - (100 / (1 + rs))
 
-    return rsi
+    return pl.Series(rsi)
 
 
-def interpret_rsi(rsi_value: float) -> str:
+def interpret_rsi(rsi_value: float | None) -> str:
     """
     Interpret RSI value into plain English.
 
     Args:
-        rsi_value: RSI value (0-100)
+        rsi_value: RSI value (0-100) or None
 
     Returns:
         str: Human-readable interpretation
@@ -62,7 +90,7 @@ def interpret_rsi(rsi_value: float) -> str:
         >>> interpret_rsi(25)
         "Oversold - potential buying opportunity"
     """
-    if pd.isna(rsi_value):
+    if rsi_value is None or np.isnan(rsi_value):
         return "Insufficient data"
 
     if rsi_value > 70:

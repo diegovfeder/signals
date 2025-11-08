@@ -1,206 +1,133 @@
 # System Architecture
 
-> **Last Updated**: 2025-10-31
-> **Applies to**: MVP Phase 1 (Daily signals, 4 flows)
+> **Last Updated**: 2025-11-06  
+> **Applies to**: Production MVP (Yahoo-only daily pipeline)
 
-This document describes how data moves through the Signals stack. Treat it as the source of truth when onboarding new engineers or deciding where to plug in new features.
+Signals ingests Yahoo Finance daily candles, stores them in Postgres, scores strategies in Prefect, and exposes read-only APIs that power the public dashboard and daily email digests. This document is the canonical picture of how data and responsibilities are split across the stack.
 
-**Related**: [MVP](MVP.md) | [Operations](reference/OPERATIONS.md) | [Technical Analysis](reference/TECHNICAL-ANALYSIS.md)
+**Related**: [MVP](MVP.md) · [Operations Guide](resources/OPERATIONS.md) · [Technical Analysis](resources/TECHNICAL-ANALYSIS.md)
 
 ---
 
-## 1. High-Level View
+## 1. Layer Overview
 
 | Layer | Tech | Responsibilities |
 | --- | --- | --- |
-| Pipeline (`pipe/`) | Prefect 2 + pandas + psycopg | Fetch OHLCV data, normalize bars, compute indicators, pick a strategy per symbol, emit BUY/SELL/HOLD + strength, seed backtests, trigger emails. |
-| Backend (`backend/`) | FastAPI + SQLAlchemy/psycopg | Read-only REST API for signals, indicators, market data, backtests, and subscriber management. |
-| Frontend (`frontend/`) | Next.js 15 + React Query + Chart.js | Marketing site + dashboard, live signals grid, symbol detail chart, reusable signup component. |
-| Database (`db/`) | PostgreSQL (local docker-compose) | Durable storage for `market_data`, `indicators`, `signals`, `backtests`, `email_subscribers`, etc. |
-| Messaging | Resend (HTTP API) | Confirmation + high-confidence alert emails (Phase 2 automation lives in `flows/notification_sender.py`). |
+| Pipeline (`pipe/`) | Prefect 2 · polars · psycopg | Fetch Yahoo Finance daily OHLCV, backfill up to 10 years, derive indicators (RSI/EMA/MACD), run symbol strategies, persist signals, trigger notifications. |
+| Backend (`backend/`) | FastAPI · SQLAlchemy · psycopg | Read-only API for market data, indicators, signals, backtests, and subscriber flows (subscribe, confirm, unsubscribe). Applies rate limits + security headers. |
+| Frontend (`frontend/`) | Next.js 16 · React Query · Chart.js | Marketing site + dashboard. Consumes backend APIs (`NEXT_PUBLIC_API_URL`) for signals, indicators, and market data, and exposes the shared subscribe form. |
+| Database (`db/`) | PostgreSQL (Docker locally, Supabase prod) | Durable storage for `market_data`, `indicators`, `signals`, `backtests`, and `email_subscribers`. Unique constraints keep writes idempotent. |
+| Messaging | Resend API | Sends confirmation/reactivation emails today and signal alerts when Prefect raises strong signals. |
 
-### Execution Graph (simplified)
-
-```mermaid
-graph TD
-    subgraph Pipeline
-      A[Historical Backfill Flow<br/>python -m pipe.flows.historical_backfill] --> B(Indicators Task)
-      B --> C(Strategy Engine)
-      C --> D[Signals Table]
-      D --> E[Backtests Table]
-      subgraph Intraday
-        F[Signal Generation Flow<br/>python -m pipe.flows.signal_generation] --> B
-      end
-      G[Signal Replay Flow] --> C
-      H[Notification Sender] --> RESEND
-    end
-    YF[Alpha Vantage + Yahoo Finance] --> A
-    YF --> F
-    DB[(PostgreSQL)] --> API
-    API --> NEXT
-    NEXT --> USER
-    D --> RESEND
-    RESEND --> USER
-```
+**Data path**: Yahoo Finance → Prefect flows → Postgres → FastAPI → Next.js → Users (UI + email).
 
 ---
 
-## 2. Data Pipeline
+## 2. Data Lifecycle (Daily @ 22:00 UTC)
 
-All reusable logic lives under `pipe/tasks/`. Flows in `pipe/flows/` are orchestration shells with CLI entry points.
+1. **Historical backfill** (manual): `market_data_backfill` fetches up to 10 years per symbol so we always have enough context for indicator windows and backtests.
+2. **Daily sync (22:00 UTC)**: `market_data_sync` pulls the most recent 5 trading days to cover weekends or missed runs.
+3. **Indicator refresh (22:15 UTC)**: `signal_analyzer` loads market data from Postgres, recomputes RSI/EMA/MACD, and stores indicator rows per candle.
+4. **Strategy evaluation**: Prefect tasks call `pipe/lib/strategies/*` per symbol, generate BUY/SELL/HOLD + strength (0-100), and store results in `signals` with an idempotency key.
+5. **Notification gating (22:30 UTC)**: `notification_dispatcher` selects signals ≥ `SIGNAL_NOTIFY_THRESHOLD` and hands them to Resend (today it logs + Resend send). Email templates live in `backend/api/email.py`.
+6. **Frontend consumption**: Next.js uses React Query hooks (`frontend/src/lib/hooks`) to hit `/api/signals`, `/api/market-data`, and `/api/indicators`. Five-minute stale timers avoid hammering the API while keeping dashboards fresh.
 
-### Shared Tasks
+---
 
-- `tasks/market_data.py`
-  - Resolves input symbols/ranges (`resolve_symbols`, `resolve_history_days`).
-  - Calls Alpha Vantage intraday endpoints when available; falls back to the Yahoo Finance chart API for longer history.
-  - Handles per-provider rate limits with locks, throttling, and graceful downgrade logs.
-  - Upserts bars into `market_data` with `ON CONFLICT (symbol, timestamp)` semantics.
-- `tasks/indicators.py`
-  - Pulls the requested window from `market_data`, computes RSI/EMA/MACD via pandas, and writes rows into `indicators`.
-- `tasks/signals.py`
-  - Loads the most recent indicator row, generates BUY/SELL/HOLD signals with strength scores, and persists to the `signals` table.
-  - Emits structured logs visible in Prefect Cloud UI.
-- `tasks/db.py`
-  - Normalizes SQLAlchemy-style URLs (e.g., `postgresql+psycopg://`) for psycopg, centralizes connection helpers, and enforces UTC timestamps.
+## 3. Prefect Flows & Scheduling
 
-### Flows
+All orchestration shells live in `pipe/flows/` and only import reusable tasks from `pipe/tasks/`.
 
-| Flow | Module | Typical command | Notes |
+| Flow | Module | Default trigger | Purpose |
 | --- | --- | --- | --- |
-| Market data backfill | `flows/market_data_backfill.py` | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 2y` | Fetches multi-year daily OHLCV history from Yahoo Finance for new symbols. Run manually when onboarding new assets. |
-| Market data sync | `flows/market_data_sync.py` | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD` | Fetches the latest daily bars (last 5 days to handle weekends). Runs daily at 10:00 PM UTC to keep data current. |
-| Signal analyzer | `flows/signal_analyzer.py` | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD` | Reads market data from DB, calculates indicators (RSI/EMA), generates BUY/SELL/HOLD signals. Runs daily at 10:15 PM UTC. Does NOT fetch new data. |
-| Notification dispatcher | `flows/notification_dispatcher.py` | `uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60` | Queries recent strong signals and emails confirmed subscribers via Resend. Runs daily at 10:30 PM UTC. |
+| `market-data-backfill` | `pipe/flows/market_data_backfill.py` | Manual run | One-off fetch of multi-year history for new symbols. Supports named ranges from 1m → 10y (`HISTORICAL_RANGE_MAP`). Always recalculates indicators afterward. |
+| `market-data-sync` | `pipe/flows/market_data_sync.py` | Daily 22:00 UTC | Grabs the latest daily bars (default last 5 days) so gaps/weekends are filled. |
+| `signal-analyzer` | `pipe/flows/signal_analyzer.py` | Daily 22:15 UTC | Pulls cached OHLCV from Postgres, recomputes indicators, and generates signals via the strategy registry. |
+| `notification-dispatcher` | `pipe/flows/notification_dispatcher.py` | Daily 22:30 UTC | Emits emails (or logs) when signal strength meets threshold. |
 
-**Flow Sequence**: Data sync → Signal analysis → Email notifications (all daily: 10:00 PM, 10:15 PM, 10:30 PM UTC).
+Register deployments via `uv run --directory pipe python -m deployments.register --work-pool <prefect-pool>`; schedules live in Prefect Cloud and can be paused/resumed from there (see [Operations Guide](resources/OPERATIONS.md)).
 
-Deployments live in `pipe/deployments/register.py`; run `uv run python -m deployments.register --work-pool <pool>` to register schedules in Prefect Cloud.
+### Manual 10-year Backfill
 
----
-
-## 3. Strategy Registry
-
-The signal generation logic lives under `pipe/lib/signals/strategies/` and exposes a `Strategy` protocol plus concrete implementations:
-
-- `StockMeanReversionStrategy` – RSI-driven mean reversion tuned for equities (`AAPL`). Looks for RSI reclaiming the 35–40 zone, EMA compression, and penalizes extended overbought readings to issue SELL or HOLD.
-- `CryptoMomentumStrategy` – Momentum-first strategy for `BTC-USD`. Rewards faster EMA separation, MACD histogram surges, and includes profit-taking SELLs when RSI > 72 with weakening momentum.
-- `HoldStrategy` – Fallback that keeps the symbol in HOLD with a neutral reasoning line (used when a symbol isn’t mapped).
-
-Usage model:
-
-```python
-from pipe.lib.signals.strategies import get_strategy, StrategyInputs
-
-strategy = get_strategy("BTC-USD")
-result = strategy.generate(StrategyInputs(...))
-```
-
-- Registry defaults are defined in `_DEFAULT_SYMBOL_MAPPING`.
-- Override any mapping at runtime via environment variables: `SIGNAL_MODEL_BTC_USD=crypto_momentum` or `SIGNAL_MODEL_AAPL=stock_mean_reversion`.
-- Strategies return a `StrategyResult(signal_type, reasoning[], strength)` which the pipeline writes directly to the database and the frontend displays verbatim.
-
-When adding new strategies, create a file in `pipe/lib/signals/strategies/` and register it in the `__init__.py`. All flows automatically pick it up on the next run.
-
----
-
-## 4. Database
-
-- **Engine**: PostgreSQL 15 via `docker-compose up -d`.
-- **Schema file**: `db/schema.sql` (idempotent, safe to re-run).
-- **Key tables**:
-  - `market_data` – canonical OHLCV history (`symbol`, `timestamp`, `open`, `high`, `low`, `close`, `volume`).
-  - `indicators` – RSI, EMA(12/26), derived for the same timestamps as `market_data`.
-  - `signals` – per-symbol BUY/SELL/HOLD entries with `strength`, `reasoning`, `price_at_signal`, `idempotency_key`.
-  - `email_subscribers` – double opt-in tracking: `confirmed`, `confirmation_token`, `unsubscribe_token`, `unsubscribed`.
-- **Constraints**: `UNIQUE(symbol, timestamp)` on data tables to make upserts idempotent and prevent duplicates.
-- **Connection string**: `postgresql+psycopg://quantmaster:buysthedip@localhost:5432/signals`. The `+psycopg` suffix keeps SQLAlchemy happy while `tasks/db.py` strips it for raw psycopg connections.
-
----
-
-## 5. Backend API
-
-Located in `backend/`. Highlights:
-
-- `api/main.py` wires routers for signals, market data, and subscribe/unsubscribe.
-- `api/routers/signals.py` offers list, latest, and history endpoints, including the `strength`, `reasoning`, and `strategy_name` fields required by the dashboard.
-- `api/routers/market_data.py` streams OHLCV and indicators slices (with range filters the frontend’s chart uses).
-- `api/routers/subscribe.py` handles POST `/api/subscribe` and `/api/subscribe/unsubscribe/{token}`. We store a confirmation token for Phase 2 email verification even though the MVP form just thanks the user inline.
-- `api/routers/health.py` (via `main.py`) checks the DB with `SELECT 1`.
-
-FastAPI runs locally with:
+Fetch the deepest history we support whenever we onboard a symbol:
 
 ```bash
-cd backend
-uv run uvicorn api.main:app --reload --port 8000
+uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols BTC-USD,AAPL --backfill-range 10y
 ```
 
-Set `DATABASE_URL`, `RESEND_API_KEY`, and `CORS_ORIGINS` in `backend/.env`.
+Behind the scenes `resolve_history_days()` caps the request at ~3,650 days and `_limit_df_to_days()` enforces the bound before writing to `market_data`.
 
 ---
 
-## 6. Frontend
+## 4. Data Providers & Processing
 
-Next.js 16 (App Router) with Bun.
-
-- `src/app/page.tsx` – marketing landing page made of modular sections (Hero, Value props, Coverage, CTA). The Hero now embeds the shared `<SubscribeForm />` so visitors can join the email list immediately.
-- `src/app/dashboard/page.tsx` – authenticated-lite dashboard that fetches signals via TanStack Query (`useSignals`) and shows the same subscribe component for visitors coming from emails.
-- `src/app/signals/[symbol]/page.tsx` – detail view with Chart.js + indicator overlays and room for backtest stats.
-- `src/components/forms/SubscribeForm.tsx` – client component that posts to `/api/subscribe`, handles success/error messaging, and is reusable across sections.
-- Providers (`src/app/providers.tsx`) wrap the tree with a `QueryClientProvider`.
-
-Configure the API origin via `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`). Tailwind 4 powers the design system; button tokens live in `src/app/globals.css`.
+- **Provider**: Yahoo Finance only. Alpha Vantage dependencies were removed to simplify quotas and legal review. All fetches go through `pipe/lib/api/yahoo.py`.
+- **Format**: polars DataFrames with UTC timestamps. Prefect tasks convert them to tuples and upsert with `ON CONFLICT` so reruns remain idempotent.
+- **Normalization**:
+  - `resolve_symbols()` reads `SIGNAL_SYMBOLS` or falls back to `BTC-USD` + `AAPL`.
+  - `_limit_df_to_days()` guards manual requests so we never store more than requested history.
+  - `upsert_market_data()` writes OHLCV rows and keeps the latest row per (symbol, timestamp).
+- **Indicators**: `pipe/tasks/indicators.py` loads price history (entire set or window), calls RSI/EMA/MACD helpers under `pipe/lib/indicators`, and bulk upserts `indicators` rows.
 
 ---
 
-## 7. Email + Subscription Flow
+## 5. Strategy & Signal Generation
 
-1. User enters an email on the landing page or dashboard.
-2. `<SubscribeForm />` calls `POST /api/subscribe` → backend creates/updates a row in `email_subscribers`, issuing new confirmation + unsubscribe tokens if needed.
-3. API currently returns a friendly message. In Phase 2 the notification sender will pick up confirmed emails and Resend will deliver both confirmation and signal alerts.
-4. Users can self-serve removal via `POST /api/subscribe/unsubscribe/{token}` (link to be embedded in future emails).
-
-`flows/notification_dispatcher.py` emails confirmed subscribers when a signal stronger than `SIGNAL_NOTIFY_THRESHOLD` occurs. It runs daily at 10:30 PM UTC after signal generation.
-
----
-
-## 8. Data Quality & Observability
-
-- Prefect manages retries (3 attempts with exponential backoff) and emits structured logs visible in Prefect Cloud's UI.
-- Yahoo Finance provides daily OHLCV data for all tracked symbols.
-- `pipe/lib/utils/data_validation.py` (planned) will host sanity checks (no negative prices, gap detection).
-- Database constraints (`UNIQUE(symbol, timestamp)`) ensure idempotent upserts prevent duplicates.
-- Future enhancements: Prefect deployment alerts, Slack/email ops notifications, DB-level monitoring.
+- Strategy definitions live in `pipe/lib/strategies/`:
+  - `CryptoMomentumStrategy` → BTC-USD momentum, rewards EMA separation + MACD histogram surges, enforces profit-taking when RSI > 72.
+  - `StockMeanReversionStrategy` → AAPL, penalizes extended RSI/EMA divergence and waits for RSI reclaim around 35–40 before issuing BUYs.
+  - `HoldStrategy` → fallback for unknown symbols or when env overrides point to unsupported keys.
+- The registry (`pipe/lib/strategies/__init__.py`) reads `SIGNAL_MODEL_<SYMBOL>` env overrides so we can remap strategies without code.
+- Prefect tasks pass `StrategyInputs` containing price, RSI, EMA12/EMA26, and MACD histogram; results include signal type, strength, reasoning, and rule version (strategy name) for audits.
 
 ---
 
-## 9. Deployment & Configuration
+## 6. Backend ↔ Frontend Contract
 
-Environment variable quick reference (aggregate from `.env.example` files):
+- FastAPI routers under `backend/api/routers/` expose:
+  - `/api/signals/*` – latest signal list, by-symbol history, and detail endpoints.
+  - `/api/market-data/*` – OHLCV snapshots for charts (dashboard + detail pages).
+  - `/api/indicators/*` – derived metrics for overlays (future UI work).
+  - `/api/subscribe/*` – subscribe, confirm, unsubscribe, and admin listing.
+  - `/health` – DB connectivity without leaking credentials.
+- CORS allows all `*.vercel.app` via regex, so preview deployments keep working.
+- Rate limiting (`slowapi`) protects public endpoints (60/min read, 5/min subscribe, 20/min confirm).
+- Next.js 16 uses React Query hooks in `frontend/src/lib/hooks/` to call the API. Components such as `SubscribeForm` live in `frontend/src/components/forms/` and are shared between landing page, dashboard, and admin views.
+- `NEXT_PUBLIC_API_URL` is the only frontend → backend configuration knob. Bun scripts (`bun run dev|lint|type-check`) ensure parity with CI.
 
-| Variable | Description | Location |
+---
+
+## 7. Database & Messaging
+
+Tables live under `db/schema.sql`:
+
+| Table | Purpose | Key Constraints |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql+psycopg://…` connection string shared by pipeline + backend. | backend, pipe |
-| `SIGNAL_SYMBOLS` | Optional comma-separated symbol overrides (default: AAPL,BTC-USD). | pipe |
-| `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength to email from notification flow (default: 60). | pipe |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Email sender credentials. | backend, pipe |
-| `NEXT_PUBLIC_API_URL` | Frontend → backend base URL. | frontend |
+| `market_data` | Canonical OHLCV storage | `UNIQUE(symbol, timestamp)` ensures idempotent inserts. |
+| `indicators` | RSI/EMA/MACD snapshots | Mirrors `market_data` timestamps; updates overwrite existing rows. |
+| `signals` | BUY/SELL/HOLD output | `UNIQUE(symbol, timestamp)` plus `idempotency_key` for auditing strategy changes. |
+| `backtests` | Historical performance summaries (seeded) | Referenced by dashboard admin views. |
+| `email_subscribers` | Subscription + token management | Stores `confirmed_at`, `confirmation_token`, `unsubscribe_token`. |
 
-Deployment targets:
-
-- **Frontend**: Vercel (Bun/Next.js). Add environment variables via the Vercel dashboard.
-- **Backend**: Vercel functions, Railway, or Fly.io – any place that can run FastAPI + psycopg.
-- **Pipeline**: Prefect Cloud deployments (backfill on-demand, daily sync/analyzer/dispatcher at 10 PM UTC).
+Email infrastructure lives in `backend/api/email.py` and `pipe/tasks/email_sending.py`. Today the notification flow uses Resend sandbox credentials; swapping to production only requires updating `RESEND_FROM_EMAIL` and API keys in Prefect + backend environments.
 
 ---
 
-## 10. Related Docs
+## 8. Observability & Operations
 
-- [MVP.md](MVP.md) – Product vision and success metrics
-- [TODOs.md](TODOs.md) – Current task tracking and prioritized backlog
-- [Operations Guide](reference/OPERATIONS.md) – Running flows, deployments, troubleshooting
-- [Technical Analysis](reference/TECHNICAL-ANALYSIS.md) – Indicator math (RSI/EMA) and signal strategies
-- [Glossary](reference/GLOSSARY.md) – Terms and definitions
-- [Resources](reference/RESOURCES.md) – External links and references
+- Prefect Cloud executes all scheduled flows and captures structured logs + retries. See the [Operations Guide](resources/OPERATIONS.md) for CLI commands.
+- Database validation: run the SQL snippets in the operations guide to confirm latest rows per symbol.
+- Frontend health: `bun run lint && bun run type-check` locally; Vercel builds run the same commands.
+- Backend health: hit `/health` (locally via `uv run --directory backend uvicorn api.main:app --reload` or in production) and sanity-check `/api/signals` responses when API changes land.
+- Email verification: run through the subscribe → confirm flow locally and monitor the Resend dashboard when rotating templates or credentials.
 
-Keep this document updated whenever the architecture shifts (new data providers, strategy bundles, notification transports, etc.).
+---
+
+## 9. Related Docs
+
+- [MVP](MVP.md) – scope, user, and success metrics.
+- [Operations Guide](resources/OPERATIONS.md) – day-to-day commands and troubleshooting.
+- [Technical Analysis](resources/TECHNICAL-ANALYSIS.md) – indicator math + strategy notes.
+- [README](../README.md) – quick start for the entire repository.
+
+Keep this file updated whenever flows change, new data providers are added, or the frontend/backend contract evolves.

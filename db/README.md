@@ -2,63 +2,57 @@
 
 ## Current State (MVP)
 
-Single PostgreSQL database with 6 core tables optimized for solo dev speed.
+Single PostgreSQL database shared by the pipeline and backend. Today we store *daily* OHLCV bars for two assets (BTC-USD, AAPL), indicators, generated signals, and subscriber metadata.
 
 ### Tables & Daily Volume
 
-| Table | Purpose | Rows/Day | Row Size |
-|-------|---------|----------|----------|
-| `symbols` | Asset registry (4 assets) | 0 (static) | ~100 bytes |
-| `market_data` | 15-min OHLCV bars | ~384 (96 × 4 assets) | ~100 bytes |
-| `indicators` | RSI + EMA values | ~384 (1 per bar) | ~80 bytes |
-| `signals` | BUY/HOLD signals | ~5-10 max | ~200 bytes |
-| `email_subscribers` | Email signups | ~2-5 (growth) | ~150 bytes |
-| `sent_notifications` | Email audit log | ~500-1000 | ~120 bytes |
+| Table | Purpose | Rows/Day | Notes |
+|-------|---------|----------|-------|
+| `symbols` | Asset registry | Static | 2 default rows (`BTC-USD`, `AAPL`). |
+| `market_data` | Daily OHLCV bars | 2 (1 per symbol) | Backfill up to 10y per asset. |
+| `indicators` | RSI/EMA/MACD per bar | 2 | Mirrors `market_data` timestamps. |
+| `signals` | BUY/HOLD results | 2 | Daily signals with reasoning + strength. |
+| `email_subscribers` | Double opt-in records | Growth dependent | Stores confirmation/unsubscribe tokens. |
+| `sent_notifications` | (future) signal notification audit | On demand | Populated when notification dispatcher emails subscribers. |
 
 ### Size Estimates
 
-**After Initial Backfill (~60 days of 15m bars)**:
+- **Initial 10y backfill** (2 assets × ~2,500 trading days):
+  - `market_data`: ~5K rows ⇒ ~1 MB
+  - `indicators`: ~5K rows ⇒ ~0.8 MB
+- **6 months daily runtime** adds ~360 rows per table (~80 KB).
 
-- **OHLCV**: ~23K rows × 100 bytes ≈ **2.3 MB**
-- **Indicators**: ~23K rows × 80 bytes ≈ **1.8 MB**
-- **Total**: ~4 MB
-
-**After 6 Months of Live Data**:
-
-- **OHLCV**: 70K rows × 100 bytes ≈ **7 MB**
-- **Indicators**: 70K rows × 80 bytes ≈ **5.6 MB**
-- **Signals**: 1.8K rows × 200 bytes ≈ **360 KB**
-- **Subscribers**: 500 rows × 150 bytes ≈ **75 KB**
-- **Notifications**: 180K rows × 120 bytes ≈ **22 MB**
-
-**Total: ~35 MB** (well within Supabase free tier: 500 MB)
-
-**Note**: Yahoo Finance limits 15m interval data to ~60 days. For longer historical periods, you'd need daily data or a different data source.
+Total footprint remains <5 MB, far below Supabase’s free 500 MB limit. Adding more assets increases linearly (≈0.4 MB per year per symbol at daily cadence).
 
 ## Design Principles
 
-1. **Direct 15-min fetch** - Yahoo Finance provides 15m bars directly; no resampling needed
-2. **Double opt-in email** - `confirmation_token` flow prevents spam, improves deliverability
-3. **Idempotent signals** - `idempotency_key` prevents duplicates when Prefect jobs rerun
-4. **No auth yet** - Email-only subscriptions; migrate to Supabase auth in Phase 2
-5. **Minimal indexes** - Only composite indexes for common query patterns
+1. **Daily OHLCV snapshots** – nightly pipeline fetches Yahoo Finance daily bars (backfill up to 10y) so indicator windows/backtests have sufficient context.
+2. **Double opt-in email** – `confirmation_token` + `unsubscribe_token` keep the list clean.
+3. **Idempotent signals** – `idempotency_key` prevents duplicate inserts when Prefect reruns a day.
+4. **Minimal indexes** – composite indexes on `(symbol, timestamp)` plus partial indexes for signal strength.
+5. **Auth-lite** – only email addresses today; Supabase auth comes later.
 
 ## Critical Constraints
 
 ```sql
 -- Prevent duplicate bars
-UNIQUE(symbol, timestamp) ON market_data
+ALTER TABLE market_data
+  ADD CONSTRAINT market_data_unique UNIQUE (symbol, timestamp);
 
--- Prevent duplicate signals on job reruns
-idempotency_key UNIQUE ON signals
+-- Prevent duplicate signals on rerun
+ALTER TABLE signals
+  ADD CONSTRAINT signals_idempotent UNIQUE (idempotency_key);
 
--- Double opt-in flow
-confirmation_token UNIQUE ON email_subscribers
+-- Double opt-in tokens
+ALTER TABLE email_subscribers
+  ADD CONSTRAINT subscribers_confirmation_token UNIQUE (confirmation_token);
 
--- Data integrity
-CHECK (open > 0, high > 0, low > 0, close > 0, volume >= 0)
-CHECK (signal_type IN ('BUY', 'SELL', 'HOLD'))
-CHECK (asset_type IN ('crypto', 'stock', 'etf', 'forex'))
+-- Data integrity checks
+ALTER TABLE market_data
+  ADD CONSTRAINT prices_positive CHECK (open > 0 AND high > 0 AND low > 0 AND close > 0 AND volume >= 0);
+
+ALTER TABLE signals
+  ADD CONSTRAINT valid_signal CHECK (signal_type IN ('BUY', 'SELL', 'HOLD'));
 ```
 
 ## Key Queries
@@ -113,7 +107,9 @@ WHERE sent_at > NOW() - INTERVAL '7 days';
 # 1. Initialize schema and seed 4 assets
 python scripts/apply_db.py
 
-# 2. Backfill ~60 days of historical data
+# 2. Backfill ~10 years of historical data
+uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 10y
+
 # 3. Verify data loaded
 psql $DATABASE_URL -c "SELECT symbol, COUNT(*), MIN(timestamp), MAX(timestamp) FROM market_data GROUP BY symbol;"
 ```
@@ -124,7 +120,7 @@ psql $DATABASE_URL -c "SELECT symbol, COUNT(*), MIN(timestamp), MAX(timestamp) F
 # Create database and run schema
 psql $DATABASE_URL -f db/schema.sql
 
-# Seed assets (4 MVP symbols)
+# Seed default assets (BTC-USD, AAPL)
 psql $DATABASE_URL -f db/seeds/symbols.sql
 
 # Verify
