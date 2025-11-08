@@ -12,7 +12,7 @@ import {
 } from "@/lib/hooks/useSignals";
 
 const RANGE_OPTIONS = ["1m", "3m", "6m", "1y", "2y"] as const;
-const DEFAULT_SYMBOLS = ["BTC-USD", "AAPL"];
+const DEFAULT_SYMBOLS = ["AAPL", "BTC-USD"];
 
 export default function AdminBacktestsPage() {
   const {
@@ -126,11 +126,6 @@ export default function AdminBacktestsPage() {
             ))}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Signals refresh every 60s; market data cached for 5m; backtests reload
-          on demand. After running the replay flow, hit Refresh to pull the
-          latest metrics.
-        </p>
       </Card>
 
       <section className="grid md:grid-cols-2 gap-6">
