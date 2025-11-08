@@ -44,7 +44,7 @@ def market_data_sync_flow(
             # (in case of weekends/holidays)
             history = fetch_historical_ohlcv(symbol, range_days=5)
 
-            if history.empty:
+            if history.height == 0:
                 logger.warning("%s: No data returned during sync.", symbol)
                 continue
 
@@ -53,7 +53,7 @@ def market_data_sync_flow(
             # Recalculate indicators with latest data
             calculate_and_upsert_indicators(symbol, window=None)
 
-            latest_date = history["timestamp"].max() if not history.empty else None
+            latest_date = history["timestamp"].max() if history.height > 0 else None
             logger.info("%s sync complete: inserted=%d rows, latest_timestamp=%s.", symbol, inserted, latest_date)
 
         except Exception as exc:

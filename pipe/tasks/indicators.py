@@ -5,7 +5,7 @@ Indicator calculation tasks shared across flows.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional, Tuple
+from typing import Any
 
 import polars as pl
 import numpy as np
@@ -37,11 +37,10 @@ def _safe_float(value):
     return float(value)
 
 
-def _load_price_history(symbol: str, window: Optional[int]) -> pl.DataFrame:
+def _load_price_history(symbol: str, window: int | None) -> pl.DataFrame:
     if window is not None and window <= 0:
         raise ValueError("window must be positive when provided")
     with get_db_conn() as conn, conn.cursor() as cur:
-
         if window:
             cur.execute(
                 """
@@ -64,7 +63,9 @@ def _load_price_history(symbol: str, window: Optional[int]) -> pl.DataFrame:
         rows = cur.fetchall()
     if not rows:
         return pl.DataFrame(schema={"timestamp": pl.Datetime, "close": pl.Float64})
-    return pl.DataFrame(rows, schema={"timestamp": pl.Datetime, "close": pl.Float64}, orient="row")
+    return pl.DataFrame(
+        rows, schema={"timestamp": pl.Datetime, "close": pl.Float64}, orient="row"
+    )
 
 
 def _build_indicator_frame(symbol: str, price_df: pl.DataFrame) -> pl.DataFrame:
@@ -112,6 +113,12 @@ def _build_indicator_frame(symbol: str, price_df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def _get_last_row(df: pl.DataFrame) -> dict[str, Any]:
+    if df.height == 0:
+        raise ValueError("Cannot fetch the last row of an empty DataFrame")
+    return df.row(df.height - 1, named=True)
+
+
 def _bulk_upsert_indicator_rows(indicator_df: pl.DataFrame) -> int:
     if indicator_df.height == 0:
         return 0
@@ -150,8 +157,8 @@ def _bulk_upsert_indicator_rows(indicator_df: pl.DataFrame) -> int:
 @task(name="calculate-and-upsert-indicators")
 def calculate_and_upsert_indicators(
     symbol: str,
-    window: Optional[int] = 600,
-) -> Tuple[float, float, float, float, float, datetime]:
+    window: int | None = 600,
+) -> tuple[float, float, float, float, float, datetime]:
     """Compute RSI/EMA/MACD for the requested window and upsert indicator rows."""
     price_history = _load_price_history(symbol, window)
     if price_history.height == 0:
@@ -161,12 +168,16 @@ def calculate_and_upsert_indicators(
     _bulk_upsert_indicator_rows(indicator_frame)
 
     # Get the last row from each DataFrame
-    latest_price_row = price_history[-1]
-    latest_indicator_row = indicator_frame[-1]
+    latest_price_row = _get_last_row(price_history)
+    latest_indicator_row = _get_last_row(indicator_frame)
 
     latest_close = float(latest_price_row["close"])
     latest_ts_raw = latest_price_row["timestamp"]
-    latest_ts = _ensure_utc(latest_ts_raw) if isinstance(latest_ts_raw, datetime) else _ensure_utc(latest_ts_raw.to_pydatetime())
+    latest_ts = (
+        _ensure_utc(latest_ts_raw)
+        if isinstance(latest_ts_raw, datetime)
+        else _ensure_utc(latest_ts_raw.to_pydatetime())
+    )
 
     # Extract indicator values with null handling
     def get_value(row, col, default):
@@ -178,4 +189,11 @@ def calculate_and_upsert_indicators(
     latest_ema26 = get_value(latest_indicator_row, "ema_26", latest_close)
     latest_macd_hist = get_value(latest_indicator_row, "macd_histogram", 0.0)
 
-    return latest_rsi, latest_ema12, latest_ema26, latest_macd_hist, latest_close, latest_ts
+    return (
+        latest_rsi,
+        latest_ema12,
+        latest_ema26,
+        latest_macd_hist,
+        latest_close,
+        latest_ts,
+    )

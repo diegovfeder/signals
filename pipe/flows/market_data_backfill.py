@@ -54,7 +54,8 @@ def market_data_backfill_flow(
         try:
             logger.info("Fetching historical OHLCV for %s.", symbol)
             history = fetch_historical_ohlcv(symbol, days)
-            inserted = upsert_market_data(history) if not history.empty else 0
+            has_rows = history.height > 0
+            inserted = upsert_market_data(history) if has_rows else 0
             calculate_and_upsert_indicators(symbol, window=None)
             logger.info("Completed backfill for %s: inserted=%d rows, indicators refreshed.", symbol, inserted)
         except Exception as exc:
