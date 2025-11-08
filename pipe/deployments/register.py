@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import argparse
 import os
-from typing import Any, Dict, Optional, cast
+from collections.abc import Sequence
+from typing import Any, cast
 
 from prefect.client.schemas.schedules import CronSchedule
 
@@ -31,20 +32,36 @@ from prefect_github.repository import GitHubRepository
 
 
 GITHUB_BLOCK_NAME = "gh-prefect-signals"
-_CACHED_REPOSITORY: Optional[GitHubRepository] = None
+_CACHED_REPOSITORY: GitHubRepository | None = None
 SUGGESTED_ENV_VARS: tuple[str, ...] = (
     "DATABASE_URL",
-    "ALPHA_VANTAGE_API_KEY",
     "RESEND_API_KEY",
     "SIGNAL_SYMBOLS",
 )
 
+# Allow operators to provide production credentials without mutating their local dev env.
+# If one of these override env vars is set, we prefer it when populating Prefect job envs.
+ENVIRONMENT_OVERRIDES: dict[str, Sequence[str]] = {
+    "DATABASE_URL": ("SUPABASE_URL_SESSION_POOLER"),
+}
 
-def _collect_job_env() -> Dict[str, str]:
-    env: Dict[str, str] = {}
+
+def _collect_job_env() -> dict[str, str]:
+    env: dict[str, str] = {}
     missing: list[str] = []
     for key in SUGGESTED_ENV_VARS:
-        value = os.getenv(key)
+        value: str | None = None
+        for override in ENVIRONMENT_OVERRIDES.get(
+            key, ()
+        ):  # Prefer explicit override vars
+            override_value = os.getenv(override)
+            if override_value:
+                value = override_value
+                break
+
+        if value is None:
+            value = os.getenv(key)
+
         if value:
             env[key] = value
         else:
@@ -69,7 +86,7 @@ DEFAULT_PIP_PACKAGES = [
     "python-dotenv==1.0.0",
 ]
 
-JOB_VARIABLES: Dict[str, Any] = {"pip_packages": DEFAULT_PIP_PACKAGES}
+JOB_VARIABLES: dict[str, Any] = {"pip_packages": DEFAULT_PIP_PACKAGES}
 _job_env = _collect_job_env()
 if _job_env:
     JOB_VARIABLES["env"] = _job_env
@@ -90,10 +107,10 @@ def deploy_flow(
     name: str,
     work_pool: str,
     *,
-    cron: Optional[str] = None,
-    description: Optional[str] = None,
-    parameters: Optional[dict] = None,
-    tags: Optional[list[str]] = None,
+    cron: str | None = None,
+    description: str | None = None,
+    parameters: dict[str, Any] | None = None,
+    tags: list[str] | None = None,
     dry_run: bool = False,
 ) -> None:
     schedule_kwargs = {}
@@ -103,7 +120,9 @@ def deploy_flow(
     if dry_run:
         verb = "Would deploy"
         schedule_desc = f"cron={cron}" if cron else "manual"
-        print(f"[dry-run] {verb} {flow.name}/{name} ({schedule_desc}) on work pool '{work_pool}'")
+        print(
+            f"[dry-run] {verb} {flow.name}/{name} ({schedule_desc}) on work pool '{work_pool}'"
+        )
         return
 
     repository = get_repository()
@@ -125,7 +144,9 @@ def deploy_flow(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Register Prefect Cloud deployments for Signals flows.")
+    parser = argparse.ArgumentParser(
+        description="Register Prefect Cloud deployments for Signals flows."
+    )
     parser.add_argument(
         "--work-pool",
         default=os.getenv("PREFECT_WORK_POOL", "default-prefect-managed-wp"),
@@ -145,7 +166,7 @@ def main() -> None:
         name="manual-backfill",
         work_pool=args.work_pool,
         description="Manual trigger to load multi-year history for new symbols.",
-        parameters={"backfill_range": "2y"},
+        parameters={"backfill_range": "5y"},
         tags=["backfill", "manual", "onboarding"],
         dry_run=args.dry_run,
     )

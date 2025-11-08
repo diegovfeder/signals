@@ -4,8 +4,9 @@ Configuration Management
 Load environment variables and application settings.
 """
 
+from typing import ClassVar
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
 
 
 class Settings(BaseSettings):
@@ -21,9 +22,9 @@ class Settings(BaseSettings):
 
     # CORS - Allow localhost (dev) and all Vercel deployments (prod + previews)
     # Can override via env var with JSON array: ["https://example.com"]
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
-        "http://localhost:3001",
+        "https://signals-dvf.vercel.app",
         "https://*.vercel.app",  # All Vercel preview and production deployments
     ]
 
@@ -33,12 +34,16 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        case_sensitive=True,
-        extra="ignore"
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
     )
 
 
+def load_settings() -> "Settings":
+    """Factory to keep static type checkers happy while loading from env."""
+
+    return Settings()  # pyright: ignore[reportCallIssue]
+
+
 # Global settings instance (loads from .env automatically via BaseSettings)
-settings = Settings()  # type: ignore[call-arg]
+settings = load_settings()

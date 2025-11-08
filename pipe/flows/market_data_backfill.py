@@ -35,7 +35,7 @@ except ImportError:
 def market_data_backfill_flow(
     symbols: list[str] | None = None,
     backfill_days: int | None = None,
-    backfill_range: str = "2y",
+    backfill_range: str = "5y",
 ):
     logger = get_run_logger()
 
@@ -78,9 +78,12 @@ def _parse_cli_args():
     parser.add_argument(
         "--backfill-range",
         type=str,
-        default="2y",
+        default="5y",
         choices=sorted(HISTORICAL_RANGE_MAP.keys()),
-        help="Named range (e.g., 1y, 2y) to fetch when --backfill-days is not provided.",
+        help=(
+            "Named range (e.g., 1y, 5y, 10y) to fetch when --backfill-days is not provided. "
+            "Matches HISTORICAL_RANGE_MAP entries."
+        ),
     )
     args = parser.parse_args()
     resolved_symbols = (

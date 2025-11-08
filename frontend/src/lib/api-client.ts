@@ -4,7 +4,12 @@
  * Fetch wrapper for making requests to the backend API.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const DEFAULT_API_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://signals-api-dvf.vercel.app'
+    : 'http://localhost:8000';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL;
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
@@ -25,13 +30,18 @@ export async function apiClient<T>(
   }
 
   // Make request
+  const method = (fetchOptions.method || 'GET').toUpperCase();
+  const headers = new Headers(fetchOptions.headers || undefined);
+
+  if ((method !== 'GET' || fetchOptions.body) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const response = await fetch(url.toString(), {
     ...fetchOptions,
+    method,
+    headers,
     credentials: 'omit', // API is stateless - don't send cookies/credentials
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchOptions.headers,
-    },
   });
 
   // Handle errors

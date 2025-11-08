@@ -74,12 +74,11 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 | Name | Description | Required |
 | --- | --- | --- |
 | `DATABASE_URL` | Postgres connection string (same as backend) | ✅ Yes |
+| `SUPABASE_DATABASE_URL` *(optional override)* | Production Postgres string used only when registering Prefect deployments. If set, it overrides the local `DATABASE_URL` so you can keep dev credentials in your shell. | No |
 | `RESEND_API_KEY` | Resend email API key | ✅ Yes |
 | `RESEND_FROM_EMAIL` | Verified sender email (Resend) | ✅ Yes |
 | `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength before emails are sent (default: 60) | No |
 | `SIGNAL_SYMBOLS` | Comma-separated symbol override (default: BTC-USD,AAPL) | No |
-
-**Note**: `ALPHA_VANTAGE_API_KEY` is not required for MVP (we use Yahoo Finance for daily data).
 
 ---
 

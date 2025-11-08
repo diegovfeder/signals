@@ -27,7 +27,15 @@ RANGE_TO_DAYS = {
     "6m": 180,
     "1y": 365,
     "2y": 365 * 2,
+    "5y": 365 * 5,
+    "10y": 365 * 10,
 }
+
+RANGE_DESCRIPTION = ", ".join(RANGE_TO_DAYS.keys())
+
+RANGE_PARAM_DESCRIPTION = (
+    "Optional time range (" + RANGE_DESCRIPTION + ")."
+)
 
 
 def _resolve_range_days(range_label: Optional[str]) -> Optional[int]:
@@ -36,8 +44,11 @@ def _resolve_range_days(range_label: Optional[str]) -> Optional[int]:
     normalized = range_label.lower()
     days = RANGE_TO_DAYS.get(normalized)
     if not days:
-        valid = ", ".join(RANGE_TO_DAYS.keys())
-        raise HTTPException(status_code=400, detail=f"Invalid range '{range_label}'. Valid options: {valid}")
+        valid = RANGE_DESCRIPTION
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid range '{range_label}'. Valid options: {valid}",
+        )
     return days
 
 
@@ -49,12 +60,14 @@ async def get_market_data(
         ...,
         regex="^[A-Z0-9-=]+$",
         max_length=20,
-        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+        description="Ticker symbol (e.g., BTC-USD, AAPL)",
     ),
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,
-        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 2y). When provided, results are filtered to this window.",
+        description=
+            RANGE_PARAM_DESCRIPTION
+            + " When provided, results are filtered to this window.",
     ),
     db: Session = Depends(get_db),
 ):
@@ -79,11 +92,7 @@ async def get_market_data(
         cutoff = datetime.now(timezone.utc) - timedelta(days=range_days)
         query = query.filter(MarketData.timestamp >= cutoff)
 
-    data = (
-        query.order_by(MarketData.timestamp.desc())
-        .limit(capped_limit)
-        .all()
-    )
+    data = query.order_by(MarketData.timestamp.desc()).limit(capped_limit).all()
 
     if not data:
         raise HTTPException(
@@ -102,12 +111,12 @@ async def get_indicators(
         ...,
         regex="^[A-Z0-9-=]+$",
         max_length=20,
-        description="Ticker symbol (e.g., BTC-USD, AAPL)"
+        description="Ticker symbol (e.g., BTC-USD, AAPL)",
     ),
     limit: int = Query(default=100, ge=1, le=5000),
     range: Optional[str] = Query(
         default=None,
-        description="Optional time range (1d, 1w, 1m, 3m, 6m, 1y, 2y).",
+        description=RANGE_PARAM_DESCRIPTION,
     ),
     db: Session = Depends(get_db),
 ):
@@ -132,11 +141,7 @@ async def get_indicators(
         cutoff = datetime.now(timezone.utc) - timedelta(days=range_days)
         query = query.filter(Indicator.timestamp >= cutoff)
 
-    indicators = (
-        query.order_by(Indicator.timestamp.desc())
-        .limit(capped_limit)
-        .all()
-    )
+    indicators = query.order_by(Indicator.timestamp.desc()).limit(capped_limit).all()
 
     if not indicators:
         raise HTTPException(
