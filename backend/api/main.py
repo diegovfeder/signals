@@ -7,14 +7,15 @@ FastAPI application for serving trading signals, market data, and email subscrip
 import logging
 import re
 from typing import List, Tuple
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from .config import settings
 from .database import get_db
 from .routers import signals, market_data, subscribe, backtests
@@ -118,6 +119,85 @@ async def ensure_cors_headers(request: Request, call_next):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers.setdefault("Vary", "Origin")
     return response
+
+
+# Input validation middleware - normalize malicious input errors to 422
+@app.middleware("http")
+async def validate_malicious_patterns(request: Request, call_next):
+    """
+    Detect common attack patterns in URLs and return 422 instead of 404/400.
+
+    This middleware improves API consistency by catching malicious inputs
+    (path traversal, SQL injection, XSS, null bytes) and returning proper
+    validation errors rather than generic 404s.
+    """
+    path = request.url.path
+    query = str(request.url.query)
+
+    # Patterns that indicate malicious input
+    malicious_patterns = [
+        r'\.\.[/\\]',           # Path traversal: ../ or ..\
+        r'%2e%2e[/\\]',         # URL-encoded path traversal
+        r'<script',              # XSS: <script>
+        r'<iframe',              # XSS: <iframe>
+        r'javascript:',          # XSS: javascript:
+        r'onerror=',            # XSS: onerror attribute
+        r'onload=',             # XSS: onload attribute
+        r'\x00',                # Null byte
+        r'%00',                 # URL-encoded null byte
+        r'(union|select|drop|insert|delete|update|exec)\s+(from|table|database)',  # SQL injection
+        r"('|\")(or|and)\s*('|\")?\s*=\s*('|\")?",  # SQL: ' OR '1'='1
+        r';\s*(drop|delete|truncate)',  # SQL: ; DROP TABLE
+        r'--\s*$',              # SQL comment
+        r'/etc/passwd',         # System file access
+        r'/proc/self',          # Process info access
+        r'\.\.;',               # Path traversal variant
+    ]
+
+    # Check path and query for malicious patterns
+    full_url = f"{path}?{query}" if query else path
+
+    for pattern in malicious_patterns:
+        if re.search(pattern, full_url, re.IGNORECASE):
+            logger.warning(
+                f"Malicious pattern detected: {pattern} in URL: {full_url[:100]}"
+            )
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": [
+                        {
+                            "loc": ["path"],
+                            "msg": "Invalid input detected",
+                            "type": "value_error.malicious_input"
+                        }
+                    ]
+                }
+            )
+
+    try:
+        response = await call_next(request)
+        return response
+    except StarletteHTTPException as e:
+        # If we get a 404 and the path contains suspicious characters,
+        # convert to 422 for consistency
+        if e.status_code == 404:
+            suspicious_chars = ['<', '>', '{', '}', '$', '%', '\\', '"', "'"]
+            if any(char in path for char in suspicious_chars):
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "detail": [
+                            {
+                                "loc": ["path"],
+                                "msg": "Invalid path format",
+                                "type": "value_error.invalid_path"
+                            }
+                        ]
+                    }
+                )
+        # For all other errors, let them through
+        raise
 
 
 # Security headers middleware
