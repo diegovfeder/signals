@@ -6,6 +6,7 @@ Endpoints for managing email subscriptions.
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from slowapi import Limiter
@@ -171,6 +172,14 @@ async def subscribe_email(
     )
 
 
+@router.options("", include_in_schema=False)
+@router.options("/", include_in_schema=False)
+async def subscribe_options() -> Response:
+    """Handle CORS preflight requests explicitly for POST /api/subscribe."""
+
+    return Response(status_code=204)
+
+
 @router.post("/unsubscribe/{token}")
 async def unsubscribe_email(
     token: str,
@@ -207,6 +216,13 @@ async def unsubscribe_email(
         "message": "Successfully unsubscribed from trading signals",
         "email": subscriber.email
     }
+
+
+@router.options("/unsubscribe/{token}", include_in_schema=False)
+async def unsubscribe_options(token: str) -> Response:  # noqa: ANN001 - token unused
+    """Allow preflight requests for unsubscribe endpoint."""
+
+    return Response(status_code=204)
 
 
 @router.get("/confirm/{token}")
