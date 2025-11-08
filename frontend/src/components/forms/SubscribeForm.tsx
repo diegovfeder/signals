@@ -4,8 +4,11 @@ import { useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { usePostHog } from "posthog-js/react";
 import { z } from "zod";
+import { X, Maximize2, CheckCircle2, Mail } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type SubscribeResponse = {
   message: string;
@@ -42,9 +45,25 @@ export function SubscribeForm({
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const subscribedEmail = useSubscriptionStore((state) => state.email);
   const setSubscribedEmail = useSubscriptionStore((state) => state.setEmail);
+  const isMinimized = useSubscriptionStore((state) => state.isMinimized);
+  const setIsMinimized = useSubscriptionStore((state) => state.setIsMinimized);
   const posthog = usePostHog();
+
+  const handleMinimize = () => {
+    if (showSubscribedState) {
+      // Only animate when user has subscribed
+      setIsAnimating(true);
+      setTimeout(() => {
+        setIsMinimized(true);
+        setIsAnimating(false);
+      }, 500); // Match animation duration
+    } else {
+      setIsMinimized(true);
+    }
+  };
 
   const apiBase =
     typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL
@@ -67,7 +86,7 @@ export function SubscribeForm({
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) {
       setFormError(
-        parsed.error.issues[0]?.message ?? "Enter a valid email address"
+        parsed.error.issues[0]?.message ?? "Enter a valid email address",
       );
       return;
     }
@@ -91,27 +110,62 @@ export function SubscribeForm({
             setFormError("Failed to subscribe. Please try again.");
           }
         },
-      }
+      },
     );
   };
 
   const showCardChrome = variant === "card";
   const showSubscribedState = Boolean(subscribedEmail);
   const normalizedApiBase = apiBase.replace(/\/$/, "");
-  const unsubscribeExample = `${normalizedApiBase}/api/subscribe/unsubscribe/{token}`;
+  // const unsubscribeExample = `${normalizedApiBase}/api/subscribe/unsubscribe/{token}`;
+
+  // Show minimized state
+  if (isMinimized) {
+    return (
+      <div className={cx("flex justify-center", className)}>
+        <Button
+          onClick={() => setIsMinimized(false)}
+          variant="outline"
+          size="lg"
+          className="gap-2 px-6 cursor-pointer"
+        >
+          <Maximize2 className="h-5 w-5" />
+          Email alerts
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div
       className={cx(
         showCardChrome
-          ? "card p-6 flex flex-col gap-4 text-left"
-          : "flex flex-col gap-3",
-        className
+          ? "card p-8 flex flex-col gap-4 text-left relative max-w-2xl mx-auto"
+          : "flex flex-col gap-3 relative max-w-2xl mx-auto",
+        className,
       )}
+      style={
+        isAnimating
+          ? {
+              animation: "slideDown 0.5s ease-in-out forwards",
+            }
+          : undefined
+      }
     >
+      {/* Close/Minimize button */}
+      <Button
+        onClick={handleMinimize}
+        variant="ghost"
+        size="sm"
+        className="absolute top-2 right-2 size-6 p-0 transition-colors hover:bg-accent cursor-pointer"
+        aria-label="Minimize"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+
       {!showSubscribedState && (
         <div>
-          <p className="text-sm text-foreground-muted">
+          <p className="text-base text-foreground-muted">
             Get the next BUY/SELL signal in your inbox.
           </p>
         </div>
@@ -123,68 +177,81 @@ export function SubscribeForm({
           className="flex flex-col sm:flex-row gap-3"
           noValidate
         >
-          <input
+          <Input
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder={placeholder}
-            className="flex-1 px-4 py-3 text-base bg-black/40 border border-white/10 rounded-xl focus:border-white/30 focus:bg-black/60 transition-colors"
             aria-invalid={Boolean(formError)}
+            className="flex-1"
           />
-          <button
+          <Button
             type="submit"
-            className="btn-primary whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-            disabled={isPending}
+            loading={isPending}
+            className="whitespace-nowrap cursor-pointer"
           >
-            {isPending ? "Joining…" : buttonLabel}
-          </button>
+            {buttonLabel}
+          </Button>
         </form>
       )}
 
       {showSubscribedState && (
-        <div className="space-y-3">
+        <div className="space-y-4 animate-slide-up">
           <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
-            <p className="font-medium">{successTitle}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="h-5 w-5" />
+              <p className="font-medium">{successTitle}</p>
+            </div>
             <p className="text-foreground mt-2">
-              {successMessage || "Subscription pending confirmation. Please check your email."}
+              {successMessage ||
+                "Subscription pending confirmation. Please check your email."}
             </p>
-            <p className="text-foreground-muted mt-2 text-xs">
+            <p className="text-foreground-muted mt-2 text-sm">
               Subscribed as{" "}
               <span className="font-mono text-foreground">
                 {subscribedEmail}
               </span>
             </p>
           </div>
-          <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 text-xs text-foreground-muted">
-            <p className="font-medium text-foreground mb-1">📧 Next steps:</p>
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 text-sm text-foreground-muted">
+            <div className="flex items-center gap-2 mb-2">
+              <Mail className="h-5 w-5 text-foreground" />
+              <p className="font-medium text-foreground">Next steps:</p>
+            </div>
             <ol className="list-decimal list-inside space-y-1">
               <li>Check your inbox for a confirmation email</li>
               <li>Click the confirmation link to activate your subscription</li>
-              <li>Check spam folder if you don't see it within a few minutes</li>
+              <li>
+                Check spam folder if you don't see it within a few minutes
+              </li>
             </ol>
           </div>
-          <button
-            type="button"
-            className="text-xs text-foreground-muted underline hover:text-foreground transition-colors"
-            onClick={() => {
-              setSubscribedEmail(null);
-              setSuccessMessage(null);
-              reset();
-              setFormError(null);
-            }}
-          >
-            Use a different email
-          </button>
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="text-sm text-foreground hover:text-white p-0 h-auto cursor-pointer"
+              onClick={() => {
+                setSubscribedEmail(null);
+                setSuccessMessage(null);
+                reset();
+                setFormError(null);
+              }}
+            >
+              Use a different email
+            </Button>
+          </div>
         </div>
       )}
 
       {!showSubscribedState && !formError && (
-        <p className="text-xs text-foreground-muted">{helperText}</p>
+        <p className="text-sm text-foreground-muted">{helperText}</p>
       )}
 
       {!showSubscribedState && formError && (
-        <p className="text-xs text-danger">{formError}</p>
+        <p className="text-sm text-red-400 font-medium">{formError}</p>
       )}
     </div>
   );

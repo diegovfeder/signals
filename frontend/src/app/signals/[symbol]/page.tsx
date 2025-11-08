@@ -88,7 +88,7 @@ export default function SignalDetail({
         <div className="mb-8 flex items-center justify-between gap-6 flex-wrap">
           <div className="flex items-center gap-4">
             <Button asChild variant="secondary" size="sm">
-              <Link href="/dashboard">← Back</Link>
+              <Link href="/signals">← Back</Link>
             </Button>
             <h1 className="text-3xl font-bold text-foreground">{symbol}</h1>
           </div>
@@ -113,7 +113,7 @@ export default function SignalDetail({
           <>
             <div className="grid gap-6 lg:grid-cols-3 mb-8">
               {/* Current Signal */}
-              <Card className="p-8 flex flex-col justify-between border-2">
+              <Card className="p-8 flex flex-col justify-between border border-border">
                 <div>
                   <p className="text-sm text-muted-foreground mb-3">Current Signal</p>
                   <div
@@ -168,7 +168,7 @@ export default function SignalDetail({
               </Card>
 
               {/* Price chart */}
-              <Card className="lg:col-span-2 p-6 flex flex-col border-2">
+              <Card className="lg:col-span-2 p-6 flex flex-col border border-border">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                   <h2 className="text-xl font-semibold text-foreground">
                     Price Chart
@@ -267,7 +267,7 @@ export default function SignalDetail({
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <Card className="p-6 animate-slide-up border-2">
+              <Card className="p-6 animate-slide-up border border-border">
                 <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Next Steps
                 </h3>
@@ -300,7 +300,7 @@ export default function SignalDetail({
                 </ul>
               </Card>
 
-              <Card className="p-6 animate-slide-up border-2">
+              <Card className="p-6 animate-slide-up border border-border">
                 <h3 className="text-lg font-semibold mb-4 text-foreground">
                   Backtest Preview
                 </h3>

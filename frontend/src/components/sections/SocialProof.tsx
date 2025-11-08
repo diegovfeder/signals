@@ -5,7 +5,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Code, Zap } from "lucide-react";
+import { ShieldCheck, Zap, GraduationCap } from "lucide-react";
 
 export default function SocialProof() {
   return (
@@ -29,15 +29,14 @@ export default function SocialProof() {
               We're shipping openly
             </h3>
             <p className="text-lg md:text-xl text-muted-foreground/90 mb-8 max-w-2xl mx-auto">
-              No paywall while we learn together. Free access during MVP
-              testing.
+              No paywall while we learn together.
             </p>
 
             {/* Trust indicators */}
             <div className="grid gap-6 md:grid-cols-2 max-w-2xl mx-auto mt-10">
               <div className="flex items-start gap-3 text-left">
                 <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-ring">
-                  <Shield className="size-5" />
+                  <ShieldCheck className="size-5" />
                 </div>
                 <div>
                   <div className="font-semibold text-foreground mb-1">
@@ -50,7 +49,7 @@ export default function SocialProof() {
               </div>
               <div className="flex items-start gap-3 text-left">
                 <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-ring">
-                  <Code className="size-5" />
+                  <GraduationCap className="size-5" />
                 </div>
                 <div>
                   <div className="font-semibold text-foreground mb-1">
@@ -65,8 +64,8 @@ export default function SocialProof() {
 
             {/* Disclaimer */}
             <p className="mt-10 text-sm text-muted-foreground/70 border-t border-border/40 pt-6">
-              ⚠️ This is not financial advice. Trading involves risk. Use at
-              your own discretion.
+              This is not financial advice. Trading involves risk. Use at your
+              own discretion.
             </p>
           </Card>
         </div>

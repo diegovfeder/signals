@@ -7,34 +7,25 @@
  * Design: Minimal, purposeful, human-centered (Resend-inspired)
  */
 
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import AppHeader from '@/components/layout/AppHeader'
-import Hero from '@/components/sections/Hero'
-import ValueProps from '@/components/sections/ValueProps'
-import HowItWorks from '@/components/sections/HowItWorks'
-import Coverage from '@/components/sections/Coverage'
-import SocialProof from '@/components/sections/SocialProof'
-import FinalCTA from '@/components/sections/FinalCTA'
-import Footer from '@/components/sections/Footer'
+import type { Metadata } from "next";
+
+import Hero from "@/components/sections/Hero";
+import ValueProps from "@/components/sections/ValueProps";
+import HowItWorks from "@/components/sections/HowItWorks";
+import Coverage from "@/components/sections/Coverage";
+import SocialProof from "@/components/sections/SocialProof";
+import FinalCTA from "@/components/sections/FinalCTA";
 
 export const metadata: Metadata = {
-  title: 'SIGNALS — Automated Trading Signals (RSI & EMA)',
-  description: 'Daily multi-asset signals with plain-English explanations. Email alerts for high-confidence setups.',
-}
+  title: "SIGNALS — Automated Trading Signals (RSI & EMA)",
+  description:
+    "Daily multi-asset signals with plain-English explanations. Email alerts for high-confidence setups.",
+};
 
 export default function Home() {
   return (
     <>
       <main>
-        <AppHeader
-          rightSlot={
-            <Button asChild size="sm">
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-          }
-        />
         <Hero />
         <ValueProps />
         <HowItWorks />
@@ -42,7 +33,6 @@ export default function Home() {
         <SocialProof />
         <FinalCTA />
       </main>
-      <Footer />
     </>
-  )
+  );
 }

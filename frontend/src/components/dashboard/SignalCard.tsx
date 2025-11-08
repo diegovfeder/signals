@@ -73,9 +73,7 @@ export default function SignalCard({
 
       {/* Signal type badge and strength */}
       <div className="flex items-center justify-between mb-4">
-        <Badge className={getBadgeStyles()}>
-          {signalType}
-        </Badge>
+        <Badge className={getBadgeStyles()}>{signalType}</Badge>
         <div className="text-right">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             Confidence
@@ -108,13 +106,15 @@ export default function SignalCard({
           ))}
         </ul>
       ) : (
-        <div className="mb-5 text-sm text-muted-foreground">No reasoning available</div>
+        <div className="mb-5 text-sm text-muted-foreground">
+          No reasoning available
+        </div>
       )}
 
       {/* View details link */}
       <Link
         href={`/signals/${encodeURIComponent(symbol)}`}
-        className="inline-block text-sm text-ring hover:text-primary transition-colors group-hover:underline"
+        className="inline-block text-sm text-muted-foreground hover:text-ring transition-colors group-hover:underline"
       >
         View details →
       </Link>

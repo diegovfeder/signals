@@ -27,6 +27,7 @@ export async function apiClient<T>(
   // Make request
   const response = await fetch(url.toString(), {
     ...fetchOptions,
+    credentials: 'omit', // API is stateless - don't send cookies/credentials
     headers: {
       'Content-Type': 'application/json',
       ...fetchOptions.headers,

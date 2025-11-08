@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 export default function AdminHome() {
   return (
     <div className="space-y-8">
-      <Card className="p-8 space-y-4 border-2">
+      <Card className="p-8 space-y-4 border border-border">
         <h1 className="text-3xl font-bold text-foreground">Admin Console</h1>
         <p className="text-sm text-muted-foreground">
           Internal utilities for developers: rerun backtests, inspect subscriber health, and debug
@@ -20,7 +20,7 @@ export default function AdminHome() {
           </Button>
         </div>
       </Card>
-      <Card className="p-8 space-y-4 border-2">
+      <Card className="p-8 space-y-4 border border-border">
         <h2 className="text-lg font-semibold text-foreground">Runbook</h2>
         <ol className="list-decimal list-inside space-y-3 text-sm text-muted-foreground">
           <li>

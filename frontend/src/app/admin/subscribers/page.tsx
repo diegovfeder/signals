@@ -1,22 +1,24 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { useSubscribers } from "@/lib/hooks/useSignals"
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useSubscribers } from "@/lib/hooks/useSignals";
+import Link from "next/link";
 
 export default function AdminSubscribersPage() {
-  const [includeUnsubscribed, setIncludeUnsubscribed] = useState(true)
-  const [includeTokens, setIncludeTokens] = useState(false)
+  const [includeUnsubscribed, setIncludeUnsubscribed] = useState(true);
+  const [includeTokens, setIncludeTokens] = useState(false);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useSubscribers({
-    includeUnsubscribed,
-    includeTokens,
-    limit: 200,
-  })
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useSubscribers({
+      includeUnsubscribed,
+      includeTokens,
+      limit: 200,
+    });
 
-  const subscribers = data?.subscribers ?? []
+  const subscribers = data?.subscribers ?? [];
 
   return (
     <div className="space-y-8">
@@ -24,8 +26,8 @@ export default function AdminSubscribersPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Subscribers</h1>
           <p className="text-sm text-muted-foreground">
-            Inspect the email list captured via the landing page and dashboard forms. Use tokens for
-            manual unsubscribe/testing only.
+            Inspect the email list captured via the landing page and dashboard
+            forms. Use tokens for manual unsubscribe/testing only.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -34,13 +36,20 @@ export default function AdminSubscribersPage() {
             variant="secondary"
             size="sm"
             disabled={isFetching}
+            loading={isFetching}
           >
-            {isFetching ? "Refreshing…" : "Refresh"}
+            Refresh data
           </Button>
+          <Link
+            href="/admin"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Go back to admin home
+          </Link>
         </div>
       </header>
 
-      <Card className="p-6 space-y-4 border-2">
+      <Card className="p-6 space-y-4 border border-border">
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <label className="flex items-center gap-2 text-foreground cursor-pointer">
             <input
@@ -65,10 +74,13 @@ export default function AdminSubscribersPage() {
           </span>
         </div>
 
-        {isLoading && <p className="text-sm text-muted-foreground">Loading subscribers…</p>}
+        {isLoading && (
+          <p className="text-sm text-muted-foreground">Loading subscribers…</p>
+        )}
         {isError && (
           <p className="text-sm text-red-600">
-            Failed to load subscribers: {String((error as Error)?.message ?? error)}
+            Failed to load subscribers:{" "}
+            {String((error as Error)?.message ?? error)}
           </p>
         )}
 
@@ -95,12 +107,18 @@ export default function AdminSubscribersPage() {
                     key={`${subscriber.email}-${idx}`}
                     className="border-b border-border/40"
                   >
-                    <td className="py-2 pr-4 font-mono text-foreground">{subscriber.email}</td>
+                    <td className="py-2 pr-4 font-mono text-foreground">
+                      {subscriber.email}
+                    </td>
                     <td className="py-2 pr-4">
                       {subscriber.unsubscribed ? (
-                        <Badge className="bg-yellow-500/20 text-yellow-500 border-0">Unsubscribed</Badge>
+                        <Badge className="bg-yellow-500/20 text-yellow-500 border-0">
+                          Unsubscribed
+                        </Badge>
                       ) : (
-                        <Badge className="bg-primary/20 text-ring border-0">Active</Badge>
+                        <Badge className="bg-primary/20 text-ring border-0">
+                          Active
+                        </Badge>
                       )}
                     </td>
                     <td className="py-2 pr-4 text-muted-foreground">
@@ -133,5 +151,5 @@ export default function AdminSubscribersPage() {
         )}
       </Card>
     </div>
-  )
+  );
 }

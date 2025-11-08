@@ -1,0 +1,73 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-label="Signals icon"
+>
+  <!-- Dark background tile -->
+  <rect
+    x="32"
+    y="32"
+    width="448"
+    height="448"
+    rx="96"
+    fill="#121212"
+  />
+
+  <!-- Grid hint (very subtle) -->
+  <path
+    d="M128 128 V384 M256 128 V384 M384 128 V384 M128 256 H384 M128 320 H384"
+    stroke="#1e293b"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-dasharray="4 18"
+    opacity="0.7"
+  />
+
+  <!-- Ascending EMA curve -->
+  <path
+    d="M96 352
+       C 160 320, 192 272, 232 232
+       C 280 184, 320 160, 416 144"
+    fill="none"
+    stroke="#4ade80"
+    stroke-width="26"
+    stroke-linecap="round"
+  />
+
+  <!-- Descending EMA curve -->
+  <path
+    d="M96 192
+       C 176 208, 208 240, 248 280
+       C 296 328, 336 352, 416 368"
+    fill="none"
+    stroke="#006239"
+    stroke-width="26"
+    stroke-linecap="round"
+  />
+
+  <!-- Signal intersection "glow" -->
+  <defs>
+    <radialGradient id="signal-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.9" />
+      <stop offset="60%" stop-color="#4ade80" stop-opacity="0.0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Approx intersection point -->
+  <circle
+    cx="260"
+    cy="260"
+    r="32"
+    fill="url(#signal-glow)"
+    opacity="0.85"
+  />
+
+  <!-- Core signal dot -->
+  <circle
+    cx="260"
+    cy="260"
+    r="10"
+    fill="#4ade80"
+  />
+</svg>
