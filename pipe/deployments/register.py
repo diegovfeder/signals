@@ -14,9 +14,17 @@ from __future__ import annotations
 import argparse
 import os
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, cast
 
 from prefect.client.schemas.schedules import CronSchedule
+from dotenv import load_dotenv
+
+PIPE_DIR = Path(__file__).resolve().parent.parent
+
+# Load pipeline-specific .env automatically so operators don't have to export manually.
+# We intentionally do NOT load a repo-root .env because that file is absent in prod.
+load_dotenv(PIPE_DIR / ".env")
 
 try:
     from flows.market_data_backfill import market_data_backfill_flow
@@ -51,19 +59,32 @@ def _collect_job_env() -> dict[str, str]:
     missing: list[str] = []
     for key in SUGGESTED_ENV_VARS:
         value: str | None = None
+        source: str | None = None
         for override in ENVIRONMENT_OVERRIDES.get(
             key, ()
         ):  # Prefer explicit override vars
             override_value = os.getenv(override)
             if override_value:
                 value = override_value
+                source = override
                 break
 
         if value is None:
             value = os.getenv(key)
+            if value:
+                source = key
+
+        if key == "DATABASE_URL" and value and "://" not in value:
+            print(
+                "[env] Skipping DATABASE_URL from local shell because it doesn't look like a connection string."
+            )
+            value = None
+            source = None
 
         if value:
             env[key] = value
+            if source:
+                print(f"[env] Using {source} for {key} in Prefect job environment.")
         else:
             missing.append(key)
     if missing:

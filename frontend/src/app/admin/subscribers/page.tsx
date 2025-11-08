@@ -79,7 +79,7 @@ export default function AdminSubscribersPage() {
         )}
         {isError && (
           <p className="text-sm text-red-600">
-            Failed to load subscribers:{" "}
+            Failed to load subscribers:&nbsp;
             {String((error as Error)?.message ?? error)}
           </p>
         )}

@@ -1,6 +1,6 @@
-import Link from 'next/link'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function AdminHome() {
   return (
@@ -8,8 +8,9 @@ export default function AdminHome() {
       <Card className="p-8 space-y-4 border border-border">
         <h1 className="text-3xl font-bold text-foreground">Admin Console</h1>
         <p className="text-sm text-muted-foreground">
-          Internal utilities for developers: rerun backtests, inspect subscriber health, and debug
-          new flows. Guard these routes behind auth in production.
+          Internal utilities for developers: rerun backtests, inspect subscriber
+          health, and debug new flows. Guard these routes behind auth in
+          production.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button asChild size="lg" className="text-center">
@@ -24,16 +25,25 @@ export default function AdminHome() {
         <h2 className="text-lg font-semibold text-foreground">Runbook</h2>
         <ol className="list-decimal list-inside space-y-3 text-sm text-muted-foreground">
           <li>
-            Backfill data: <code className="bg-muted px-2 py-1 rounded font-mono text-xs">python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y</code>
+            Backfill data:&nbsp;
+            <code className="bg-muted px-2 py-1 rounded font-mono text-xs">
+              python -m pipe.flows.historical_backfill --symbols AAPL,BTC-USD
+              --backfill-range 2y
+            </code>
           </li>
           <li>
-            Recompute signals: <code className="bg-muted px-2 py-1 rounded font-mono text-xs">python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y</code>
+            Recompute signals:&nbsp;
+            <code className="bg-muted px-2 py-1 rounded font-mono text-xs">
+              python -m pipe.flows.signal_replay --symbols AAPL,BTC-USD
+              --range-label 2y
+            </code>
           </li>
           <li>
-            Check summaries here and refresh the dashboard if strategies changed.
+            Check summaries here and refresh the dashboard if strategies
+            changed.
           </li>
         </ol>
       </Card>
     </div>
-  )
+  );
 }

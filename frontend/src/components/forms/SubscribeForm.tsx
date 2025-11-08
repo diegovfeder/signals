@@ -208,7 +208,7 @@ export function SubscribeForm({
                 "Subscription pending confirmation. Please check your email."}
             </p>
             <p className="text-foreground-muted mt-2 text-sm">
-              Subscribed as{" "}
+              Subscribed as&nbsp;
               <span className="font-mono text-foreground">
                 {subscribedEmail}
               </span>

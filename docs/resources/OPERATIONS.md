@@ -15,9 +15,9 @@ All commands run from the project root using `uv`:
 
 | Action | Command |
 | --- | --- |
-| Backfill historical data (new symbols) | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols BTC-USD,AAPL --backfill-range 2y` |
-| Sync latest daily bars | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols BTC-USD,AAPL` |
-| Generate signals from DB data | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL` |
+| Backfill historical data (new symbols) | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 2y` |
+| Sync latest daily bars | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD` |
+| Generate signals from DB data | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD` |
 | Send email notifications | `uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60` |
 
 > **Tip:** For quick local testing, run flows directly: `cd pipe && uv run python -m flows.market_data_backfill --symbols BTC-USD --backfill-range 1m`
@@ -31,6 +31,8 @@ cd pipe
 prefect cloud login  # once per environment
 uv run python -m deployments.register --work-pool default-prefect-managed-wp
 ```
+
+> **Tip:** The deploy helper automatically loads `pipe/.env`. Keep your Supabase pooler string (`SUPABASE_URL_SESSION_POOLER`) there so deployments always override `DATABASE_URL` without touching your local dev settings.
 
 **Deployments created:**
 
@@ -74,11 +76,11 @@ Configure the following in Prefect Cloud → Work Pools → Infrastructure Overr
 | Name | Description | Required |
 | --- | --- | --- |
 | `DATABASE_URL` | Postgres connection string (same as backend) | ✅ Yes |
-| `SUPABASE_DATABASE_URL` *(optional override)* | Production Postgres string used only when registering Prefect deployments. If set, it overrides the local `DATABASE_URL` so you can keep dev credentials in your shell. | No |
+| `SUPABASE_DATABASE_URL` *(optional override)* | Additional production Postgres override. Usually `SUPABASE_URL_SESSION_POOLER` lives in `pipe/.env`, and the deploy helper auto-injects it as `DATABASE_URL` for Prefect jobs. | No |
 | `RESEND_API_KEY` | Resend email API key | ✅ Yes |
 | `RESEND_FROM_EMAIL` | Verified sender email (Resend) | ✅ Yes |
 | `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength before emails are sent (default: 60) | No |
-| `SIGNAL_SYMBOLS` | Comma-separated symbol override (default: BTC-USD,AAPL) | No |
+| `SIGNAL_SYMBOLS` | Comma-separated symbol override (default: AAPL,BTC-USD) | No |
 
 ---
 
