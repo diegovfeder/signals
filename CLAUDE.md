@@ -166,8 +166,8 @@ cp pipe/.env.example pipe/.env
 # IMPORTANT: Always run flows from project root, not from pipe/ directory
 
 # Test individual flows locally
-uv run --directory pipe python -m pipe.flows.market_data_sync --symbols BTC-USD,AAPL
-uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD
 uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 70
 
 # Deploy to Prefect Cloud (runs daily at 10 PM UTC)

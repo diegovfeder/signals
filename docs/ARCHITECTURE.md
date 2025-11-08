@@ -68,9 +68,9 @@ All reusable logic lives under `pipe/tasks/`. Flows in `pipe/flows/` are orchest
 
 | Flow | Module | Typical command | Notes |
 | --- | --- | --- | --- |
-| Market data backfill | `flows/market_data_backfill.py` | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols BTC-USD,AAPL --backfill-range 2y` | Fetches multi-year daily OHLCV history from Yahoo Finance for new symbols. Run manually when onboarding new assets. |
-| Market data sync | `flows/market_data_sync.py` | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols BTC-USD,AAPL` | Fetches the latest daily bars (last 5 days to handle weekends). Runs daily at 10:00 PM UTC to keep data current. |
-| Signal analyzer | `flows/signal_analyzer.py` | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL` | Reads market data from DB, calculates indicators (RSI/EMA), generates BUY/SELL/HOLD signals. Runs daily at 10:15 PM UTC. Does NOT fetch new data. |
+| Market data backfill | `flows/market_data_backfill.py` | `uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 2y` | Fetches multi-year daily OHLCV history from Yahoo Finance for new symbols. Run manually when onboarding new assets. |
+| Market data sync | `flows/market_data_sync.py` | `uv run --directory pipe python -m pipe.flows.market_data_sync --symbols AAPL,BTC-USD` | Fetches the latest daily bars (last 5 days to handle weekends). Runs daily at 10:00 PM UTC to keep data current. |
+| Signal analyzer | `flows/signal_analyzer.py` | `uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD` | Reads market data from DB, calculates indicators (RSI/EMA), generates BUY/SELL/HOLD signals. Runs daily at 10:15 PM UTC. Does NOT fetch new data. |
 | Notification dispatcher | `flows/notification_dispatcher.py` | `uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60` | Queries recent strong signals and emails confirmed subscribers via Resend. Runs daily at 10:30 PM UTC. |
 
 **Flow Sequence**: Data sync → Signal analysis → Email notifications (all daily: 10:00 PM, 10:15 PM, 10:30 PM UTC).
@@ -181,7 +181,7 @@ Environment variable quick reference (aggregate from `.env.example` files):
 | Variable | Description | Location |
 | --- | --- | --- |
 | `DATABASE_URL` | `postgresql+psycopg://…` connection string shared by pipeline + backend. | backend, pipe |
-| `SIGNAL_SYMBOLS` | Optional comma-separated symbol overrides (default: BTC-USD,AAPL). | pipe |
+| `SIGNAL_SYMBOLS` | Optional comma-separated symbol overrides (default: AAPL,BTC-USD). | pipe |
 | `SIGNAL_NOTIFY_THRESHOLD` | Minimum strength to email from notification flow (default: 60). | pipe |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Email sender credentials. | backend, pipe |
 | `NEXT_PUBLIC_API_URL` | Frontend → backend base URL. | frontend |

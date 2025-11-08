@@ -112,8 +112,8 @@ export DATABASE_URL="postgresql://signals_user:signals_password@localhost:5432/t
 
 # 2. Schema & Historical Data (~2 years of daily bars)
 python scripts/apply_db.py
-uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols BTC-USD,AAPL --backfill-range 2y
-uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL --range-label 2y
+uv run --directory pipe python -m pipe.flows.market_data_backfill --symbols AAPL,BTC-USD --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD --range-label 2y
 
 # 3. Backend API
 cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
@@ -122,7 +122,7 @@ cd backend && uv run uvicorn api.main:app --reload  # http://localhost:8000
 cd frontend && bun run dev  # http://localhost:3000
 
 # 5. Test Pipeline (optional)
-uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD
 uv run --directory pipe python -m pipe.flows.notification_dispatcher --min-strength 60
 ```
 
@@ -210,11 +210,11 @@ cp .env.example .env
 
 # Backfill + indicators (run from project root)
 cd ..
-uv run --directory pipe python -m pipe.flows.historical_backfill --symbols BTC-USD,AAPL --backfill-range 2y
-uv run --directory pipe python -m pipe.flows.signal_replay --symbols BTC-USD,AAPL --range-label 2y
+uv run --directory pipe python -m pipe.flows.historical_backfill --symbols AAPL,BTC-USD --backfill-range 2y
+uv run --directory pipe python -m pipe.flows.signal_replay --symbols AAPL,BTC-USD --range-label 2y
 
 # Generate latest intraday signals + send notifications
-uv run --directory pipe python -m pipe.flows.signal_generation --symbols BTC-USD,AAPL
+uv run --directory pipe python -m pipe.flows.signal_generation --symbols AAPL,BTC-USD
 uv run --directory pipe python -m pipe.flows.notification_sender --min-strength 60
 
 # Optional: register Prefect deployments / schedules
@@ -237,7 +237,7 @@ RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL="Signals Bot <onboarding@resend.dev>"
 SIGNAL_NOTIFY_THRESHOLD=60
 APP_BASE_URL=https://signalsapp.dev
-SIGNAL_SYMBOLS=BTC-USD,AAPL
+SIGNAL_SYMBOLS=AAPL,BTC-USD
 POSTHOG_API_KEY=phc_...
 ```
 
