@@ -88,7 +88,7 @@ We only expand asset coverage or indicators after we hit reliability + comprehen
 
 ## 7. What’s Next
 
-Work-in-progress and future tasks now live in GitHub Issues + the "Signals – Tasks" GitHub Project board (seeded from `docs/TASK_SEEDS.md`). Today’s top themes:
+Work-in-progress and future tasks now live in GitHub Issues + the "[Signals – Tasks](https://github.com/users/diegovfeder/projects/4/views/1)" GitHub Project board. Today's top themes:
 
 1. **Email polish** – Double opt-in edge cases, resend confirmations, deliverability monitoring.
 2. **Dashboard UX** – Expose indicator deltas, add stronger storytelling per signal.

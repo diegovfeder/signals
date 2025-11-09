@@ -8,7 +8,7 @@ These instructions keep AI/dev assistants aligned with how the Signals stack cur
 - `frontend/` – Next.js **16** (App Router) powered by Bun. Routes live in `src/app/`, shared UI in `src/components/`, hooks in `src/lib/`. Prefer the Next.js MCP tooling (`next-devtools`) when inspecting routes or runtime state.
 - `pipe/` – Prefect 2 flows (`pipe/flows/`) that orchestrate Yahoo ingestion, indicator calc, signal generation, and notifications. Reusable tasks live in `pipe/tasks/`, indicator/strategy logic in `pipe/lib/`.
 - `db/` – `schema.sql`, seeds, and docker-compose bootstrap for the shared Postgres database (Supabase prod, Docker locally).
-- `docs/` – Architecture, MVP scope, ops guides, and `docs/TASK_SEEDS.md` (source of truth for future GitHub issues).
+- `docs/` – Architecture, MVP scope, ops guides, and project workflow documentation. See the [project board](https://github.com/users/diegovfeder/projects/4/views/1) for backlog and active work.
 
 ## Tooling & Day-to-Day Commands
 
@@ -39,11 +39,11 @@ These instructions keep AI/dev assistants aligned with how the Signals stack cur
 - **Frontend** + **Backend** ship to Vercel via GitHub integration. CORS is configured to allow all `*.vercel.app` origins so previews work out of the box.
 - Vercel installs Python packages using `requirements.txt`; keep it in sync with `pyproject.toml` when adding backend deps, but prefer `uv add` during development.
 - **Pipeline** lives in Prefect Cloud with three scheduled flows (10:00/10:15/10:30 PM UTC) plus manual backfill. Update `pipe/deployments/register.py` when schedules or work pools change.
-- **Emails** use Resend. Production deliverability requires a custom domain with SPF/DKIM/DMARC—see `docs/TASK_SEEDS.md` for the backlog item.
+- **Emails** use Resend. Production deliverability requires a custom domain with SPF/DKIM/DMARC—see [issue #18](https://github.com/diegovfeder/signals/issues/18) for the backlog item.
 
 ## Working Agreements
 
-- **Docs-first**: Update `docs/ARCHITECTURE.md`, `docs/MVP.md`, or other references before/while changing code. New ideas belong in GitHub issues seeded from `docs/TASK_SEEDS.md`.
+- **Docs-first**: Update `docs/ARCHITECTURE.md`, `docs/MVP.md`, or other references before/while changing code. New ideas belong in GitHub issues on the [project board](https://github.com/users/diegovfeder/projects/4/views/1).
 - **No automated tests (yet)**: We intentionally paused pytest/front-end test suites while the architecture is in flux. Validate changes manually (run Prefect flows, hit `GET /health`, load dashboard). Only add tests if a task explicitly requests it.
 - **Manual verification**: When touching pipeline logic, run the relevant `uv run --directory pipe ...` command. For backend changes, curl `http://localhost:8000/api/signals/` and ensure responses look sane. For frontend tweaks, run `bun run lint && bun run type-check` and test the affected page in the browser.
 - **Commits & PRs**: Stick to Conventional Commits (`feat(pipeline): ...`). PRs should call out manual validation (e.g., "ran `market_data_sync`, checked dashboard") instead of automated test output.
@@ -54,4 +54,4 @@ These instructions keep AI/dev assistants aligned with how the Signals stack cur
 - Daily cadence: `market_data_sync 22:00 UTC` → `signal_analyzer 22:15 UTC` → `notification_dispatcher 22:30 UTC`.
 - Default symbols: `BTC-USD`, `AAPL` (override via `SIGNAL_SYMBOLS`).
 - Strategies: Configured via `pipe/lib/strategies` with env overrides (`SIGNAL_MODEL_<SYMBOL>`).
-- Need tasks/backlog ideas? Start with `docs/TASK_SEEDS.md` and create a GitHub issue using `.github/ISSUE_TEMPLATE/task.md`.
+- Need tasks/backlog ideas? Check the [project board](https://github.com/users/diegovfeder/projects/4/views/1) and create a GitHub issue using `.github/ISSUE_TEMPLATE/task.md`.

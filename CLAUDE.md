@@ -11,7 +11,7 @@ Guidance for Claude Code (and other AI collaborators) working inside the Signals
 - **Pipeline**: Prefect Cloud (market data sync 22:00 UTC → signal analyzer 22:15 UTC → notification dispatcher 22:30 UTC)
 - **Database**: Supabase PostgreSQL (Session Mode pooler, IPv4, psycopg v3 driver)
 - **Email**: Resend (confirmation + reactivation live; signal notifications gated on backlog items)
-- **Source of truth for future work**: `docs/TASK_SEEDS.md` + GitHub Project “Signals – Tasks”
+- **Source of truth for future work**: GitHub Project "[Signals – Tasks](https://github.com/users/diegovfeder/projects/4/views/1)"
 
 Everything auto-deploys from `main`. Keep docs in sync with code; outdated guidance is more harmful than missing detail.
 
@@ -25,7 +25,7 @@ Everything auto-deploys from `main`. Keep docs in sync with code; outdated guida
 | `frontend/` | Next.js 16 App Router, Bun-powered. UI in `src/app/`, shared components in `src/components/`, data hooks in `src/lib/`. |
 | `pipe/` | Prefect 2 flows (`flows/`), reusable tasks (`tasks/`), indicators/strategies (`lib/`). All commands run via `uv run --directory pipe ...`. |
 | `db/` | `schema.sql`, seeds, and Docker bootstrap for local Postgres. Supabase prod shares the same schema. |
-| `docs/` | Architecture, MVP scope, operations guide, task seeds, testing email flow, etc. Update here first when behavior changes. |
+| `docs/` | Architecture, MVP scope, operations guide, project workflow (TODOs.md), etc. Update here first when behavior changes. |
 | `.github/ISSUE_TEMPLATE/` | `task.md` template for opening new GitHub issues that feed the “Signals – Tasks” project. |
 
 ---
@@ -80,7 +80,7 @@ Strategies live in `pipe/lib/strategies/` with environment overrides (`SIGNAL_MO
 ## 6. Frontend Notes
 
 - Next.js 16 App Router with Bun runtime. Entry pages: `/` (marketing + signup), `/dashboard`, `/signals/[symbol]`, `/admin/*` (subscriber views).
-- Data fetching currently uses lightweight client hooks; adoption of TanStack Query + better charts lives in `docs/TASK_SEEDS.md`.
+- Data fetching currently uses lightweight client hooks; adoption of TanStack Query (#25) + better charts (#28, #29) tracked on the project board.
 - For UI work, run `bun run lint && bun run type-check`, then manually verify in the browser. There are no Jest/Cypress suites yet.
 - To inspect runtime/component tree, use Next.js MCP (`nextjs_runtime`) rather than scraping files manually.
 
@@ -96,9 +96,9 @@ Strategies live in `pipe/lib/strategies/` with environment overrides (`SIGNAL_MO
 
 ## 8. Working Agreements
 
-1. **Docs-first**: When behavior changes, update `docs/ARCHITECTURE.md`, `docs/MVP.md`, `docs/OPERATIONS.md`, etc., before merging code. Use `docs/TASK_SEEDS.md` to log medium/long-term ideas.
+1. **Docs-first**: When behavior changes, update `docs/ARCHITECTURE.md`, `docs/MVP.md`, `docs/OPERATIONS.md`, etc., before merging code. Capture medium/long-term ideas as GitHub issues on the project board.
 2. **Issues before implementation**: Open a GitHub issue with `.github/ISSUE_TEMPLATE/task.md` and add it to the “Signals – Tasks” board before making non-trivial changes.
-3. **No automated tests (for now)**: Architecture is still in flux. Validate manually (run Prefect flows, hit `/health`, exercise the dashboard). The plan for reintroducing tests is documented in `docs/TASK_SEEDS.md` (Engineering Foundations section).
+3. **No automated tests (for now)**: Architecture is still in flux. Validate manually (run Prefect flows, hit `/health`, exercise the dashboard). The plan for reintroducing tests is tracked in issue #36.
 4. **Manual validation expectations**: Mention which flows/commands you ran in PR descriptions (e.g., “ran `market_data_sync` locally” or “loaded `/dashboard` and confirmed signals render”).
 5. **Secrets**: Never commit `.env*`. Resend/Supabase/PostHog keys belong in env vars or Vercel/Prefect secrets only.
 6. **Dependencies**: Use `uv add/remove` for Python; update `requirements.txt` only after changes so Vercel stays in sync. For frontend, prefer Bun (`bun add/remove`).
@@ -107,7 +107,7 @@ Strategies live in `pipe/lib/strategies/` with environment overrides (`SIGNAL_MO
 
 ## 9. Staying Aligned
 
-- Source of truth for upcoming work: `docs/TASK_SEEDS.md` + the "Signals – Tasks" GitHub project. Those documents should describe *what* to build; this file only describes *how* the system works today.
+- Source of truth for upcoming work: the "[Signals – Tasks](https://github.com/users/diegovfeder/projects/4/views/1)" GitHub project board. Issues describe *what* to build; this file only describes *how* the system works today.
 - Before merging code, double-check that any behavior or configuration changes are reflected in the relevant doc (`ARCHITECTURE`, `MVP`, `OPERATIONS`, runbooks) and that manual validation steps are noted in your PR.
 - Keep Python deps synchronized between `pyproject.toml`/`uv.lock` and `backend/requirements.txt` so Vercel deploys deterministically.
 - Never commit secrets or `.env*`; update README/docs if new environment variables are required.

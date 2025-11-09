@@ -1,6 +1,6 @@
 # Task Tracking & Project Board
 
-> **Last Updated**: 2025-11-06  
+> **Last Updated**: 2025-11-09  
 > **Status**: Backlog now lives in GitHub Issues + the "Signals – Tasks" project board.
 
 Old sprint checklists have been archived to `docs/archive/TODOs-2025-11-05.md`. From now on we open GitHub issues for every change, track them on a shared board, and keep this page as the lightweight process reference.
@@ -10,24 +10,29 @@ Old sprint checklists have been archived to `docs/archive/TODOs-2025-11-05.md`. 
 ## 1. Where Work Lives
 
 - **Issues**: https://github.com/diegovfeder/signals/issues (use the "Task" template).
-- **Project Board**: `Signals – Tasks` (GitHub Projects Beta). Suggested URL: https://github.com/users/diegovfeder/projects/1 — create it if it does not exist yet and update this link if GitHub assigns a different number.
+- **Project Board**: `Signals – Tasks` (GitHub Projects Beta). URL: https://github.com/users/diegovfeder/projects/4/views/1
 - **Docs Archive**: Anything that used to be a TODO list stays in `docs/archive/` for historical context only.
 
 ---
 
 ## 2. Board Setup (One-Time)
 
-1. Create a **Team** project named `Signals – Tasks` under the `diegovfeder` account.
-2. Add views:
-   - **Kanban** (default) with columns `Inbox → Ready → In Progress → In Review → Done`.
-   - **Timeline** view grouped by `iteration` for sprint planning (optional but helpful once cadence returns).
-3. Enable auto-archiving of cards in `Done` after 14 days to keep noise low.
-4. Add fields:
-   - `Area` (enum: `frontend`, `backend`, `pipeline`, `docs`, `ops`).
-   - `Priority` (enum: `now`, `next`, `later`).
-   - `Effort` (number of ideal hours or story points – whichever feels natural).
-5. Save a filter preset `now` → `Priority = now` so we can share a short link with teammates.
-6. Create/confirm repo labels: `task`, `frontend`, `backend`, `pipeline`, `docs`, `ops`, plus any experiment-specific tags you rely on.
+**Current Setup (Completed):**
+
+1. ✅ Project created: `Signals – Tasks` under the `diegovfeder` account
+2. ✅ Kanban view with columns: `Backlog → Next → In Progress → In Review → Done`
+   - **Backlog**: Ideas, bugs, and future work. Not yet prioritized or scoped.
+   - **Next**: Prioritized and ready to start. Should have clear scope and acceptance criteria.
+   - **In Progress**: Actively being worked on. Should have an assignee.
+   - **In Review**: Code review in progress + manual testing. PR must be open.
+   - **Done**: Shipped to production and verified working. Auto-archives after 14 days.
+3. ✅ Auto-archiving enabled for `Done` after 14 days
+4. ✅ Repo labels created: `task`, `frontend`, `backend`, `pipeline`, `docs`, `ops`
+
+**Optional Future Enhancements:**
+- Custom fields: `Area`, `Priority`, `Effort` (can add via "+ New field" in board UI)
+- Timeline view for sprint planning
+- Filter presets for quick views
 
 ---
 
@@ -57,9 +62,12 @@ Every issue automatically lands in the project board once the board exists. Move
 
 ---
 
-## 4. Backlog Themes
+## 4. Viewing the Backlog
 
-All pre-scoped ideas now live in `docs/TASK_SEEDS.md`. Use that file to copy the “Outcome” row into a GitHub issue, then track it on the "Signals – Tasks" board. Remove the entry from Task Seeds only after the work ships.
+All backlog items live in GitHub Issues and are visible on the project board. Issues in the **Backlog** column represent future work that hasn't been prioritized yet. When ready to work on something, move it to **Next** to signal it's scoped and ready to tackle.
+
+View all issues: https://github.com/diegovfeder/signals/issues
+View the board: https://github.com/users/diegovfeder/projects/4/views/1
 
 ---
 

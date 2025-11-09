@@ -2,7 +2,7 @@
 
 Track automated trading signals across multiple asset classes. Get email alerts when technical indicators detect high-confidence opportunities in crypto, stocks, ETFs, and forex.
 
-> **Doc map:** [MVP](docs/MVP.md) · [Architecture](docs/ARCHITECTURE.md) · [Task Seeds](docs/TASK_SEEDS.md) · [Operations](docs/resources/OPERATIONS.md)
+> **Doc map:** [MVP](docs/MVP.md) · [Architecture](docs/ARCHITECTURE.md) · [Operations](docs/resources/OPERATIONS.md) · [Project Board](https://github.com/users/diegovfeder/projects/4/views/1)
 
 ## 🚀 Quick Start - 1 Minute Overview
 
@@ -275,9 +275,9 @@ uv run --directory pipe python -m pipe.flows.signal_generation
 
 ## Documentation
 
-- **[MVP.md](docs/MVP.md)** – what we’re building, target user, KPIs.
+- **[MVP.md](docs/MVP.md)** – what we're building, target user, KPIs.
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** – component responsibilities + nightly cadence.
-- **[TASK_SEEDS.md](docs/TASK_SEEDS.md)** – backlog seeds; open an issue per row before coding.
+- **[TODOs.md](docs/TODOs.md)** – project board workflow and issue template usage.
 - **[resources/OPERATIONS.md](docs/resources/OPERATIONS.md)** – Prefect runbook + troubleshooting.
 - **[resources/DATA-SOURCES-AND-TOOLS.md](docs/resources/DATA-SOURCES-AND-TOOLS.md)** – alternate providers + research links.
 - **[resources/TECHNICAL-ANALYSIS.md](docs/resources/TECHNICAL-ANALYSIS.md)** – indicator math + strategy heuristics.
@@ -353,7 +353,12 @@ MIT
 ## Working With This Repo
 
 - **Docs-first**: Update `docs/ARCHITECTURE.md`, `docs/MVP.md`, or ops guides when behavior changes.
-- **Issues before code**: Open a GitHub issue via `.github/ISSUE_TEMPLATE/task.md` and add it to the “Signals – Tasks” project board before starting non-trivial work.
+- **Issues before code**: Open a GitHub issue via `.github/ISSUE_TEMPLATE/task.md` and add it to the [Signals – Tasks project board](https://github.com/users/diegovfeder/projects/4/views/1) before starting non-trivial work.
 - **Manual validation**: Automated tests are paused; run the relevant Prefect flows, hit `/health`, and load the affected frontend pages after `bun run lint && bun run type-check`.
+
+**Quick Links:**
+- 📋 [View Project Board](https://github.com/users/diegovfeder/projects/4/views/1)
+- 📝 [Open New Issue](https://github.com/diegovfeder/signals/issues/new?template=task.md)
+- 📚 [Process Guide](docs/TODOs.md)
 
 For questions or issues, open a GitHub issue.

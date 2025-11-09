@@ -95,7 +95,7 @@ pipe/
 
 ## Future Work
 
-- Historical replay tool for strategy experiments (see `docs/TASK_SEEDS.md`).
+- Historical replay tool for strategy experiments (see [issue #34](https://github.com/diegovfeder/signals/issues/34)).
 - Provider fallback metrics + alerting (Prefect notification policies).
 - Background queue for notification emails once deliverability is production-ready.
 
