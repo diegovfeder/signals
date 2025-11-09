@@ -11,8 +11,10 @@ import Link from "next/link";
 import SymbolPriceChart from "@/components/charts/SymbolPriceChart";
 import {
   useBacktestSummary,
+  useIndicators,
   useMarketData,
   useSignalBySymbol,
+  useSignalHistory,
 } from "@/lib/hooks/useSignals";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,20 @@ export default function SignalDetail({
   const { data: backtestSummary, isLoading: backtestLoading } =
     useBacktestSummary(symbol, selectedRange);
 
+  const {
+    data: indicators = [],
+    isLoading: indicatorsLoading,
+    isError: indicatorsError,
+    error: indicatorsErrorObj,
+  } = useIndicators(symbol, selectedRange);
+
+  const {
+    data: signalHistory = [],
+    isLoading: historyLoading,
+    isError: historyError,
+    error: historyErrorObj,
+  } = useSignalHistory(symbol, selectedRange);
+
   const rangeStats = useMemo(() => {
     if (!marketData.length) return null;
     const start = marketData[0];
@@ -59,6 +75,16 @@ export default function SignalDetail({
       : 0;
     return { start, end, change };
   }, [marketData]);
+
+  const indicatorSnapshot = useMemo(() => {
+    if (!indicators.length) return null;
+    const latest = indicators[indicators.length - 1];
+    return {
+      rsi: latest.rsi,
+      ema12: latest.ema12,
+      ema26: latest.ema26,
+    };
+  }, [indicators]);
 
   const confidence = signal
     ? Math.max(0, Math.min(100, Math.round(signal.strength ?? 0)))
@@ -211,8 +237,34 @@ export default function SignalDetail({
                         timestamp: point.timestamp,
                         close: point.close,
                       }))}
+                      indicators={indicators}
+                      signals={signalHistory}
                       range={selectedRange}
                     />
+                    {indicatorsLoading && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Loading indicator overlays...
+                      </p>
+                    )}
+                    {indicatorsError && indicatorsErrorObj && (
+                      <p className="text-xs text-red-500 mt-2">
+                        Indicator data unavailable: {String(
+                          indicatorsErrorObj.message ?? indicatorsErrorObj,
+                        )}
+                      </p>
+                    )}
+                    {historyLoading && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Loading signal markers...
+                      </p>
+                    )}
+                    {historyError && historyErrorObj && (
+                      <p className="text-xs text-red-500 mt-1">
+                        Signal history unavailable: {String(
+                          historyErrorObj.message ?? historyErrorObj,
+                        )}
+                      </p>
+                    )}
                     {rangeStats && (
                       <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div>
@@ -246,6 +298,40 @@ export default function SignalDetail({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDate(rangeStats.end.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {indicatorSnapshot && (
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
+                            RSI
+                          </p>
+                          <p className="font-mono text-foreground">
+                            {indicatorSnapshot.rsi != null
+                              ? indicatorSnapshot.rsi.toFixed(1)
+                              : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
+                            EMA 12
+                          </p>
+                          <p className="font-mono text-foreground">
+                            {indicatorSnapshot.ema12 != null
+                              ? `$${indicatorSnapshot.ema12.toFixed(2)}`
+                              : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase mb-1">
+                            EMA 26
+                          </p>
+                          <p className="font-mono text-foreground">
+                            {indicatorSnapshot.ema26 != null
+                              ? `$${indicatorSnapshot.ema26.toFixed(2)}`
+                              : "-"}
                           </p>
                         </div>
                       </div>

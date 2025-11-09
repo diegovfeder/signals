@@ -1,6 +1,8 @@
 "use client";
 
 import type { JSX } from "react";
+import type { IndicatorPoint, Signal } from "@/lib/hooks/useSignals";
+import type { ChartData, ChartOptions, ScriptableContext, TooltipItem } from "chart.js";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,6 +12,8 @@ import {
   TimeScale,
   Tooltip,
   Filler,
+  Legend,
+  ScatterController,
 } from "chart.js";
 import "chartjs-adapter-date-fns";
 import { Line } from "react-chartjs-2";
@@ -21,96 +25,326 @@ ChartJS.register(
   LineElement,
   TimeScale,
   Tooltip,
-  Filler
+  Filler,
+  Legend,
+  ScatterController
 );
 
-const RANGE_TO_UNIT: Record<string, "day" | "week" | "month"> = {
+type ChartTimeUnit = "day" | "week" | "month" | "quarter" | "year";
+
+const RANGE_TO_UNIT: Record<string, ChartTimeUnit> = {
   "1d": "day",
   "1w": "day",
-  "1m": "week",
+  "1m": "day",
   "3m": "week",
-  "6m": "month",
+  "6m": "week",
   "1y": "month",
   "2y": "month",
+  "5y": "quarter",
+  "10y": "year",
 };
+
+const SIGNAL_COLORS: Record<Signal["signal_type"], string> = {
+  BUY: "#10b981",
+  SELL: "#ef4444",
+  HOLD: "#64748b",
+};
+
+interface SignalMarkerPoint {
+  x: string;
+  y: number;
+  signalType: Signal["signal_type"];
+  price: number;
+}
 
 interface SymbolPriceChartProps {
   symbol: string;
   data: { timestamp: string; close: number }[];
   range: string;
+  indicators?: IndicatorPoint[];
+  signals?: Signal[];
 }
 
 export default function SymbolPriceChart({
   symbol,
   data,
   range,
+  indicators = [],
+  signals = [],
 }: SymbolPriceChartProps): JSX.Element {
-  const chartData = {
-    datasets: [
-      {
-        label: `${symbol} close`,
-        data: data.map((point) => ({
-          x: point.timestamp,
-          y: point.close,
-        })),
-        borderColor: "rgba(16, 185, 129, 0.9)",
-        backgroundColor: "rgba(16, 185, 129, 0.15)",
-        tension: 0.25,
-        pointRadius: 0,
-        fill: true,
-      },
-    ],
+  const ema12Data = indicators.reduce<{ x: string; y: number }[]>((acc, point) => {
+    if (point.ema12 != null) {
+      acc.push({ x: point.timestamp, y: point.ema12 });
+    }
+    return acc;
+  }, []);
+
+  const ema26Data = indicators.reduce<{ x: string; y: number }[]>((acc, point) => {
+    if (point.ema26 != null) {
+      acc.push({ x: point.timestamp, y: point.ema26 });
+    }
+    return acc;
+  }, []);
+
+  const rsiData = indicators.reduce<{ x: string; y: number }[]>((acc, point) => {
+    if (point.rsi != null) {
+      acc.push({ x: point.timestamp, y: point.rsi });
+    }
+    return acc;
+  }, []);
+
+  const priceSeries = data
+    .map((point) => ({
+      x: point.timestamp,
+      y: point.close,
+    }))
+    .sort(
+      (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime(),
+    );
+
+  const signalMarkers: SignalMarkerPoint[] = signals
+    .map((signal) => {
+      const explicitPrice =
+        signal.price_at_signal != null
+          ? Number(signal.price_at_signal)
+          : null;
+
+      if (explicitPrice != null) {
+        return {
+          x: signal.timestamp,
+          y: explicitPrice,
+          signalType: signal.signal_type,
+          price: explicitPrice,
+        } satisfies SignalMarkerPoint;
+      }
+
+      const targetTime = new Date(signal.timestamp).getTime();
+      if (Number.isNaN(targetTime) || !priceSeries.length) {
+        return null;
+      }
+
+      let nearest = priceSeries[0];
+      let smallestDelta = Math.abs(
+        new Date(nearest.x).getTime() - targetTime,
+      );
+
+      for (let index = 1; index < priceSeries.length; index += 1) {
+        const candidate = priceSeries[index];
+        const delta = Math.abs(new Date(candidate.x).getTime() - targetTime);
+        if (delta < smallestDelta) {
+          nearest = candidate;
+          smallestDelta = delta;
+        } else if (delta > smallestDelta) {
+          break;
+        }
+      }
+
+      return {
+        x: signal.timestamp,
+        y: nearest.y,
+        signalType: signal.signal_type,
+        price: nearest.y,
+      } satisfies SignalMarkerPoint;
+    })
+    .filter((point): point is SignalMarkerPoint => point != null)
+    .sort(
+      (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime(),
+    );
+
+  const datasets: ChartData<"line">["datasets"] = [
+    {
+      label: `${symbol} close`,
+      data: priceSeries,
+      borderColor: "rgba(241, 245, 249, 0.9)",
+      backgroundColor: "transparent",
+      borderWidth: 1.75,
+      tension: 0.25,
+      pointRadius: 0,
+      fill: false,
+      yAxisID: "y",
+      spanGaps: true,
+    },
+    ...(ema12Data.length
+      ? [
+          {
+            label: "EMA 12",
+            data: ema12Data,
+            borderColor: "rgba(96, 165, 250, 0.9)",
+            borderWidth: 1.25,
+            pointRadius: 0,
+            tension: 0.2,
+            fill: false,
+            yAxisID: "y",
+            spanGaps: true,
+          },
+        ]
+      : []),
+    ...(ema26Data.length
+      ? [
+          {
+            label: "EMA 26",
+            data: ema26Data,
+            borderColor: "rgba(129, 140, 248, 0.85)",
+            borderWidth: 1.25,
+            pointRadius: 0,
+            tension: 0.2,
+            fill: false,
+            yAxisID: "y",
+            spanGaps: true,
+          },
+        ]
+      : []),
+    ...(rsiData.length
+      ? [
+          {
+            label: "RSI",
+            data: rsiData,
+            borderColor: "rgba(250, 204, 21, 0.8)",
+            borderWidth: 1,
+            pointRadius: 0,
+            tension: 0.2,
+            fill: false,
+            yAxisID: "y1",
+            spanGaps: true,
+          },
+        ]
+      : []),
+    ...(signalMarkers.length
+      ? [
+          {
+            label: "Signals",
+            type: "scatter" as const,
+            order: 5,
+            data: signalMarkers,
+            yAxisID: "y",
+            showLine: false,
+            pointRadius: 5,
+            pointHoverRadius: 6,
+            pointHitRadius: 20,
+            pointBorderWidth: 0,
+            pointStyle: (context: ScriptableContext<"line">) => {
+              const raw = context.raw as SignalMarkerPoint | undefined;
+              if (!raw) return "circle";
+              if (raw.signalType === "BUY") return "triangle";
+              if (raw.signalType === "SELL") return "triangle";
+              return "rectRounded";
+            },
+            pointRotation: (context: ScriptableContext<"line">) => {
+              const raw = context.raw as SignalMarkerPoint | undefined;
+              if (!raw) return 0;
+              return raw.signalType === "SELL" ? 180 : 0;
+            },
+            backgroundColor: (context: ScriptableContext<"line">) => {
+              const raw = context.raw as SignalMarkerPoint | undefined;
+              return raw ? SIGNAL_COLORS[raw.signalType] : SIGNAL_COLORS.HOLD;
+            },
+            borderColor: (context: ScriptableContext<"line">) => {
+              const raw = context.raw as SignalMarkerPoint | undefined;
+              return raw ? SIGNAL_COLORS[raw.signalType] : SIGNAL_COLORS.HOLD;
+            },
+          },
+        ]
+      : []),
+  ];
+
+  const chartData: ChartData<"line"> = {
+    datasets,
   };
 
   const unit = RANGE_TO_UNIT[range] ?? "day";
 
-  const options = {
+  const scales: ChartOptions<"line">["scales"] = {
+    x: {
+      type: "time",
+      time: {
+        unit,
+        tooltipFormat: "MMM d, yyyy",
+      },
+      ticks: {
+        color: "#94a3b8",
+        maxRotation: 0,
+      },
+      grid: {
+        color: "rgba(148, 163, 184, 0.08)",
+      },
+    },
+    y: {
+      beginAtZero: false,
+      ticks: {
+        color: "#cbd5f5",
+        callback: (value: string | number) => `$${Number(value).toFixed(2)}`,
+      },
+      grid: {
+        color: "rgba(148, 163, 184, 0.08)",
+      },
+    },
+  };
+
+  if (rsiData.length) {
+    scales.y1 = {
+      position: "right",
+      beginAtZero: true,
+      min: 0,
+      max: 100,
+      ticks: {
+        color: "#facc15",
+        callback: (value: string | number) => `${Number(value).toFixed(0)}`,
+      },
+      grid: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: "RSI",
+        color: "#facc15",
+      },
+    };
+  }
+
+  const options: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: {
+        display: datasets.length > 1,
+        position: "top",
+        labels: {
+          color: "#94a3b8",
+          usePointStyle: true,
+          padding: 18,
+        },
+      },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
-            const price = context.parsed.y;
-            return `Close: $${Number(price).toFixed(2)}`;
+          label: (context: TooltipItem<"line">) => {
+            const label = context.dataset.label ?? "";
+
+            if (context.dataset.type === "scatter") {
+              const raw = context.raw as SignalMarkerPoint | undefined;
+              if (!raw) {
+                return label;
+              }
+              return `${raw.signalType} @ $${raw.price.toFixed(2)}`;
+            }
+
+            if (context.dataset.yAxisID === "y1") {
+              return `${label}: ${Number(context.parsed.y).toFixed(1)}`;
+            }
+
+            return `${label}: $${Number(context.parsed.y).toFixed(2)}`;
           },
         },
       },
     },
     interaction: {
       intersect: false,
-      mode: "index" as const,
+      mode: "index",
     },
-    scales: {
-      x: {
-        type: "time" as const,
-        time: {
-          unit,
-          tooltipFormat: "MMM d, yyyy",
-        },
-        ticks: {
-          color: "#9ca3af",
-        },
-        grid: {
-          color: "rgba(255,255,255,0.04)",
-        },
-      },
-      y: {
-        beginAtZero: false,
-        ticks: {
-          color: "#9ca3af",
-          callback: (value: string | number) => `$${Number(value).toFixed(2)}`,
-        },
-        grid: {
-          color: "rgba(255,255,255,0.04)",
-        },
-      },
-    },
+    scales,
   };
 
   return (
-    <div className="h-64 md:h-80">
+    <div className="h-72 md:h-96">
       <Line options={options} data={chartData} />
     </div>
   );
