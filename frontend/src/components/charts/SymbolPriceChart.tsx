@@ -3,6 +3,7 @@
 import type { JSX } from "react";
 import type { IndicatorPoint, Signal } from "@/lib/hooks/useSignals";
 import type { ChartData, ChartOptions, ScriptableContext, TooltipItem } from "chart.js";
+import type { TimeSeriesPoint, SignalMarkerPoint } from "@/types/chart-types";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -50,13 +51,6 @@ const SIGNAL_COLORS: Record<Signal["signal_type"], string> = {
   HOLD: "#64748b",
 };
 
-interface SignalMarkerPoint {
-  x: string;
-  y: number;
-  signalType: Signal["signal_type"];
-  price: number;
-}
-
 interface SymbolPriceChartProps {
   symbol: string;
   data: { timestamp: string; close: number }[];
@@ -102,7 +96,7 @@ export default function SymbolPriceChart({
       (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime(),
     );
 
-  const signalMarkers: SignalMarkerPoint[] = signals
+  const signalMarkers = signals
     .map((signal) => {
       const explicitPrice =
         signal.price_at_signal != null
@@ -115,7 +109,7 @@ export default function SymbolPriceChart({
           y: explicitPrice,
           signalType: signal.signal_type,
           price: explicitPrice,
-        } satisfies SignalMarkerPoint;
+        } as SignalMarkerPoint;
       }
 
       const targetTime = new Date(signal.timestamp).getTime();
@@ -144,14 +138,20 @@ export default function SymbolPriceChart({
         y: nearest.y,
         signalType: signal.signal_type,
         price: nearest.y,
-      } satisfies SignalMarkerPoint;
+      } as SignalMarkerPoint;
     })
     .filter((point): point is SignalMarkerPoint => point != null)
     .sort(
       (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime(),
     );
 
-  const datasets: ChartData<"line">["datasets"] = [
+  /**
+   * Type assertion required: Chart.js doesn't properly type mixed chart datasets.
+   * We have both 'line' and 'scatter' datasets in the same chart, but TypeScript
+   * cannot infer the correct union type for the datasets array when using
+   * conditional spread operators. The runtime data structure is correct.
+   */
+  const datasets: any[] = [
     {
       label: `${symbol} close`,
       data: priceSeries,
@@ -247,13 +247,13 @@ export default function SymbolPriceChart({
       : []),
   ];
 
-  const chartData: ChartData<"line"> = {
+  const chartData: ChartData<'line' | 'scatter', (TimeSeriesPoint | SignalMarkerPoint)[]> = {
     datasets,
   };
 
   const unit = RANGE_TO_UNIT[range] ?? "day";
 
-  const scales: ChartOptions<"line">["scales"] = {
+  const scales: ChartOptions<"line" | "scatter">["scales"] = {
     x: {
       type: "time",
       time: {
@@ -301,7 +301,7 @@ export default function SymbolPriceChart({
     };
   }
 
-  const options: ChartOptions<"line"> = {
+  const options: ChartOptions<"line" | "scatter"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -316,10 +316,10 @@ export default function SymbolPriceChart({
       },
       tooltip: {
         callbacks: {
-          label: (context: TooltipItem<"line">) => {
+          label: (context: TooltipItem<"line" | "scatter">) => {
             const label = context.dataset.label ?? "";
 
-            if (context.dataset.type === "scatter") {
+            if ((context.dataset as any).type === "scatter") {
               const raw = context.raw as SignalMarkerPoint | undefined;
               if (!raw) {
                 return label;
@@ -338,14 +338,21 @@ export default function SymbolPriceChart({
     },
     interaction: {
       intersect: false,
-      mode: "index",
+      mode: "nearest",
+      axis: "x",
     },
     scales,
   };
 
   return (
     <div className="h-72 md:h-96">
-      <Line options={options} data={chartData} />
+      {/*
+        Type assertions required: react-chartjs-2's Line component expects
+        ChartData<"line"> and ChartOptions<"line">, but we have mixed chart types
+        (ChartData<"line" | "scatter">). This is a limitation of the wrapper library's
+        type definitions. The Chart.js library itself handles mixed types correctly at runtime.
+      */}
+      <Line options={options as any} data={chartData as any} />
     </div>
   );
 }
