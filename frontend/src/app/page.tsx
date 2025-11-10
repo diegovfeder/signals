@@ -10,6 +10,7 @@
 import type { Metadata } from "next";
 
 import Hero from "@/components/sections/Hero";
+import SignalsPreview from "@/components/sections/SignalsPreview";
 import ValueProps from "@/components/sections/ValueProps";
 import HowItWorks from "@/components/sections/HowItWorks";
 import Coverage from "@/components/sections/Coverage";
@@ -27,6 +28,7 @@ export default function Home() {
     <>
       <main>
         <Hero />
+        <SignalsPreview />
         <ValueProps />
         <HowItWorks />
         <Coverage />

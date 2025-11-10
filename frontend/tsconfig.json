@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@react-email/components": [
+        "./src/emails/react-email-components"
       ]
     }
   },
