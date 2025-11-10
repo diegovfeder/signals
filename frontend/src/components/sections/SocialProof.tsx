@@ -26,7 +26,7 @@ export default function SocialProof() {
 
             {/* Main message */}
             <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
-              We're shipping openly
+              We&apos;re shipping openly
             </h3>
             <p className="text-lg md:text-xl text-muted-foreground/90 mb-8 max-w-2xl mx-auto">
               No paywall while we learn together.

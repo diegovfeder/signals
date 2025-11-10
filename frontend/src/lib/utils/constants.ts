@@ -44,6 +44,7 @@ export const DEFAULT_SYMBOLS = ["AAPL", "BTC-USD"];
 export const API_ENDPOINTS = {
   SIGNALS: "/api/signals",
   SIGNAL_BY_SYMBOL: (symbol: string) => `/api/signals/${symbol}`,
+  SIGNAL_HISTORY: (symbol: string) => `/api/signals/${symbol}/history`,
   MARKET_DATA: (symbol: string) => `/api/market-data/${symbol}/ohlcv`,
   INDICATORS: (symbol: string) => `/api/market-data/${symbol}/indicators`,
   SUBSCRIBE: "/api/subscribe",
@@ -76,3 +77,14 @@ export const RANGE_OPTIONS = [
 ] as const;
 
 export type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
+
+// Maximum window (in days) that the API exposes for signal history overlays.
+export const RANGE_HISTORY_LIMIT_DAYS: Record<RangeValue, number> = {
+  "1m": 30,
+  "3m": 90,
+  "6m": 90,
+  "1y": 90,
+  "2y": 90,
+  "5y": 90,
+  "10y": 90,
+};

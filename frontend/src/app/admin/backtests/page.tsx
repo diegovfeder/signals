@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,16 +30,16 @@ export default function AdminBacktestsPage() {
     return fromSignals.length ? fromSignals : DEFAULT_SYMBOLS;
   }, [signals]);
 
-  const [selectedSymbol, setSelectedSymbol] = useState(
+  const [userSelectedSymbol, setUserSelectedSymbol] = useState<string | null>(
     availableSymbols[0] || DEFAULT_SYMBOLS[0],
   );
-  const [range, setRange] = useState<RangeValue>("1y");
-
-  useEffect(() => {
-    if (!availableSymbols.includes(selectedSymbol) && availableSymbols.length) {
-      setSelectedSymbol(availableSymbols[0]);
+  const selectedSymbol = useMemo(() => {
+    if (userSelectedSymbol && availableSymbols.includes(userSelectedSymbol)) {
+      return userSelectedSymbol;
     }
-  }, [availableSymbols, selectedSymbol]);
+    return availableSymbols[0] || DEFAULT_SYMBOLS[0];
+  }, [userSelectedSymbol, availableSymbols]);
+  const [range, setRange] = useState<RangeValue>("1y");
 
   const {
     data: marketData = [],
@@ -103,7 +103,7 @@ export default function AdminBacktestsPage() {
           <select
             className="bg-muted border border-border rounded px-3 py-2 text-sm text-foreground"
             value={selectedSymbol}
-            onChange={(event) => setSelectedSymbol(event.target.value)}
+            onChange={(event) => setUserSelectedSymbol(event.target.value)}
           >
             {availableSymbols.map((symbol) => (
               <option key={symbol} value={symbol}>
