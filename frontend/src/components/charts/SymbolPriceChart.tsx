@@ -1,6 +1,14 @@
 "use client";
 
-import type { JSX } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type JSX,
+} from "react";
 import type { IndicatorPoint, Signal } from "@/lib/hooks/useSignals";
 import type { ChartData, ChartOptions, ScriptableContext, TooltipItem } from "chart.js";
 import type { TimeSeriesPoint, SignalMarkerPoint } from "@/types/chart-types";
@@ -28,8 +36,10 @@ ChartJS.register(
   Tooltip,
   Filler,
   Legend,
-  ScatterController
+  ScatterController,
 );
+
+let zoomPluginRegistered = false;
 
 type ChartTimeUnit = "day" | "week" | "month" | "quarter" | "year";
 
@@ -59,13 +69,53 @@ interface SymbolPriceChartProps {
   signals?: Signal[];
 }
 
-export default function SymbolPriceChart({
-  symbol,
-  data,
-  range,
-  indicators = [],
-  signals = [],
-}: SymbolPriceChartProps): JSX.Element {
+export interface SymbolPriceChartHandle {
+  resetZoom: () => void;
+}
+
+const SymbolPriceChart = forwardRef<SymbolPriceChartHandle, SymbolPriceChartProps>(
+  function SymbolPriceChart(
+    {
+      symbol,
+      data,
+      range,
+      indicators = [],
+      signals = [],
+    }: SymbolPriceChartProps,
+    ref,
+  ): JSX.Element {
+    const chartRef = useRef<ChartJS<"line" | "scatter"> | null>(null);
+    const [zoomReady, setZoomReady] = useState(zoomPluginRegistered);
+    const handleResetZoom = useCallback(() => {
+      chartRef.current?.resetZoom();
+    }, []);
+
+    useEffect(() => {
+      if (zoomPluginRegistered) {
+        setZoomReady(true);
+        return;
+      }
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      let active = true;
+
+      import("chartjs-plugin-zoom").then((module) => {
+        if (!active) {
+          return;
+        }
+        const plugin = (module as any)?.default ?? module;
+        ChartJS.register(plugin);
+        zoomPluginRegistered = true;
+        setZoomReady(true);
+      });
+
+      return () => {
+        active = false;
+      };
+    }, []);
+
   const ema12Data = indicators.reduce<{ x: string; y: number }[]>((acc, point) => {
     if (point.ema12 != null) {
       acc.push({ x: point.timestamp, y: point.ema12 });
@@ -145,8 +195,17 @@ export default function SymbolPriceChart({
       (a, b) => new Date(a.x).getTime() - new Date(b.x).getTime(),
     );
 
+  const earliestTimestampMs = priceSeries.length
+    ? new Date(priceSeries[0].x).getTime()
+    : undefined;
+  const latestTimestampMs = priceSeries.length
+    ? new Date(priceSeries[priceSeries.length - 1].x).getTime()
+    : undefined;
+  const dataWindowKey =
+    priceSeries.length > 0 ? `${priceSeries[0].x}-${priceSeries[priceSeries.length - 1].x}` : "empty";
+
   /**
-   * Type assertion required: Chart.js doesn't properly type mixed chart datasets.
+   * TODO: Remove `any[]` type - Chart.js doesn't properly type mixed chart datasets.
    * We have both 'line' and 'scatter' datasets in the same chart, but TypeScript
    * cannot infer the correct union type for the datasets array when using
    * conditional spread operators. The runtime data structure is correct.
@@ -301,6 +360,13 @@ export default function SymbolPriceChart({
     };
   }
 
+  useEffect(() => {
+    if (!zoomReady) {
+      return;
+    }
+    chartRef.current?.resetZoom();
+  }, [range, dataWindowKey, zoomReady]);
+
   const options: ChartOptions<"line" | "scatter"> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -315,10 +381,26 @@ export default function SymbolPriceChart({
         },
       },
       tooltip: {
+        displayColors: false,
+        position: "nearest",
+        yAlign: "bottom",
+        caretPadding: 8,
+        backgroundColor: "rgba(15, 23, 42, 0.85)",
+        borderColor: "rgba(148, 163, 184, 0.35)",
+        borderWidth: 1,
+        padding: 8,
+        bodyFont: { size: 11 },
+        titleFont: { size: 12, weight: 600 },
+        titleColor: "#cbd5e1",
+        bodyColor: "#e2e8f0",
+
         callbacks: {
           label: (context: TooltipItem<"line" | "scatter">) => {
             const label = context.dataset.label ?? "";
 
+            // Chart.js mixed datasets require `as any` for dataset/type,
+            // options, data, and the component ref because react-chartjs-2's
+            // type definitions assume homogeneous data.
             if ((context.dataset as any).type === "scatter") {
               const raw = context.raw as SignalMarkerPoint | undefined;
               if (!raw) {
@@ -335,6 +417,33 @@ export default function SymbolPriceChart({
           },
         },
       },
+      zoom: {
+        limits: {
+          x: {
+            min: earliestTimestampMs,
+            max: latestTimestampMs,
+            minRange: 1000 * 60 * 60 * 24,
+          },
+          y: { minRange: 0.5 },
+        },
+        pan: {
+          enabled: true,
+          mode: "x",
+          threshold: 8,
+        },
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          drag: {
+            enabled: true,
+            modifierKey: "shift",
+            backgroundColor: "rgba(15, 118, 110, 0.2)",
+            borderColor: "rgba(16, 185, 129, 0.9)",
+            borderWidth: 1,
+          },
+          mode: "x",
+        },
+      },
     },
     interaction: {
       intersect: false,
@@ -344,15 +453,38 @@ export default function SymbolPriceChart({
     scales,
   };
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetZoom: () => chartRef.current?.resetZoom(),
+    }),
+    [],
+  );
+
+  if (!zoomReady) {
+    return (
+      <div className="h-72 md:h-96 rounded-2xl bg-slate-950/50 animate-pulse" />
+    );
+  }
+
   return (
     <div className="h-72 md:h-96">
       {/*
         Type assertions required: react-chartjs-2's Line component expects
-        ChartData<"line"> and ChartOptions<"line">, but we have mixed chart types
-        (ChartData<"line" | "scatter">). This is a limitation of the wrapper library's
-        type definitions. The Chart.js library itself handles mixed types correctly at runtime.
+        ChartData<"line">, ChartOptions<"line">, and ref type for "line" only,
+        but we have mixed chart types (ChartData<"line" | "scatter">).
+        This is a limitation of the wrapper library's type definitions.
+        The Chart.js library itself handles mixed types correctly at runtime.
       */}
-      <Line options={options as any} data={chartData as any} />
+      <Line
+        ref={chartRef as any}
+        options={options as any}
+        data={chartData as any}
+      />
     </div>
   );
-}
+});
+
+SymbolPriceChart.displayName = "SymbolPriceChart";
+
+export default SymbolPriceChart;

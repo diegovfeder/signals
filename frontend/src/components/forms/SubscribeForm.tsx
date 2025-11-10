@@ -223,7 +223,7 @@ export function SubscribeForm({
               <li>Check your inbox for a confirmation email</li>
               <li>Click the confirmation link to activate your subscription</li>
               <li>
-                Check spam folder if you don't see it within a few minutes
+                Check spam folder if you don&apos;t see it within a few minutes
               </li>
             </ol>
           </div>

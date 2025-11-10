@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0 --report-unused-disable-directives",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +15,8 @@
     "@tanstack/react-query": "^5.90.5",
     "chart.js": "^4.4.0",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "chartjs-plugin-zoom": "^2.2.0",
+    "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.552.0",
     "next": "^16.0.1",
@@ -24,8 +26,7 @@
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^3.23.8",
-    "zustand": "^4.5.5",
-    "class-variance-authority": "^0.7.0"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
