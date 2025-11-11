@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,9 +20,11 @@ import { Line } from "react-chartjs-2";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AnimatedPriceTicker } from "@/components/ui/animated-price-ticker";
 import { cn } from "@/lib/utils";
 import { formatPercentage, formatPrice } from "@/lib/utils/formatters";
 import { SignalPreviewEmailContent } from "@/emails/SignalPreview";
+import Link from "next/link";
 
 ChartJS.register(
   CategoryScale,
@@ -67,17 +69,19 @@ const previewSignal = {
   ],
 };
 
-const strengthLabel = previewSignal.strength >= 70
-  ? "Strong"
-  : previewSignal.strength >= 40
-    ? "Moderate"
-    : "Developing";
+const strengthLabel =
+  previewSignal.strength >= 70
+    ? "Strong"
+    : previewSignal.strength >= 40
+      ? "Moderate"
+      : "Developing";
 
-const strengthBarClass = previewSignal.strength >= 70
-  ? "bg-primary"
-  : previewSignal.strength >= 40
-    ? "bg-yellow-500"
-    : "bg-red-500";
+const strengthBarClass =
+  previewSignal.strength >= 70
+    ? "bg-primary"
+    : previewSignal.strength >= 40
+      ? "bg-yellow-500"
+      : "bg-red-500";
 
 const formatUpdated = (date: Date) =>
   new Intl.DateTimeFormat("en-US", {
@@ -103,34 +107,31 @@ const hexToRgba = (hex: string, alpha: number) => {
 };
 
 export default function SignalsPreview() {
-  const [chartColor, setChartColor] = useState("#4ade80");
-  const [gridColor, setGridColor] = useState("rgba(41, 41, 41, 0.4)");
-  const [tickColor, setTickColor] = useState("#a2a2a2");
-  const [tooltipBackground, setTooltipBackground] = useState("rgba(23, 23, 23, 0.92)");
+  const { chartColor, gridColor, tickColor, tooltipBackground } =
+    useMemo(() => {
+      if (typeof window === "undefined") {
+        return {
+          chartColor: "#4ade80",
+          gridColor: "rgba(41, 41, 41, 0.4)",
+          tickColor: "#a2a2a2",
+          tooltipBackground: "rgba(23, 23, 23, 0.92)",
+        };
+      }
+      const rootStyles = getComputedStyle(document.documentElement);
+      const chart = rootStyles.getPropertyValue("--chart-1").trim();
+      const border = rootStyles.getPropertyValue("--border").trim();
+      const card = rootStyles.getPropertyValue("--card").trim();
+      const muted = rootStyles.getPropertyValue("--muted-foreground").trim();
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const rootStyles = getComputedStyle(document.documentElement);
-    const chart = rootStyles.getPropertyValue("--chart-1").trim();
-    const border = rootStyles.getPropertyValue("--border").trim();
-    const card = rootStyles.getPropertyValue("--card").trim();
-    const muted = rootStyles.getPropertyValue("--muted-foreground").trim();
-
-    if (chart) {
-      setChartColor(chart);
-    }
-    if (border) {
-      setGridColor(hexToRgba(border, 0.35));
-    }
-    if (card) {
-      setTooltipBackground(hexToRgba(card, 0.92));
-    }
-    if (muted) {
-      setTickColor(muted);
-    }
-  }, []);
+      return {
+        chartColor: chart || "#4ade80",
+        gridColor: border ? hexToRgba(border, 0.35) : "rgba(41, 41, 41, 0.4)",
+        tickColor: muted || "#a2a2a2",
+        tooltipBackground: card
+          ? hexToRgba(card, 0.92)
+          : "rgba(23, 23, 23, 0.92)",
+      };
+    }, []);
 
   const gain = useMemo(() => {
     if (!btcTwoYearSeries.length) {
@@ -190,6 +191,7 @@ export default function SignalsPreview() {
       },
       scales: {
         x: {
+          type: "time" as const,
           ticks: {
             color: tickColor,
             maxRotation: 0,
@@ -201,11 +203,15 @@ export default function SignalsPreview() {
           },
         },
         y: {
+          type: "linear" as const,
           ticks: {
             color: tickColor,
             padding: 10,
-            callback(value: number) {
-              return formatPrice(value);
+            callback(tickValue: number | string) {
+              if (typeof tickValue === "number") {
+                return formatPrice(tickValue);
+              }
+              return tickValue;
             },
           },
           grid: {
@@ -220,164 +226,164 @@ export default function SignalsPreview() {
   return (
     <section
       aria-labelledby="signals-preview-heading"
-      className="relative isolate px-4 pb-16 pt-10 sm:pb-20 lg:pt-16"
+      className="relative isolate mx-auto max-w-6xl px-4"
     >
-      <div className="container-app">
-        <div className="mx-auto max-w-6xl">
-          <div className="rounded-[2rem] border border-border/60 bg-card/40 p-6 shadow-2xl backdrop-blur">
-            <header className="mb-10 flex flex-col gap-4 text-left">
-              <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-                Signals preview
-              </p>
-              <h2
-                id="signals-preview-heading"
-                className="text-3xl font-semibold text-foreground sm:text-4xl"
-              >
-                See the signal experience in one glance
-              </h2>
-              <p className="max-w-3xl text-base text-muted-foreground">
-                A lightweight glimpse at the dashboard you’ll open every morning: price action context, the
-                latest callout, and the Resend-powered alert that lands in your inbox.
-              </p>
-            </header>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card
-                role="group"
-                aria-labelledby="signals-preview-chart-heading"
-                className="flex h-full flex-col border border-border/60 bg-card/80 p-6"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      2-year snapshot
-                    </p>
-                    <h3
-                      id="signals-preview-chart-heading"
-                      className="mt-2 text-xl font-semibold text-foreground"
-                    >
-                      BTC-USD performance
-                    </h3>
-                  </div>
-                  <Badge
-                    variant="success"
-                    className="px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-                  >
-                    {formatPercentage(gain)} 2Y
-                  </Badge>
-                </div>
-                <div className="mt-6 h-64">
-                  <Line data={chartData} options={chartOptions} aria-hidden="true" />
-                </div>
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Static illustration showing how we visualise long-term momentum with our built-in chart tools.
+      <div className="rounded-4xl border border-border/60 bg-card/40 p-6 shadow-2xl backdrop-blur">
+        <div className="grid gap-6 sm:grid-cols-2 lg:auto-rows-fr md:grid-cols-5">
+          <div
+            role="group"
+            aria-labelledby="signals-preview-chart-heading"
+            className="flex h-fit flex-col border border-border/60 bg-card/80 p-6 sm:col-span-2 md:col-span-5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  2-year snapshot
                 </p>
-              </Card>
-
-              <Card
-                role="group"
-                aria-labelledby="signals-preview-card-heading"
-                className="flex h-full flex-col justify-between border border-border/60 bg-card/80 p-6"
-              >
-                <div className="flex flex-col gap-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Latest signal card
-                      </p>
-                      <h3
-                        id="signals-preview-card-heading"
-                        className="mt-2 text-xl font-semibold text-foreground"
-                      >
-                        {previewSignal.symbol}
-                      </h3>
-                    </div>
-                    <Badge
-                      className={cn(
-                        "border-0 px-3 py-1 text-xs font-semibold uppercase tracking-wide",
-                        previewSignal.signalType === "BUY"
-                          ? "bg-primary text-primary-foreground"
-                          : previewSignal.signalType === "SELL"
-                            ? "bg-destructive text-destructive-foreground"
-                            : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {previewSignal.signalType}
-                    </Badge>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-muted-foreground">Current price</p>
-                    <p className="mt-1 text-3xl font-semibold text-foreground">
-                      {formatPrice(previewSignal.price)}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Updated {formatUpdated(previewSignal.updatedAt)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
-                      <span>Strength</span>
-                      <span>{strengthLabel}</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-muted">
-                      <div
-                        className={cn("h-full rounded-full transition-all", strengthBarClass)}
-                        style={{ width: `${previewSignal.strength}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 font-mono text-sm text-foreground">
-                      {previewSignal.strength}%
-                    </p>
-                  </div>
-
-                  <ul className="space-y-2 text-sm text-muted-foreground/90">
-                    {previewSignal.reasoning.slice(0, 2).map((item, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="mt-0.5 text-ring">•</span>
-                        <span className="leading-6">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Button
-                  variant="link"
-                  className="mt-6 px-0 text-sm font-semibold text-primary hover:text-primary/90"
-                  asChild
+                <h3
+                  id="signals-preview-chart-heading"
+                  className="mt-2 text-xl font-semibold text-foreground"
                 >
-                  <a
-                    href="/signals"
-                    aria-label="Explore how trading signals are generated"
-                    className="px-0"
-                  >
-                    See how signals are generated →
-                  </a>
-                </Button>
-              </Card>
+                  BTC-USD performance
+                </h3>
+              </div>
+              <Badge className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200 shadow-sm">
+                {formatPercentage(gain)}
+              </Badge>
+            </div>
+            <div className="mt-6 h-72 lg:h-80">
+              <Line
+                data={chartData}
+                options={chartOptions}
+                aria-hidden="true"
+              />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Static illustration showing how we visualise long-term momentum
+              with our built-in chart tools.
+            </p>
+          </div>
 
-              <Card
-                role="group"
-                aria-labelledby="signals-preview-email-heading"
-                className="flex h-full flex-col border border-border/60 bg-card/80 p-6"
-              >
-                <div className="mb-5">
+          <Card
+            role="group"
+            aria-labelledby="signals-preview-card-heading"
+            className="flex flex-col border border-border/60 bg-card/80 p-6 sm:col-span-1 md:col-span-2"
+          >
+            <div className="flex flex-col gap-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Resend email alert
+                    Latest signal card
                   </p>
                   <h3
-                    id="signals-preview-email-heading"
+                    id="signals-preview-card-heading"
                     className="mt-2 text-xl font-semibold text-foreground"
                   >
-                    Inbox preview
+                    {previewSignal.symbol}
                   </h3>
                 </div>
-                <div className="flex-1">
-                  <SignalPreviewEmailContent className="border-0 bg-muted/30 p-4 shadow-none backdrop-blur-none" />
+                <Badge
+                  className={cn(
+                    "border-0 px-3 py-1 text-xs font-semibold uppercase tracking-wide",
+                    previewSignal.signalType === "BUY"
+                      ? "bg-primary text-primary-foreground"
+                      : previewSignal.signalType === "SELL"
+                        ? "bg-destructive text-destructive-foreground"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {previewSignal.signalType}
+                </Badge>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Current price</p>
+                <p className="mt-1 text-3xl font-semibold text-foreground">
+                  {formatPrice(previewSignal.price)}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Updated {formatUpdated(previewSignal.updatedAt)}
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+                  <span>Strength</span>
+                  <span>{strengthLabel}</span>
                 </div>
-              </Card>
+                <div className="mt-2 h-2 rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      strengthBarClass,
+                    )}
+                    style={{
+                      width: `${previewSignal.strength}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-2 font-mono text-sm text-foreground">
+                  {previewSignal.strength}%
+                </p>
+              </div>
+
+              <ul className="space-y-2 text-sm text-muted-foreground/90">
+                {previewSignal.reasoning.slice(0, 2).map((item, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-ring">•</span>
+                    <span className="leading-6">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant="link"
+                className="mt-6 px-0 text-sm font-semibold text-primary hover:text-primary/90"
+                asChild
+              >
+                <Link
+                  href="/signals"
+                  aria-label="Explore how trading signals are generated"
+                  className="px-3 my-2"
+                >
+                  <span className="text-wrap text-lg text-foreground py-4">
+                    Inspect our signals to see how they are being generated.
+                  </span>
+                </Link>
+              </Button>
+              <div className="mt-4">
+                <AnimatedPriceTicker
+                  startPrice={45000}
+                  endPrice={previewSignal.price}
+                  duration={2000}
+                  symbol={previewSignal.symbol}
+                />
+              </div>
             </div>
-          </div>
+          </Card>
+
+          <Card
+            role="group"
+            aria-labelledby="signals-preview-email-heading"
+            className="flex h-full flex-col border border-border/60 bg-card/80 p-6 sm:col-span-1 md:col-span-3"
+          >
+            <div className="mb-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Resend email alert
+              </p>
+              <h3
+                id="signals-preview-email-heading"
+                className="mt-2 text-xl font-semibold text-foreground"
+              >
+                Inbox preview
+              </h3>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Sent {formatUpdated(previewSignal.updatedAt)}
+              </p>
+            </div>
+            <div className="flex-1">
+              <SignalPreviewEmailContent className="border-0 bg-muted/30 p-4 shadow-none backdrop-blur-none" />
+            </div>
+          </Card>
         </div>
       </div>
     </section>

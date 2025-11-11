@@ -6,28 +6,29 @@
 
 import { Badge } from "@/components/ui/badge";
 import { NumberedStep } from "@/components/ui/numbered-step";
+import { SubscribeForm } from "../forms/SubscribeForm";
 
 export default function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Analysis",
+      title: "Sync",
       description:
-        "Fetch real-time prices and compute RSI + EMA indicators across all markets.",
+        "Each evening Prefect ingests fresh Yahoo Finance OHLCV for your symbols, validates gaps, and stores everything in Supabase.",
       delay: 0,
     },
     {
       number: "02",
-      title: "Scoring",
+      title: "Diagnose",
       description:
-        "Turn technical conditions into a 0–100 confidence score for every signal.",
+        "Signals runs RSI, EMA, and custom heuristics to produce a 0–100 confidence score plus bullet-point reasoning you can read.",
       delay: 100,
     },
     {
       number: "03",
-      title: "Decision",
+      title: "Brief",
       description:
-        "Review signals in the dashboard or act immediately from email alerts.",
+        "Resend emails and the dashboard publish the same plain-English recap so you can act—or ignore—with full context in seconds.",
       delay: 200,
     },
   ];
@@ -45,11 +46,11 @@ export default function HowItWorks() {
               <span className="text-ring">✦</span> How It Works
             </Badge>
             <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-              Simple Process, Beautiful Results
+              From nightly sync to inbox-ready briefings
             </h2>
             <p className="max-w-2xl text-muted-foreground/80 md:text-xl">
-              Three steps from data to decision. Automated, transparent,
-              actionable.
+              Three deliberate steps turn raw market data into human-language
+              signals you can trust every morning.
             </p>
           </div>
 
@@ -65,6 +66,17 @@ export default function HowItWorks() {
               />
             ))}
           </div>
+        </div>
+        {/* Subscribe form */}
+        <div
+          id="subscribe"
+          className="mt-14 sm:mt-20 animate-slide-up"
+          style={{ animationDelay: "150ms" }}
+        >
+          <SubscribeForm
+            className="mx-auto max-w-2xl"
+            helperText="No spam. We only email when a conviction-level signal triggers."
+          />
         </div>
       </div>
     </section>

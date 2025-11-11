@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { usePostHog } from "posthog-js/react";
 import { z } from "zod";
@@ -34,6 +34,9 @@ const emailSchema = z
   .email("Enter a valid email address")
   .transform((value) => value.toLowerCase());
 
+type AnimationState = "opening" | "closing" | null;
+const CARD_ANIMATION_MS = 350;
+
 export function SubscribeForm({
   variant = "card",
   helperText = "Free during MVP. Unsubscribe anytime.",
@@ -45,24 +48,58 @@ export function SubscribeForm({
   const [email, setEmail] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationState, setAnimationState] =
+    useState<AnimationState>(null);
   const subscribedEmail = useSubscriptionStore((state) => state.email);
   const setSubscribedEmail = useSubscriptionStore((state) => state.setEmail);
   const isMinimized = useSubscriptionStore((state) => state.isMinimized);
   const setIsMinimized = useSubscriptionStore((state) => state.setIsMinimized);
   const posthog = usePostHog();
+  const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animationRafRef = useRef<number | null>(null);
+
+  const clearAnimationTimeout = () => {
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+      animationTimeoutRef.current = null;
+    }
+  };
+
+  const startAnimation = (
+    state: Exclude<AnimationState, null>,
+    onComplete?: () => void,
+  ) => {
+    clearAnimationTimeout();
+    setAnimationState(state);
+    animationTimeoutRef.current = setTimeout(() => {
+      onComplete?.();
+      setAnimationState(null);
+      animationTimeoutRef.current = null;
+    }, CARD_ANIMATION_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAnimationTimeout();
+      if (animationRafRef.current) {
+        cancelAnimationFrame(animationRafRef.current);
+      }
+    };
+  }, []);
 
   const handleMinimize = () => {
-    if (showSubscribedState) {
-      // Only animate when user has subscribed
-      setIsAnimating(true);
-      setTimeout(() => {
-        setIsMinimized(true);
-        setIsAnimating(false);
-      }, 500); // Match animation duration
-    } else {
-      setIsMinimized(true);
+    startAnimation("closing", () => setIsMinimized(true));
+  };
+
+  const handleRestore = () => {
+    setIsMinimized(false);
+    if (animationRafRef.current) {
+      cancelAnimationFrame(animationRafRef.current);
     }
+    animationRafRef.current = requestAnimationFrame(() => {
+      startAnimation("opening");
+      animationRafRef.current = null;
+    });
   };
 
   const apiBase =
@@ -117,6 +154,12 @@ export function SubscribeForm({
   const showCardChrome = variant === "card";
   const showSubscribedState = Boolean(subscribedEmail);
   const normalizedApiBase = apiBase.replace(/\/$/, "");
+  const animationClass =
+    animationState === "opening"
+      ? "subscribe-anim-opening"
+      : animationState === "closing"
+        ? "subscribe-anim-closing"
+        : "";
   // const unsubscribeExample = `${normalizedApiBase}/api/subscribe/unsubscribe/{token}`;
 
   // Show minimized state
@@ -124,7 +167,7 @@ export function SubscribeForm({
     return (
       <div className={cx("flex justify-center", className)}>
         <Button
-          onClick={() => setIsMinimized(false)}
+          onClick={handleRestore}
           variant="outline"
           size="lg"
           className="gap-2 px-6 cursor-pointer"
@@ -142,15 +185,9 @@ export function SubscribeForm({
         showCardChrome
           ? "card p-8 flex flex-col gap-4 text-left relative max-w-2xl mx-auto"
           : "flex flex-col gap-3 relative max-w-2xl mx-auto",
+        animationClass,
         className,
       )}
-      style={
-        isAnimating
-          ? {
-              animation: "slideDown 0.5s ease-in-out forwards",
-            }
-          : undefined
-      }
     >
       {/* Close/Minimize button */}
       <Button

@@ -522,6 +522,36 @@ h6 {
         }
     }
 
+    @keyframes subscribeOpen {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes subscribeClose {
+        from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(8px) scale(0.97);
+        }
+    }
+
+    .subscribe-anim-opening {
+        animation: subscribeOpen 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .subscribe-anim-closing {
+        animation: subscribeClose 0.35s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+
     /* Green-themed animations */
     @keyframes float {
         0%,

@@ -22,8 +22,11 @@ export default function AdminSubscribersPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center justify-between flex-wrap gap-4">
-        <div>
+      <header className="flex items-center justify-between flex-wrap gap-4 mb-2">
+        <div className="flex items-center flex-wrap gap-4">
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/admin">← Back</Link>
+          </Button>
           <h1 className="text-3xl font-bold text-foreground">Subscribers</h1>
           <p className="text-sm text-muted-foreground">
             Inspect the email list captured via the landing page and dashboard
@@ -40,12 +43,6 @@ export default function AdminSubscribersPage() {
           >
             Refresh data
           </Button>
-          <Link
-            href="/admin"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Go back to admin home
-          </Link>
         </div>
       </header>
 

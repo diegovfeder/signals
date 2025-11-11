@@ -1,6 +1,5 @@
 import {
   Body,
-  Button as EmailButton,
   Container,
   Head,
   Heading,
@@ -9,9 +8,10 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/utils/formatters";
+import { Button } from "@/components/ui/button";
 
 const previewSignal = {
   symbol: "BTC-USD",
@@ -61,9 +61,6 @@ export function SignalPreviewEmailContent({
           >
             Daily signal recap
           </Heading>
-          <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Resend alerts
-          </span>
         </div>
 
         <Text className="text-sm text-muted-foreground">
@@ -93,16 +90,18 @@ export function SignalPreviewEmailContent({
           </ul>
         </Section>
 
-        <EmailButton
-          href="https://signals.run/dashboard"
-          className="mt-2 w-full justify-center px-5 py-2.5 text-sm font-semibold"
-        >
-          Open dashboard
-        </EmailButton>
+        <Button asChild size="lg" className="text-center">
+          <Link
+            href="/signals/BTC-USD"
+            className="mt-2 w-full justify-center px-5 py-2.5 text-sm font-semibold"
+          >
+            Open dashboard
+          </Link>
+        </Button>
 
         <Text className="text-xs leading-5 text-muted-foreground/80">
-          Alerts are powered by Resend. You can manage your notification preferences or
-          unsubscribe at any time from your account settings.
+          Alerts are powered by Resend. You can manage your notification
+          preferences or unsubscribe at any time from your account settings.
         </Text>
       </div>
     </Section>

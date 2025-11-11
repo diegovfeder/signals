@@ -61,6 +61,35 @@ const SIGNAL_COLORS: Record<Signal["signal_type"], string> = {
   HOLD: "#64748b",
 };
 
+/**
+ * Format numbers with abbreviated suffixes (k, M, B)
+ * Examples: 140000 → 140k, 1400000 → 1.4M, 0.14 → 0.14
+ */
+function formatAbbreviatedNumber(value: number): string {
+  const absValue = Math.abs(value);
+
+  if (absValue >= 1_000_000_000) {
+    const formatted = value / 1_000_000_000;
+    return `${formatted % 1 === 0 ? formatted.toFixed(0) : formatted.toFixed(1)}B`;
+  }
+  if (absValue >= 1_000_000) {
+    const formatted = value / 1_000_000;
+    return `${formatted % 1 === 0 ? formatted.toFixed(0) : formatted.toFixed(1)}M`;
+  }
+  if (absValue >= 1_000) {
+    const formatted = value / 1_000;
+    return `${formatted % 1 === 0 ? formatted.toFixed(0) : formatted.toFixed(1)}k`;
+  }
+
+  // For small numbers, show appropriate decimal places
+  if (absValue >= 1) {
+    // Remove .00 for whole numbers (280.00 -> 280)
+    return value % 1 === 0 ? value.toFixed(0) : value.toFixed(2);
+  }
+
+  return value.toFixed(4);
+}
+
 interface SymbolPriceChartProps {
   symbol: string;
   data: { timestamp: string; close: number }[];
@@ -331,7 +360,7 @@ const SymbolPriceChart = forwardRef<SymbolPriceChartHandle, SymbolPriceChartProp
       beginAtZero: false,
       ticks: {
         color: "#cbd5f5",
-        callback: (value: string | number) => `$${Number(value).toFixed(2)}`,
+        callback: (value: string | number) => `$${formatAbbreviatedNumber(Number(value))}`,
       },
       grid: {
         color: "rgba(148, 163, 184, 0.08)",

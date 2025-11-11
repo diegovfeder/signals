@@ -40,8 +40,9 @@ export default function ValueProps() {
     },
   ];
 
+  // bg-[#0a0a0a]
   return (
-    <section className="relative isolate w-full py-20 px-4 md:py-32 bg-[#0a0a0a]">
+    <div className="relative isolate w-full py-4">
       {/* Darker background with green radial gradient */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(0,98,57,0.08),transparent_70%)]" />
 
@@ -85,6 +86,6 @@ export default function ValueProps() {
           />
         </div>
       </div>
-    </section>
+    </div>
   );
 }
