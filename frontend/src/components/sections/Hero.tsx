@@ -1,16 +1,23 @@
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { HERO } from "@/lib/utils/constants";
+import ValueProps from "./ValueProps";
+import SignalsPreview from "@/components/sections/SignalsPreview";
 
 export default function Hero() {
   return (
-    <section className="relative isolate overflow-hidden pt-20 pb-16 sm:pt-32 sm:pb-20 px-4 min-h-[94vh] flex items-center">
+    <section className="relative isolate flex min-h-[94vh] flex-col gap-12 overflow-hidden px-4 pt-20 pb-16 sm:pt-32 sm:pb-20">
       {/* GREEN animated grid background - more visible */}
       <div
         className="absolute inset-0 -z-10 opacity-40"
         style={{
           backgroundImage: `linear-gradient(to right, rgba(0, 98, 57, 0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 98, 57, 0.15) 1px, transparent 1px)`,
           backgroundSize: "4rem 4rem",
+          WebkitMaskImage:
+            "radial-gradient(circle at 50% 115%, transparent 30%, rgba(0, 0, 0, 0.8) 65%, rgba(0, 0, 0, 0.95) 85%)",
+          maskImage:
+            "radial-gradient(circle at 50% 115%, transparent 30%, rgba(0, 0, 0, 0.8) 65%, rgba(0, 0, 0, 0.95) 85%)",
         }}
       />
 
@@ -34,7 +41,7 @@ export default function Hero() {
         style={{ animationDelay: "2s" }}
       />
 
-      <div className="container-app relative">
+      <div className="container-app relative flex flex-1 items-center">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="my-8 text-4xl font-bold leading-1.5 tracking-tight animate-slide-up md:text-5xl lg:text-6xl text-foreground">
             {HERO.TITLE}
@@ -60,6 +67,7 @@ export default function Hero() {
           </div>
         </div>
       </div>
+      <SignalsPreview />
     </section>
   );
 }

@@ -68,9 +68,14 @@ export default function AdminBacktestsPage() {
     <div className="space-y-8">
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Backtests & Diagnostics
-          </h1>
+          <div className="flex items-center flex-wrap gap-4 mb-2">
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/admin">← Back</Link>
+            </Button>
+            <h1 className="text-3xl font-bold text-foreground">
+              Backtests & Diagnostics
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             Verify that the latest Prefect replay populated signals, indicators,
             and summary stats.
@@ -86,12 +91,6 @@ export default function AdminBacktestsPage() {
           >
             Refresh data
           </Button>
-          <Link
-            href="/admin"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Go back to admin home
-          </Link>
         </div>
       </header>
 

@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RANGE_OPTIONS, RangeValue } from "@/lib/utils/constants";
-
+import { Fullscreen } from "lucide-react";
 const formatDate = (input?: string | null) => {
   if (!input) return "-";
   const date = new Date(input);
@@ -199,28 +199,31 @@ export default function SignalDetail({
                   <h2 className="text-xl font-semibold text-foreground">
                     Price Chart
                   </h2>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 justify-between">
+                    <div>
+                      {RANGE_OPTIONS.map((option) => (
+                        <Badge
+                          key={option.value}
+                          onClick={() => setSelectedRange(option.value)}
+                          className={`px-3 py-1.5 cursor-pointer text-sm transition-all ${
+                            selectedRange === option.value
+                              ? "bg-primary border-primary text-white"
+                              : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card"
+                          }`}
+                        >
+                          {option.label}
+                        </Badge>
+                      ))}
+                    </div>
                     <Button
                       type="button"
                       size="sm"
+                      className="ms-4"
                       onClick={handleResetZoom}
                       disabled={!marketData.length}
                     >
-                      Reset zoom
+                      <Fullscreen />
                     </Button>
-                    {RANGE_OPTIONS.map((option) => (
-                      <Badge
-                        key={option.value}
-                        onClick={() => setSelectedRange(option.value)}
-                        className={`px-3 py-1.5 cursor-pointer text-sm transition-all ${
-                          selectedRange === option.value
-                            ? "bg-primary border-primary text-white"
-                            : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card"
-                        }`}
-                      >
-                        {option.label}
-                      </Badge>
-                    ))}
                   </div>
                 </div>
 
@@ -264,7 +267,8 @@ export default function SignalDetail({
                     )}
                     {indicatorsError && indicatorsErrorObj && (
                       <p className="text-xs text-red-500 mt-2">
-                        Indicator data unavailable: {String(
+                        Indicator data unavailable:{" "}
+                        {String(
                           indicatorsErrorObj.message ?? indicatorsErrorObj,
                         )}
                       </p>
@@ -276,9 +280,8 @@ export default function SignalDetail({
                     )}
                     {historyError && historyErrorObj && (
                       <p className="text-xs text-red-500 mt-1">
-                        Signal history unavailable: {String(
-                          historyErrorObj.message ?? historyErrorObj,
-                        )}
+                        Signal history unavailable:{" "}
+                        {String(historyErrorObj.message ?? historyErrorObj)}
                       </p>
                     )}
                     {rangeStats && (

@@ -10,11 +10,14 @@
 import type { Metadata } from "next";
 
 import Hero from "@/components/sections/Hero";
-import ValueProps from "@/components/sections/ValueProps";
 import HowItWorks from "@/components/sections/HowItWorks";
-import Coverage from "@/components/sections/Coverage";
-import SocialProof from "@/components/sections/SocialProof";
+import Pricing from "@/components/sections/Pricing";
 import FinalCTA from "@/components/sections/FinalCTA";
+// import SignalsPreview from "@/components/sections/SignalsPreview";
+// import ValueProps from "@/components/sections/ValueProps";
+// import Coverage from "@/components/sections/Coverage";
+// import SocialProof from "@/components/sections/SocialProof";
+// import FinalCTA from "@/components/sections/FinalCTA";
 
 export const metadata: Metadata = {
   title: "SIGNALS — Automated Trading Signals (RSI & EMA)",
@@ -27,10 +30,11 @@ export default function Home() {
     <>
       <main>
         <Hero />
-        <ValueProps />
         <HowItWorks />
-        <Coverage />
-        <SocialProof />
+        {/* <ValueProps /> */}
+        {/*<Pricing />*/}
+        {/* <Coverage /> */}
+        {/* <SocialProof /> */}
         <FinalCTA />
       </main>
     </>
