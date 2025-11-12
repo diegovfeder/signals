@@ -13,9 +13,11 @@ from prefect import task
 try:
     from ..lib.strategies import StrategyInputs, get_strategy
     from ..lib.explanation_generator import generate_explanation
+    from ..lib.posthog_client import is_feature_enabled, capture_event
 except ImportError:
     from lib.strategies import StrategyInputs, get_strategy
     from lib.explanation_generator import generate_explanation
+    from lib.posthog_client import is_feature_enabled, capture_event
 
 from .db import get_db_conn
 
@@ -49,9 +51,15 @@ def generate_and_store_signal(
     result = strategy.generate(inputs)
     idempotency_key = f"{symbol}:{strategy.name}:{ts.isoformat()}"
 
-    # Generate LLM explanation if enabled (via ENABLE_LLM_EXPLANATIONS env var)
+    # Check PostHog feature flag (with ENABLE_LLM_EXPLANATIONS env var as fallback)
+    is_llm_explanations_enabled = is_feature_enabled(
+        flag_key="llm-signal-explanations",
+        distinct_id=symbol,
+        groups={"symbol": symbol},
+    )
+
     explanation = None
-    if os.getenv("ENABLE_LLM_EXPLANATIONS", "false").lower() == "true":
+    if is_llm_explanations_enabled:
         try:
             signal_data = {
                 "symbol": symbol,
@@ -69,6 +77,18 @@ def generate_and_store_signal(
             explanation = generate_explanation(signal_data)
             if explanation:
                 print(f"[explanation] Generated for {symbol} {result.signal_type}")
+                # Track where explanation was generated
+                capture_event(
+                    distinct_id=symbol,
+                    event_name="llm_explanation_generated",
+                    properties={
+                        "signal_type": result.signal_type,
+                        "strength": result.strength,
+                        "explanation_length": len(explanation),
+                        "generation_location": "signal_creation",
+                    },
+                    groups={"symbol": symbol},
+                )
         except Exception as e:
             print(f"[explanation] Failed for {symbol}: {e}")
             # Continue without explanation - it's optional

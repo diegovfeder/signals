@@ -49,13 +49,13 @@ def _maybe_backfill_explanation(signal: dict) -> str:
 
     # Check PostHog feature flag (with fallback to ENABLE_LLM_EXPLANATIONS env var)
     symbol = signal.get("symbol", "unknown")
-    flag_enabled = is_feature_enabled(
+    is_llm_explanations_enabled = is_feature_enabled(
         flag_key="llm-signal-explanations",
         distinct_id=symbol,
         groups={"symbol": symbol},
     )
 
-    if not flag_enabled:
+    if not is_llm_explanations_enabled:
         print(
             f"[email] No stored explanation for {signal.get('id')} "
             f"and feature flag 'llm-signal-explanations' disabled for {symbol}."
@@ -85,6 +85,7 @@ def _maybe_backfill_explanation(signal: dict) -> str:
                     "signal_type": signal.get("signal_type"),
                     "strength": signal.get("strength"),
                     "explanation_length": len(explanation),
+                    "generation_location": "email_backfill",
                 },
                 groups={"symbol": symbol},
             )

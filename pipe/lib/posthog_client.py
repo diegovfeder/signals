@@ -51,7 +51,9 @@ def is_feature_enabled(
     distinct_id: str,
     person_properties: Optional[dict] = None,
     groups: Optional[dict] = None,
+    group_properties: Optional[dict] = None,
     only_evaluate_locally: bool = False,
+    send_feature_flag_events: bool = True,
 ) -> bool:
     """
     Check if a feature flag is enabled for the given user/context.
@@ -61,7 +63,9 @@ def is_feature_enabled(
         distinct_id: Unique identifier for the context (e.g., signal symbol)
         person_properties: Additional properties for targeting (optional)
         groups: Group identifiers for group-based flags (optional)
+        group_properties: Properties for the groups (optional)
         only_evaluate_locally: If True, only use locally cached flags
+        send_feature_flag_events: If True, send events to PostHog for flag evaluation
 
     Returns:
         True if feature is enabled, False otherwise
@@ -80,9 +84,11 @@ def is_feature_enabled(
         is_enabled = client.feature_enabled(
             flag_key,
             distinct_id,
-            person_properties=person_properties or {},
-            groups=groups or {},
+            person_properties=person_properties,
+            groups=groups,
+            group_properties=group_properties,
             only_evaluate_locally=only_evaluate_locally,
+            send_feature_flag_events=send_feature_flag_events,
         )
 
         print(f"[posthog] Feature '{flag_key}' for '{distinct_id}': {is_enabled}")
@@ -100,6 +106,7 @@ def capture_event(
     event_name: str,
     properties: Optional[dict] = None,
     groups: Optional[dict] = None,
+    group_properties: Optional[dict] = None,
 ) -> None:
     """
     Capture an analytics event in PostHog.
@@ -109,6 +116,7 @@ def capture_event(
         event_name: Name of the event (e.g., "llm_explanation_generated")
         properties: Event properties (optional)
         groups: Group identifiers (optional)
+        group_properties: Properties for the groups (optional)
     """
     client = _get_posthog_client()
 
@@ -120,8 +128,9 @@ def capture_event(
         client.capture(
             distinct_id,
             event_name,
-            properties=properties or {},
-            groups=groups or {},
+            properties=properties,
+            groups=groups,
+            group_properties=group_properties,
         )
         print(f"[posthog] Captured event '{event_name}' for '{distinct_id}'")
     except Exception as exc:
