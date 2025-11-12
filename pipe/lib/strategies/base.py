@@ -25,6 +25,9 @@ class StrategyResult:
     signal_type: SignalType
     reasoning: List[str]
     strength: float
+    explanation: str | None = (
+        None  # Optional LLM-generated natural language explanation
+    )
 
 
 class Strategy(Protocol):

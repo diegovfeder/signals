@@ -1679,14 +1679,15 @@ wheels = [
 
 [[package]]
 name = "resend"
-version = "0.7.0"
+version = "2.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/27/81/65501bd8e9604dc63fc87ec29dd6e62bc03df5471d8f1faf8c4363abbe92/resend-0.7.0.tar.gz", hash = "sha256:a498f1f513097b0cb67a7a2c786ea642d84dc79ec1cd60c27cdfdfd5628a98a9", size = 7001, upload-time = "2024-01-10T00:59:09.323Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/21/1ddb4c221fc8310a99956f55c2e5e21b548378bde4a662473dcdda6f4018/resend-2.19.0.tar.gz", hash = "sha256:b11191561cdb0ed7aa193212b7c8865bf635013c4d11bd81caf471d1b362be02", size = 30604, upload-time = "2025-10-31T13:59:32.274Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/66/30c84a0436e749c625b1a6e5deb7387374fac876d2930b5b655a739892cd/resend-0.7.0-py2.py3-none-any.whl", hash = "sha256:c3823947e9109adb803daab1cdf8cf057bc1e2f6cd2c586e4eeac6a9c72cdf58", size = 8674, upload-time = "2024-01-10T00:59:07.551Z" },
+    { url = "https://files.pythonhosted.org/packages/a0/1f/f53acaad9299a72671c4314fd42c0b332464eaf0d20ea5303e75b8a9a963/resend-2.19.0-py2.py3-none-any.whl", hash = "sha256:1a8b9fcacbe058876ebce757ac2542103ed7227caec10e5c58613ee58615acaa", size = 50881, upload-time = "2025-10-31T13:59:31.015Z" },
 ]
 
 [[package]]
@@ -2002,6 +2003,7 @@ name = "trading-signals-pipeline"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "numpy" },
     { name = "polars" },
     { name = "prefect" },
@@ -2015,6 +2017,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=1.26.2" },
     { name = "polars", specifier = ">=1.0.0" },
     { name = "prefect", specifier = ">=2.19.0" },
@@ -2022,7 +2025,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.1.0" },
     { name = "python-dotenv", specifier = "==1.0.0" },
     { name = "requests", specifier = ">=2.31.0" },
-    { name = "resend", specifier = "==0.7.0" },
+    { name = "resend", specifier = ">=2.19.0" },
     { name = "sqlalchemy", specifier = ">=2.0.35" },
 ]
 
