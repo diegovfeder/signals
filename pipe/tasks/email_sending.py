@@ -27,7 +27,7 @@ except ImportError:
     from tasks.db import get_db_conn
 
 
-def _maybe_backfill_explanation(signal: Dict) -> str:
+def _maybe_backfill_explanation(signal: dict) -> str:
     """
     Ensure we have an explanation before sending the email.
 

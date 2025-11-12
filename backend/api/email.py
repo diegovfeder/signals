@@ -2,7 +2,7 @@
 Email sending functionality using Resend API.
 
 All emails now use Resend templates stored in frontend/src/lib/email-templates/.
-Templates are synced to Resend via: bun run sync-templates
+Templates are synced (and published) via: bun run sync-templates:publish
 """
 
 import os

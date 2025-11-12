@@ -12,6 +12,7 @@
  *   bun run scripts/sync-email-templates.ts --only signals-notification  # Sync specific template
  *   bun run scripts/sync-email-templates.ts --list             # List all templates in Resend
  *   bun run scripts/sync-email-templates.ts --create-only      # Only create new (skip existing)
+ *   bun run scripts/sync-email-templates.ts --publish          # Sync + publish latest drafts
  *
  * Environment:
  *   Requires RESEND_API_KEY in .env.local
@@ -24,6 +25,7 @@ import { EMAIL_TEMPLATES } from "../src/lib/email-templates";
 const args = process.argv.slice(2);
 const listMode = args.includes("--list");
 const createOnly = args.includes("--create-only");
+const publishMode = args.includes("--publish");
 const onlyTemplate = args.find((arg) => arg.startsWith("--only"))
   ? args[args.indexOf("--only") + 1]
   : null;
@@ -134,15 +136,21 @@ async function syncTemplates() {
       "🔄 Smart mode: Will create new and update existing templates\n",
     );
   }
+  if (publishMode) {
+    console.log("📣 Publish mode: Will publish templates after syncing\n");
+  }
 
   let createdCount = 0;
   let updatedCount = 0;
   let skippedCount = 0;
+  let publishCount = 0;
   let errorCount = 0;
 
   for (const template of templatesToSync) {
     const existingId = existingTemplates.get(template.name);
     const exists = existingId !== undefined;
+    let templateId = existingId ?? null;
+    let changed = false;
 
     try {
       if (exists && createOnly) {
@@ -155,7 +163,7 @@ async function syncTemplates() {
         skippedCount++;
       } else if (exists) {
         // Update existing template
-        const { data, error } = await resend.templates.update(existingId, {
+        const { error } = await resend.templates.update(existingId, {
           name: template.name,
           html: template.html,
           ...(template.subject && { subject: template.subject }),
@@ -188,6 +196,7 @@ async function syncTemplates() {
         console.log("");
 
         updatedCount++;
+        changed = true;
       } else {
         // Create new template
         const { data, error } = await resend.templates.create({
@@ -226,6 +235,19 @@ async function syncTemplates() {
         console.log("");
 
         createdCount++;
+        changed = true;
+        templateId = data?.id ?? templateId;
+      }
+
+      if (publishMode && changed && templateId) {
+        const { error: publishError } =
+          await resend.templates.publish(templateId);
+        if (publishError) {
+          throw new Error(publishError.message);
+        }
+        publishCount++;
+        console.log(`📣 ${template.name}`);
+        console.log(`   Published latest draft (ID: ${templateId})\n`);
       }
     } catch (error) {
       const errorMessage =
@@ -238,7 +260,7 @@ async function syncTemplates() {
 
   console.log("─".repeat(60));
   console.log(
-    `✨ Sync complete: ${createdCount} created, ${updatedCount} updated, ${skippedCount} skipped, ${errorCount} error(s)`,
+    `✨ Sync complete: ${createdCount} created, ${updatedCount} updated, ${skippedCount} skipped, ${publishCount} published, ${errorCount} error(s)`,
   );
 
   if (errorCount > 0) {

@@ -7,8 +7,11 @@ All Signals email templates stored as TypeScript files.
 ### Sync templates to Resend
 
 ```bash
-# Smart sync (creates new, updates existing)
+# Smart sync (creates new, updates existing drafts)
 bun run sync-templates
+
+# Sync + publish latest drafts (ready for Resend sends)
+bun run sync-templates:publish
 
 # List all templates in Resend
 bun run sync-templates:list
@@ -26,7 +29,8 @@ bun run scripts/sync-email-templates.ts --only your-template-name
 3. Define variables using Mustache syntax: `{{{VARIABLE_NAME}}}`
 4. Add template key to `types.ts` TEMPLATE_KEYS
 5. Export from `index.ts`
-6. Run `bun run sync-templates` or `bun run scripts/sync-email-templates.ts --only my-template`
+6. Run `bun run sync-templates` (or `bun run scripts/sync-email-templates.ts --only my-template`) to create/update the draft
+7. Run `bun run sync-templates:publish` to publish the latest draft so Resend uses it
 
 ## Template Files
 

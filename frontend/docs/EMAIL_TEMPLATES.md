@@ -98,6 +98,13 @@ cd frontend
 bun run sync-templates
 ```
 
+To immediately publish the latest drafts (so Resend starts serving them), run:
+
+```bash
+cd frontend
+bun run sync-templates:publish    # wraps --publish flag
+```
+
 **Smart sync automatically**:
 1. 🔍 Checks what templates exist in Resend
 2. ✅ Creates new templates that don't exist
@@ -130,6 +137,7 @@ bun run scripts/sync-email-templates.ts --create-only
 - `--only <template-name>` - Sync only a specific template (by name or alias)
 - `--create-only` - Only create new templates, skip existing ones
 - `--list` - List all templates currently in Resend
+- `--publish` - Publish templates immediately after creation/update (built into `bun run sync-templates:publish`)
 
 ### Example Output
 
@@ -146,18 +154,27 @@ bun run scripts/sync-email-templates.ts --create-only
    Subject: Confirm your Signals subscription
    Variables: CONFIRMATION_URL
 
+📣 signals-confirmation
+   Published latest draft (ID: 49a3999c-0ce1-4ea6-ab68-afcd6dc2e794)
+
 ✅ signals-reactivation
    Created (ID: 8b2f888a-1de2-5fb7-bc79-bfde7ed3f905)
    Subject: Welcome back to Signals
    Variables: CONFIRMATION_URL
+
+📣 signals-reactivation
+   Published latest draft (ID: 8b2f888a-1de2-5fb7-bc79-bfde7ed3f905)
 
 ✅ signals-notification
    Created (ID: 2e342d42-8e43-45b6-90b9-c2fa6d8ab573)
    Subject: {{{SYMBOL}}} Signal: {{{SIGNAL_TYPE}}}
    Variables: SYMBOL, SIGNAL_TYPE, STRENGTH, PRICE, TIMESTAMP, REASONING_HTML, REASONING_TEXT, UNSUBSCRIBE_URL
 
+📣 signals-notification
+   Published latest draft (ID: 2e342d42-8e43-45b6-90b9-c2fa6d8ab573)
+
 ────────────────────────────────────────────────────────────
-✨ Sync complete: 3 created, 0 updated, 0 skipped, 0 error(s)
+✨ Sync complete: 3 created, 0 updated, 0 skipped, 3 published, 0 error(s)
 ```
 
 **Subsequent runs (updates existing templates):**
@@ -173,10 +190,16 @@ bun run scripts/sync-email-templates.ts --create-only
    Subject: Confirm your Signals subscription
    Variables: CONFIRMATION_URL
 
+📣 signals-confirmation
+   Published latest draft (ID: 49a3999c-0ce1-4ea6-ab68-afcd6dc2e794)
+
 🔄 signals-reactivation
    Updated (ID: 8b2f888a-1de2-5fb7-bc79-bfde7ed3f905)
    Subject: Welcome back to Signals
    Variables: CONFIRMATION_URL
+
+📣 signals-reactivation
+   Published latest draft (ID: 8b2f888a-1de2-5fb7-bc79-bfde7ed3f905)
 
 🔄 signals-notification
    Updated (ID: 2e342d42-8e43-45b6-90b9-c2fa6d8ab573)
@@ -184,7 +207,11 @@ bun run scripts/sync-email-templates.ts --create-only
    Variables: SYMBOL, SIGNAL_TYPE, STRENGTH, PRICE, TIMESTAMP, REASONING_HTML, REASONING_TEXT, UNSUBSCRIBE_URL
 
 ────────────────────────────────────────────────────────────
-✨ Sync complete: 0 created, 3 updated, 0 skipped, 0 error(s)
+📣 signals-notification
+   Published latest draft (ID: 2e342d42-8e43-45b6-90b9-c2fa6d8ab573)
+
+────────────────────────────────────────────────────────────
+✨ Sync complete: 0 created, 3 updated, 0 skipped, 3 published, 0 error(s)
 ```
 
 ## Current Templates
@@ -333,7 +360,7 @@ Visit: `http://localhost:3000/test-email`
 
 ### Send Test Email via Resend Dashboard
 
-1. Sync templates: `bun run sync-templates`
+1. Sync templates: `bun run sync-templates` (and `bun run sync-templates:publish` if you want to send tests right away)
 2. Go to Resend dashboard → Templates
 3. Find your template
 4. Click "Send test email"
@@ -358,7 +385,7 @@ APP_BASE_URL=https://signals-dvf.vercel.app
 
 The Python backend (FastAPI) currently builds HTML inline. To use Resend templates instead:
 
-1. Create the template in Resend via `bun run sync-templates`
+1. Create/update the draft via `bun run sync-templates`, then publish with `bun run sync-templates:publish`
 2. Update backend to send via template ID instead of HTML:
 
 ```python
@@ -404,6 +431,9 @@ bun run sync-templates
 
 # Or update just one:
 bun run scripts/sync-email-templates.ts --only signals-confirmation
+
+# Publish the updated draft so emails pick it up
+bun run sync-templates:publish
 ```
 
 **No need to delete!** The script uses Resend's update API to modify templates in-place, preserving template IDs.
@@ -418,13 +448,16 @@ bun run scripts/sync-email-templates.ts --only your-new-template-name
 
 # Or sync all (will create new, update existing)
 bun run sync-templates
+
+# Publish the new template
+bun run sync-templates:publish
 ```
 
 The script is **fully idempotent** - safe to run anytime!
 
 ### Template sync succeeds but email doesn't send
 
-1. Check if template was published in Resend dashboard
+1. Confirm you ran `bun run sync-templates:publish` (or published via Resend dashboard)
 2. Verify sender email is verified in Resend
 3. Check backend logs for Resend API errors
 4. Verify you're using the correct `template_id` in Python code

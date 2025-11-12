@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0 --report-unused-disable-directives",
     "type-check": "tsc --noEmit",
     "sync-templates": "bun run scripts/sync-email-templates.ts",
+    "sync-templates:publish": "bun run scripts/sync-email-templates.ts --publish",
     "sync-templates:list": "bun run scripts/sync-email-templates.ts --list"
   },
   "dependencies": {
