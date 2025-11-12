@@ -1,0 +1,163 @@
+/**
+ * Signal notification email template for trading alerts
+ */
+
+import { buildEmailHTML, EMAIL_THEME } from "./theme";
+import type { EmailTemplate } from "./types";
+import { TEMPLATE_KEYS } from "./types";
+
+export const signalNotificationTemplate: EmailTemplate = {
+  name: TEMPLATE_KEYS.SIGNAL_NOTIFICATION,
+  alias: "signal-notification",
+  subject: "{{{SYMBOL}}} Signal: {{{SIGNAL_TYPE}}}",
+  html: buildSignalNotificationHTML(),
+  text: buildSignalNotificationText(),
+  variables: [
+    { key: "SYMBOL", type: "string", fallbackValue: "ASSET" },
+    { key: "SIGNAL_TYPE", type: "string", fallbackValue: "HOLD" },
+    { key: "STRENGTH", type: "number", fallbackValue: 0 },
+    { key: "PRICE", type: "string", fallbackValue: "0.00" },
+    { key: "TIMESTAMP", type: "string", fallbackValue: "now" },
+    {
+      key: "REASONING_HTML",
+      type: "string",
+      fallbackValue: "<li>No reasoning provided.</li>",
+    },
+    {
+      key: "REASONING_TEXT",
+      type: "string",
+      fallbackValue: "- No reasoning provided.",
+    },
+    {
+      key: "EXPLANATION_HTML",
+      type: "string",
+      fallbackValue: "",
+    },
+    {
+      key: "EXPLANATION_TEXT",
+      type: "string",
+      fallbackValue: "",
+    },
+    { key: "SIGNAL_URL", type: "string", fallbackValue: "#" },
+    { key: "UNSUBSCRIBE_URL", type: "string" },
+  ],
+};
+
+function buildSignalNotificationHTML(): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <style>
+    :root {
+      color-scheme: dark;
+      supported-color-schemes: dark;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 32px 16px; background: ${EMAIL_THEME.background} !important; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
+    <tr>
+      <td>
+        <div style="background: ${EMAIL_THEME.card} !important; border: 1px solid ${EMAIL_THEME.cardBorder}; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.17);">
+          <p style="margin: 0 0 20px 0; display: inline-block; padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText} !important; background: ${EMAIL_THEME.badgeBg} !important; border-radius: 999px; border: 1px solid ${EMAIL_THEME.divider};">Signal Alert</p>
+          <h1 style="margin: 0 0 12px 0; font-size: 28px; color: ${EMAIL_THEME.textPrimary} !important;">New {{{SIGNAL_TYPE}}} signal for {{{SYMBOL}}}</h1>
+          <p style="margin: 0 0 18px 0; font-size: 16px; line-height: 1.6; color: ${EMAIL_THEME.textSecondary};">Generated at {{{TIMESTAMP}}}</p>
+
+          <div style="margin: 24px 0; padding: 24px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border: 1px solid ${EMAIL_THEME.divider};">
+            <p style="margin: 0 0 16px 0; font-size: 48px; font-weight: bold; color: ${EMAIL_THEME.badgeText}; text-align: center;">{{{SIGNAL_TYPE}}}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.muted};">Strength</p>
+                <p style="margin: 6px 0 0 0; font-size: 20px; color: ${EMAIL_THEME.textPrimary}; font-weight: 600;">{{{STRENGTH}}} / 100</p>
+              </div>
+              <div>
+                <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.muted};">Price</p>
+                <p style="margin: 6px 0 0 0; font-size: 20px; color: ${EMAIL_THEME.textPrimary}; font-weight: 600;">$\${{{PRICE}}}</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin: 24px 0;">
+            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.muted};">Key Factors</p>
+            <ul style="margin: 0 0 16px 20px; padding: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.6;">
+              {{{REASONING_HTML}}}
+            </ul>
+          </div>
+
+          {{#EXPLANATION_TEXT}}
+          <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
+            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
+            <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7; white-space: pre-line;">
+              {{{.}}}
+            </div>
+          </div>
+          {{/EXPLANATION_TEXT}}
+          {{^EXPLANATION_TEXT}}
+          {{#EXPLANATION_HTML}}
+          <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
+            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
+            <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7;">
+              {{{.}}}
+            </div>
+          </div>
+          {{/EXPLANATION_HTML}}
+          {{/EXPLANATION_TEXT}}
+
+          <div style="text-align: center; margin: 32px 0 24px 0;">
+            <a href="{{{SIGNAL_URL}}}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient} !important; border: 1px solid ${EMAIL_THEME.ring}; color: ${EMAIL_THEME.primaryForeground} !important; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              View Full Signal Details
+            </a>
+          </div>
+
+          <div style="margin: 24px 0; padding: 16px 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid #f59e0b;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #fbbf24; font-weight: 600;">⚠ Risk Disclaimer</p>
+            <p style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 14px; line-height: 1.6;">
+              This signal is for informational purposes only and does not constitute financial advice. Trading involves substantial risk of loss. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.
+            </p>
+          </div>
+
+          <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid ${EMAIL_THEME.divider};">
+            <p style="margin: 0; font-size: 13px; color: ${EMAIL_THEME.textSecondary};">
+              Don't want these emails? <a href="{{{UNSUBSCRIBE_URL}}}" style="color: ${EMAIL_THEME.badgeText}; text-decoration: none;">Unsubscribe</a>
+            </p>
+          </div>
+        </div>
+        <p style="margin: 24px 0 0 0; font-size: 12px; text-align: center; color: ${EMAIL_THEME.muted};">Signals · Automated market signals you can actually read</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`.trim();
+}
+
+function buildSignalNotificationText(): string {
+  return `New {{{SIGNAL_TYPE}}} signal for {{{SYMBOL}}}
+
+Generated at: {{{TIMESTAMP}}}
+Strength: {{{STRENGTH}}} / 100
+Price at signal: $\${{{PRICE}}}
+
+Key Factors:
+{{{REASONING_TEXT}}}
+
+{{#EXPLANATION_TEXT}}
+Analysis:
+{{{.}}}
+{{/EXPLANATION_TEXT}}
+
+View Full Signal Details: {{{SIGNAL_URL}}}
+
+⚠ RISK DISCLAIMER
+This signal is for informational purposes only and does not constitute financial advice. Trading involves substantial risk of loss. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.
+
+---
+Unsubscribe: {{{UNSUBSCRIBE_URL}}}
+
+Signals - Automated market signals you can actually read`;
+}

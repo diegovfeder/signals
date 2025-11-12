@@ -7,6 +7,7 @@ Runs after signal_analyzer to notify users of opportunities.
 
 from __future__ import annotations
 
+import argparse
 from typing import Any
 
 from prefect import flow, get_run_logger, task
@@ -22,7 +23,9 @@ except ImportError:
 
 
 @task(name="fetch-strong-signals")
-def fetch_strong_signals(min_strength: float | None = None, window_minutes: int = 60) -> list[dict[str, Any]]:
+def fetch_strong_signals(
+    min_strength: float | None = None, window_minutes: int = 1440
+) -> list[dict[str, Any]]:
     """Fetch signals above a strength threshold generated within the last `window_minutes`."""
     logger = get_run_logger()
     threshold = min_strength if min_strength is not None else signal_notify_threshold()
@@ -32,7 +35,7 @@ def fetch_strong_signals(min_strength: float | None = None, window_minutes: int 
         window_minutes,
     )
     query = """
-        SELECT id, symbol, signal_type, strength, reasoning, price_at_signal, generated_at
+        SELECT id, symbol, signal_type, strength, reasoning, price_at_signal, generated_at, explanation
         FROM signals
         WHERE strength >= %s
           AND generated_at >= NOW() - %s::interval
@@ -44,7 +47,16 @@ def fetch_strong_signals(min_strength: float | None = None, window_minutes: int 
         rows = cur.fetchall()
     signals: list[dict[str, Any]] = []
     for row in rows:
-        signal_id, symbol, signal_type, strength, reasoning, price, generated_at = row
+        (
+            signal_id,
+            symbol,
+            signal_type,
+            strength,
+            reasoning,
+            price,
+            generated_at,
+            explanation,
+        ) = row
         signals.append(
             {
                 "id": str(signal_id),
@@ -54,6 +66,7 @@ def fetch_strong_signals(min_strength: float | None = None, window_minutes: int 
                 "reasoning": reasoning or [],
                 "price": float(price) if price is not None else None,
                 "at": generated_at.isoformat() if generated_at else None,
+                "explanation": explanation,  # Include explanation from database
             }
         )
     logger.info("Found %d signal(s) meeting strength criteria.", len(signals))
@@ -115,7 +128,9 @@ def should_send_email(email: str, signal_id: str, symbol: str) -> bool:
 
 
 @task(name="send-email")
-def send_signal_email(email: str, unsubscribe_token: str, signal: dict[str, Any]) -> bool:
+def send_signal_email(
+    email: str, unsubscribe_token: str, signal: dict[str, Any]
+) -> bool:
     """Send the signal email and log it to `sent_notifications` if successful."""
     logger = get_run_logger()
     success = send_signal_notification.fn(email, signal, unsubscribe_token)
@@ -143,7 +158,9 @@ def send_signal_email(email: str, unsubscribe_token: str, signal: dict[str, Any]
 
 
 @flow(name="notification-dispatcher", log_prints=True)
-def notification_dispatcher_flow(min_strength: float | None = None, window_minutes: int = 60):
+def notification_dispatcher_flow(
+    min_strength: float | None = None, window_minutes: int = 1440
+):
     """Fetch strong signals, find subscribers, and send notifications."""
     logger = get_run_logger()
     threshold = min_strength if min_strength is not None else signal_notify_threshold()
@@ -176,5 +193,30 @@ def notification_dispatcher_flow(min_strength: float | None = None, window_minut
     logger.info("Notification dispatcher completed; emails_sent=%d.", emails_sent)
 
 
+def _parse_cli_args() -> tuple[float | None, int]:
+    """Parse CLI arguments for manual dispatcher runs."""
+    parser = argparse.ArgumentParser(
+        description="Send notification emails for recent strong signals."
+    )
+    parser.add_argument(
+        "--min-strength",
+        type=float,
+        default=None,
+        help="Override strength threshold (default uses SIGNAL_NOTIFY_THRESHOLD).",
+    )
+    parser.add_argument(
+        "--window-minutes",
+        type=int,
+        default=60,
+        help="Lookback window for eligible signals (minutes, default 60).",
+    )
+    args = parser.parse_args()
+    return args.min_strength, args.window_minutes
+
+
 if __name__ == "__main__":
-    notification_dispatcher_flow()
+    cli_min_strength, cli_window = _parse_cli_args()
+    notification_dispatcher_flow(
+        min_strength=cli_min_strength,
+        window_minutes=cli_window,
+    )

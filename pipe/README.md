@@ -9,7 +9,7 @@ Nightly automation that fetches Yahoo Finance daily bars, recomputes indicators,
 | `market-data-backfill` | `flows/market_data_backfill.py` | Manual | Load up to 10 years of history for each symbol. Run when onboarding a new asset. |
 | `market-data-sync` | `flows/market_data_sync.py` | 22:00 UTC daily | Fetch the latest daily OHLCV bars (last ~5 trading days) and insert into `market_data`. |
 | `signal-analyzer` | `flows/signal_analyzer.py` | 22:15 UTC daily | Read stored OHLCV, compute RSI/EMA/MACD via Polars, and populate `indicators` + `signals`. |
-| `notification-dispatcher` | `flows/notification_dispatcher.py` | 22:30 UTC daily | Select strong signals (≥ `SIGNAL_NOTIFY_THRESHOLD`) and log/send them via Resend (live once domain work completes). |
+| `notification-dispatcher` | `flows/notification_dispatcher.py` | 22:30 UTC daily | Select strong signals (≥ `SIGNAL_NOTIFY_THRESHOLD`) and log/send them via Resend (regenerates missing explanations on the fly when `ENABLE_LLM_EXPLANATIONS=true`). |
 
 All reusable logic lives in `tasks/` (database helpers, indicator math, strategies, email sending).
 
@@ -35,9 +35,12 @@ uv run --directory pipe python -m pipe.flows.market_data_backfill --backfill-ran
 # Recompute indicators + signals only
 uv run --directory pipe python -m pipe.flows.signal_analyzer --symbols AAPL,BTC-USD
 
-# Dry run dispatcher with lower threshold
-SIGNAL_NOTIFY_THRESHOLD=50 \
-uv run --directory pipe python -m pipe.flows.notification_dispatcher
+# Dry run dispatcher with low threshold + 24h window
+ENABLE_LLM_EXPLANATIONS=true \
+DEEPSEEK_API_KEY=sk-your-key \
+uv run --directory pipe python -m pipe.flows.notification_dispatcher \
+  --min-strength 0 \
+  --window-minutes 1440
 ```
 
 ## Deploying to Prefect Cloud

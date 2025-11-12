@@ -45,6 +45,10 @@ SUGGESTED_ENV_VARS: tuple[str, ...] = (
     "DATABASE_URL",
     "RESEND_API_KEY",
     "SIGNAL_SYMBOLS",
+    "LLM_PROVIDER",
+    "DEEPSEEK_API_KEY",
+    "POSTHOG_PROJECT_API_KEY",
+    "POSTHOG_HOST",
 )
 
 # Allow operators to provide production credentials without mutating their local dev env.
@@ -103,7 +107,9 @@ DEFAULT_PIP_PACKAGES = [
     "numpy>=1.26.2",
     "sqlalchemy>=2.0.35",
     "psycopg[binary,pool]>=3.1.0",
-    "resend==0.7.0",
+    "resend>=2.19.0",
+    "posthog>=3.0.0",
+    "httpx>=0.28.1",
     "python-dotenv==1.0.0",
 ]
 

@@ -74,6 +74,7 @@ CREATE TABLE signals (
     idempotency_key VARCHAR(255) UNIQUE,
     rule_version VARCHAR(50),
     generated_at TIMESTAMPTZ DEFAULT NOW(),
+    explanation TEXT,
 
     UNIQUE(symbol, timestamp)
 );

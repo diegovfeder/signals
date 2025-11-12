@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0 --report-unused-disable-directives",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "sync-templates": "bun run scripts/sync-email-templates.ts",
+    "sync-templates:publish": "bun run scripts/sync-email-templates.ts --publish",
+    "sync-templates:list": "bun run scripts/sync-email-templates.ts --list"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -24,6 +27,7 @@
     "react": "^19.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.2.0",
+    "resend": "^6.4.2",
     "tailwind-merge": "^3.3.1",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
