@@ -24,7 +24,7 @@ except ImportError:
 
 @task(name="fetch-strong-signals")
 def fetch_strong_signals(
-    min_strength: float | None = None, window_minutes: int = 60
+    min_strength: float | None = None, window_minutes: int = 1440
 ) -> list[dict[str, Any]]:
     """Fetch signals above a strength threshold generated within the last `window_minutes`."""
     logger = get_run_logger()
@@ -159,7 +159,7 @@ def send_signal_email(
 
 @flow(name="notification-dispatcher", log_prints=True)
 def notification_dispatcher_flow(
-    min_strength: float | None = None, window_minutes: int = 60
+    min_strength: float | None = None, window_minutes: int = 1440
 ):
     """Fetch strong signals, find subscribers, and send notifications."""
     logger = get_run_logger()

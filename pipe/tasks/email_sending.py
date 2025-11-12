@@ -47,8 +47,9 @@ def _maybe_backfill_explanation(signal: dict) -> str:
         )
         return explanation
 
-    # Check PostHog feature flag (with fallback to ENABLE_LLM_EXPLANATIONS env var)
     symbol = signal.get("symbol", "unknown")
+    # Flag key stays kebab-case because it maps to the PostHog feature flag;
+    # fallback to ENABLE_LLM_EXPLANATIONS (env) is handled inside is_feature_enabled.
     is_llm_explanations_enabled = is_feature_enabled(
         flag_key="llm-signal-explanations",
         distinct_id=symbol,
