@@ -78,7 +78,7 @@ def send_signal_notification(
             "variables": {
                 "SYMBOL": signal.get("symbol", "ASSET"),
                 "SIGNAL_TYPE": signal.get("signal_type", "HOLD"),
-                "STRENGTH": str(round(signal.get("strength", 0))),
+                "STRENGTH": round(signal.get("strength", 0)),  # Number type for Resend
                 "PRICE": f"{float(signal.get('price', 0)):,.2f}",
                 "TIMESTAMP": str(signal.get("at") or signal.get("timestamp") or "now"),
                 "REASONING_HTML": reasoning_html,
