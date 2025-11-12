@@ -86,19 +86,27 @@ export const buildEmailHTML = ({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
+  <style>
+    :root {
+      color-scheme: dark;
+      supported-color-schemes: dark;
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 32px 16px; background: ${EMAIL_THEME.background}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin: 0; padding: 32px 16px; background: ${EMAIL_THEME.background} !important; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
     <tr>
       <td>
-        <div style="background: ${EMAIL_THEME.card}; border: 1px solid ${EMAIL_THEME.cardBorder}; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.17);">
-          <p style="margin: 0 0 20px 0; display: inline-block; padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText}; background: ${EMAIL_THEME.badgeBg}; border-radius: 999px; border: 1px solid ${EMAIL_THEME.divider};">${eyebrow}</p>
-          <h1 style="margin: 0 0 12px 0; font-size: 28px; color: ${EMAIL_THEME.textPrimary};">${title}</h1>
-          <p style="margin: 0 0 18px 0; font-size: 16px; line-height: 1.6; color: ${EMAIL_THEME.textPrimary};">${intro}</p>
+        <div style="background: ${EMAIL_THEME.card} !important; border: 1px solid ${EMAIL_THEME.cardBorder}; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.17);">
+          <p style="margin: 0 0 20px 0; display: inline-block; padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText} !important; background: ${EMAIL_THEME.badgeBg} !important; border-radius: 999px; border: 1px solid ${EMAIL_THEME.divider};">${eyebrow}</p>
+          <h1 style="margin: 0 0 12px 0; font-size: 28px; color: ${EMAIL_THEME.textPrimary} !important;">${title}</h1>
+          <p style="margin: 0 0 18px 0; font-size: 16px; line-height: 1.6; color: ${EMAIL_THEME.textPrimary} !important;">${intro}</p>
           ${messageHtml}
           ${highlightHtml}
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${buttonUrl}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient}; border: 1px solid ${EMAIL_THEME.ring}; color: ${EMAIL_THEME.primaryForeground}; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <a href="${buttonUrl}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient} !important; border: 1px solid ${EMAIL_THEME.ring}; color: ${EMAIL_THEME.primaryForeground} !important; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               ${buttonLabel}
             </a>
           </div>
