@@ -62,4 +62,4 @@ variables: [
 
 ## Full Documentation
 
-See `/frontend/EMAIL_TEMPLATES.md` for complete guide.
+See `/frontend/docs/EMAIL_TEMPLATES.md` for the complete guide.

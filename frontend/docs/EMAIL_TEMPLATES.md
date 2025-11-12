@@ -383,33 +383,28 @@ APP_BASE_URL=https://signals-dvf.vercel.app
 
 ## Backend Integration
 
-The Python backend (FastAPI) currently builds HTML inline. To use Resend templates instead:
+Both the FastAPI backend and Prefect pipeline now send emails exclusively via
+Resend templates. To keep things in sync:
 
-1. Create/update the draft via `bun run sync-templates`, then publish with `bun run sync-templates:publish`
-2. Update backend to send via template ID instead of HTML:
+1. Create/update drafts with `bun run sync-templates`, then publish via `bun run sync-templates:publish`.
+2. Store the template IDs (confirmation, reactivation, notification) in code or environment variables.
+3. Make sure the backend/pipeline use `resend>=2.19.0`, which supports template payloads, and send emails like this:
 
 ```python
-# OLD (current approach)
-params: EmailSendParams = {
+params = {
     "from": from_email,
     "to": [to_email],
-    "subject": "Confirm your subscription",
-    "html": get_confirmation_email_html(confirmation_url),  # Inline HTML
-    "text": get_confirmation_email_text(confirmation_url),
-}
-
-# NEW (using Resend templates)
-params: EmailSendParams = {
-    "from": from_email,
-    "to": [to_email],
-    "template_id": "signals-confirmation",  # Reference template by ID
-    "variables": {
-        "CONFIRMATION_URL": confirmation_url,
+    "template": {
+        "id": "eabb6a15-2d95-4c1d-afa7-944d63cd5b46",  # example
+        "variables": {
+            "CONFIRMATION_URL": confirmation_url,
+        },
     },
 }
+resend.Emails.send(params)
 ```
 
-3. This requires updating `resend-python` library to support template sending (check latest docs)
+No inline HTML helpers remain—everything routes through the shared template registry.
 
 ## Troubleshooting
 
