@@ -88,14 +88,24 @@ function buildSignalNotificationHTML(): string {
             </ul>
           </div>
 
+          {{#EXPLANATION_TEXT}}
+          <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
+            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
+            <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7; white-space: pre-line;">
+              {{{.}}}
+            </div>
+          </div>
+          {{/EXPLANATION_TEXT}}
+          {{^EXPLANATION_TEXT}}
           {{#EXPLANATION_HTML}}
           <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
             <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
             <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7;">
-              {{{EXPLANATION_HTML}}}
+              {{{.}}}
             </div>
           </div>
           {{/EXPLANATION_HTML}}
+          {{/EXPLANATION_TEXT}}
 
           <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid ${EMAIL_THEME.divider};">
             <p style="margin: 0; font-size: 13px; color: ${EMAIL_THEME.textSecondary};">
@@ -124,7 +134,7 @@ Key Factors:
 
 {{#EXPLANATION_TEXT}}
 Analysis:
-{{{EXPLANATION_TEXT}}}
+{{{.}}}
 {{/EXPLANATION_TEXT}}
 
 ---

@@ -152,9 +152,9 @@ Assuming ~400 tokens per explanation (input + output):
 - Test your API key directly with the provider's playground
 
 ### Explanations not appearing in emails
-- Confirm `ENABLE_LLM_EXPLANATIONS=true` is set when running signal_analyzer
+- Confirm `ENABLE_LLM_EXPLANATIONS=true` is set when running `signal_analyzer` **and/or** the dispatcher (the email task will backfill missing explanations when that flag is enabled).
 - Check database: `SELECT explanation FROM signals WHERE explanation IS NOT NULL LIMIT 5;`
-- Verify email templates are published (they include EXPLANATION_HTML/EXPLANATION_TEXT variables)
+- Verify email templates are published (analysis block uses EXPLANATION_TEXT with EXPLANATION_HTML as fallback)
 
 ### Slow generation
 - DeepSeek/OpenRouter can be slower than OpenAI

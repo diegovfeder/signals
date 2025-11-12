@@ -7,6 +7,7 @@ Runs after signal_analyzer to notify users of opportunities.
 
 from __future__ import annotations
 
+import argparse
 from typing import Any
 
 from prefect import flow, get_run_logger, task
@@ -192,5 +193,30 @@ def notification_dispatcher_flow(
     logger.info("Notification dispatcher completed; emails_sent=%d.", emails_sent)
 
 
+def _parse_cli_args() -> tuple[float | None, int]:
+    """Parse CLI arguments for manual dispatcher runs."""
+    parser = argparse.ArgumentParser(
+        description="Send notification emails for recent strong signals."
+    )
+    parser.add_argument(
+        "--min-strength",
+        type=float,
+        default=None,
+        help="Override strength threshold (default uses SIGNAL_NOTIFY_THRESHOLD).",
+    )
+    parser.add_argument(
+        "--window-minutes",
+        type=int,
+        default=60,
+        help="Lookback window for eligible signals (minutes, default 60).",
+    )
+    args = parser.parse_args()
+    return args.min_strength, args.window_minutes
+
+
 if __name__ == "__main__":
-    notification_dispatcher_flow()
+    cli_min_strength, cli_window = _parse_cli_args()
+    notification_dispatcher_flow(
+        min_strength=cli_min_strength,
+        window_minutes=cli_window,
+    )
