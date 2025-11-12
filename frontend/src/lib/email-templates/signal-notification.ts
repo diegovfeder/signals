@@ -38,6 +38,7 @@ export const signalNotificationTemplate: EmailTemplate = {
       type: "string",
       fallbackValue: "",
     },
+    { key: "SIGNAL_URL", type: "string", fallbackValue: "#" },
     { key: "UNSUBSCRIBE_URL", type: "string" },
   ],
 };
@@ -107,6 +108,19 @@ function buildSignalNotificationHTML(): string {
           {{/EXPLANATION_HTML}}
           {{/EXPLANATION_TEXT}}
 
+          <div style="text-align: center; margin: 32px 0 24px 0;">
+            <a href="{{{SIGNAL_URL}}}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient} !important; border: 1px solid ${EMAIL_THEME.ring}; color: ${EMAIL_THEME.primaryForeground} !important; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              View Full Signal Details
+            </a>
+          </div>
+
+          <div style="margin: 24px 0; padding: 16px 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid #f59e0b;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #fbbf24; font-weight: 600;">⚠ Risk Disclaimer</p>
+            <p style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 14px; line-height: 1.6;">
+              This signal is for informational purposes only and does not constitute financial advice. Trading involves substantial risk of loss. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.
+            </p>
+          </div>
+
           <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid ${EMAIL_THEME.divider};">
             <p style="margin: 0; font-size: 13px; color: ${EMAIL_THEME.textSecondary};">
               Don't want these emails? <a href="{{{UNSUBSCRIBE_URL}}}" style="color: ${EMAIL_THEME.badgeText}; text-decoration: none;">Unsubscribe</a>
@@ -136,6 +150,11 @@ Key Factors:
 Analysis:
 {{{.}}}
 {{/EXPLANATION_TEXT}}
+
+View Full Signal Details: {{{SIGNAL_URL}}}
+
+⚠ RISK DISCLAIMER
+This signal is for informational purposes only and does not constitute financial advice. Trading involves substantial risk of loss. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.
 
 ---
 Unsubscribe: {{{UNSUBSCRIBE_URL}}}

@@ -21,9 +21,11 @@ DEFAULT_APP_URL = "https://signalsapp.dev"
 
 try:
     from ..lib.explanation_generator import generate_explanation
+    from ..lib.posthog_client import is_feature_enabled, capture_event
     from .db import get_db_conn
 except ImportError:
     from lib.explanation_generator import generate_explanation
+    from lib.posthog_client import is_feature_enabled, capture_event
     from tasks.db import get_db_conn
 
 
@@ -33,7 +35,7 @@ def _maybe_backfill_explanation(signal: dict) -> str:
 
     Priority:
         1. Use explanation already present on the signal record.
-        2. If ENABLE_LLM_EXPLANATIONS is true, regenerate via LLM,
+        2. If 'llm-signal-explanations' feature flag is enabled, regenerate via LLM,
            persist to the signals table, and return it.
     """
     explanation = signal.get("explanation") or ""
@@ -45,10 +47,18 @@ def _maybe_backfill_explanation(signal: dict) -> str:
         )
         return explanation
 
-    if os.getenv("ENABLE_LLM_EXPLANATIONS", "false").lower() != "true":
+    # Check PostHog feature flag (with fallback to ENABLE_LLM_EXPLANATIONS env var)
+    symbol = signal.get("symbol", "unknown")
+    flag_enabled = is_feature_enabled(
+        flag_key="llm-signal-explanations",
+        distinct_id=symbol,
+        groups={"symbol": symbol},
+    )
+
+    if not flag_enabled:
         print(
             f"[email] No stored explanation for {signal.get('id')} "
-            "and LLM backfill disabled."
+            f"and feature flag 'llm-signal-explanations' disabled for {symbol}."
         )
         return ""
 
@@ -63,6 +73,21 @@ def _maybe_backfill_explanation(signal: dict) -> str:
     print(f"[email] Backfilling explanation for signal {signal.get('id')}")
     try:
         explanation = generate_explanation(signal_payload) or ""
+
+        # Track explanation generation event in PostHog
+        if explanation:
+            capture_event(
+                distinct_id=symbol,
+                event_name="llm_explanation_generated",
+                properties={
+                    "signal_id": signal.get("id"),
+                    "symbol": symbol,
+                    "signal_type": signal.get("signal_type"),
+                    "strength": signal.get("strength"),
+                    "explanation_length": len(explanation),
+                },
+                groups={"symbol": symbol},
+            )
     except Exception as exc:
         print(
             f"[email] Exception while generating explanation for {signal.get('id')}: {exc}"
@@ -129,6 +154,7 @@ def send_signal_notification(
     from_email = os.getenv("RESEND_FROM_EMAIL", DEFAULT_FROM_EMAIL)
     app_url = os.getenv("APP_BASE_URL", DEFAULT_APP_URL).rstrip("/")
     unsubscribe_url = f"{app_url}/unsubscribe/{unsubscribe_token}"
+    signal_url = f"{app_url}/signals/{signal.get('symbol', 'ASSET')}"
 
     # Format reasoning for both HTML and text
     reasoning: List[str] = signal.get("reasoning") or []
@@ -175,6 +201,7 @@ def send_signal_notification(
                 "REASONING_TEXT": reasoning_text,
                 "EXPLANATION_HTML": explanation_html,
                 "EXPLANATION_TEXT": explanation_text,
+                "SIGNAL_URL": signal_url,
                 "UNSUBSCRIBE_URL": unsubscribe_url,
             },
         },
