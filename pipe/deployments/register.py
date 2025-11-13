@@ -230,6 +230,7 @@ def main() -> None:
         work_pool=args.work_pool,
         description="Email subscribers about strong signals (10:30 PM UTC).",
         cron="30 22 * * *",  # 10:30 PM UTC
+        parameters={"min_strength": 60, "window_minutes": 1440},
         tags=["notifications", "daily", "scheduled"],
         dry_run=args.dry_run,
     )

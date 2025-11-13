@@ -158,7 +158,7 @@ def send_signal_email(
 
 
 @flow(name="notification-dispatcher", log_prints=True)
-def notification_dispatcher_flow(min_strength: float = 15, window_minutes: int = 1440):
+def notification_dispatcher_flow(min_strength: float = 60, window_minutes: int = 1440):
     """Fetch strong signals, find subscribers, and send notifications."""
     logger = get_run_logger()
     threshold = min_strength if min_strength is not None else signal_notify_threshold()
