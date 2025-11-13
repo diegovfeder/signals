@@ -32,7 +32,7 @@ def _get_posthog_client():
     try:
         import posthog
 
-        posthog.project_api_key = api_key
+        posthog.api_key = api_key
         posthog.host = os.getenv("POSTHOG_HOST", "https://us.i.posthog.com")
 
         # Disable verbose debug logging
@@ -123,12 +123,12 @@ def capture_event(
 
     try:
         client.capture(
-            distinct_id,
-            event_name,
+            distinct_id=distinct_id,
+            event=event_name,
             properties=properties,
             groups=groups,
-            group_properties=group_properties,
         )
+        print(f"[posthog] Event '{event_name}' captured for {distinct_id}")
     except Exception as exc:
         print(f"[posthog] Error capturing '{event_name}': {exc}")
 
