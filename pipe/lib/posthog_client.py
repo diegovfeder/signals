@@ -76,11 +76,15 @@ def is_feature_enabled(
         # Fallback to ENABLE_LLM_EXPLANATIONS env var
         fallback = os.getenv("ENABLE_LLM_EXPLANATIONS", "false").lower() == "true"
         print(
-            f"[posthog] PostHog unavailable, using fallback for '{flag_key}': {fallback}"
+            f"[posthog] ⚠️  PostHog unavailable, using ENABLE_LLM_EXPLANATIONS env var fallback"
         )
+        print(f"[posthog] Flag '{flag_key}' for '{distinct_id}': {fallback} (from env var)")
         return fallback
 
     try:
+        print(f"[posthog] 🔍 Checking feature flag '{flag_key}' for distinct_id='{distinct_id}'")
+        print(f"[posthog]    groups={groups}, person_properties={person_properties}")
+
         is_enabled = client.feature_enabled(
             flag_key,
             distinct_id,
@@ -91,7 +95,7 @@ def is_feature_enabled(
             send_feature_flag_events=send_feature_flag_events,
         )
 
-        print(f"[posthog] Feature '{flag_key}' for '{distinct_id}': {is_enabled}")
+        print(f"[posthog] ✅ Feature '{flag_key}' for '{distinct_id}': {is_enabled} (from PostHog)")
         return is_enabled
     except Exception as exc:
         print(f"[posthog] Error checking feature '{flag_key}': {exc}")
@@ -125,6 +129,9 @@ def capture_event(
         return
 
     try:
+        print(f"[posthog] 📊 Capturing event '{event_name}' for distinct_id='{distinct_id}'")
+        print(f"[posthog]    properties={properties}")
+
         client.capture(
             distinct_id,
             event_name,
@@ -132,7 +139,7 @@ def capture_event(
             groups=groups,
             group_properties=group_properties,
         )
-        print(f"[posthog] Captured event '{event_name}' for '{distinct_id}'")
+        print(f"[posthog] ✅ Event '{event_name}' captured successfully")
     except Exception as exc:
         print(f"[posthog] Error capturing event '{event_name}': {exc}")
 
