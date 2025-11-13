@@ -16,10 +16,12 @@ try:
     from tasks.db import get_db_conn
     from tasks.email_sending import send_signal_notification
     from settings import signal_notify_threshold
+    from lib.posthog_client import capture_event
 except ImportError:
     from pipe.tasks.db import get_db_conn
     from pipe.tasks.email_sending import send_signal_notification
     from pipe.settings import signal_notify_threshold
+    from pipe.lib.posthog_client import capture_event
 
 
 @task(name="fetch-strong-signals")
@@ -140,6 +142,19 @@ def send_signal_email(
             email,
             signal.get("id"),
         )
+        # Log failure to PostHog for observability
+        capture_event(
+            distinct_id=signal["symbol"],
+            event_name="notification_send_failed",
+            properties={
+                "signal_id": signal.get("id"),
+                "symbol": signal["symbol"],
+                "email_anonymized": email[:3] + "***" if email else "unknown",
+                "signal_type": signal.get("signal_type"),
+                "strength": signal.get("strength"),
+            },
+            groups={"symbol": signal["symbol"]},
+        )
         return False
 
     with get_db_conn() as conn, conn.cursor() as cur:
@@ -205,8 +220,8 @@ def _parse_cli_args() -> tuple[float | None, int]:
     parser.add_argument(
         "--window-minutes",
         type=int,
-        default=60,
-        help="Lookback window for eligible signals (minutes, default 60).",
+        default=1440,
+        help="Lookback window for eligible signals (minutes, default 1440).",
     )
     args = parser.parse_args()
     return args.min_strength, args.window_minutes

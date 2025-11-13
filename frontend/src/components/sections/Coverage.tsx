@@ -29,14 +29,17 @@ export default function Coverage() {
     <section className="relative py-20 px-4 md:py-32 bg-background">
       <div className="container-app">
         <div className="mb-16 flex flex-col items-center justify-center space-y-4 text-center">
-          <Badge className="inline-flex items-center gap-2 px-4 py-2 text-sm shadow-md bg-primary/20 text-ring border border-primary/40">
+          <Badge
+            variant="metal"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm shadow-md "
+          >
             <span className="text-ring">✦</span> Coverage
           </Badge>
           <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Multi-Asset Monitoring
+            Multi-asset strategy monitoring
           </h2>
           <p className="max-w-2xl text-muted-foreground/80 md:text-xl">
-            Track signals across major markets with unified technical analysis.
+            Track signals across major markets with diverse technical analyses
           </p>
         </div>
 

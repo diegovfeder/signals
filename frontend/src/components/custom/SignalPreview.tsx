@@ -2,7 +2,6 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Html,
   Preview,
   Section,
@@ -23,7 +22,6 @@ const previewSignal = {
   points: [
     "RSI reclaimed 55 after cooling off from overbought levels.",
     "12/26 EMA crossover stays intact with widening spread.",
-    "Price continues to respect the 50-day support channel.",
   ],
 };
 
@@ -54,15 +52,6 @@ export function SignalPreviewEmailContent({
       )}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <Heading
-            id="signal-preview-email-heading"
-            className="text-lg font-semibold text-foreground"
-          >
-            Daily signal recap
-          </Heading>
-        </div>
-
         <Text className="text-sm text-muted-foreground">
           {previewSignal.summary}
         </Text>
@@ -90,18 +79,20 @@ export function SignalPreviewEmailContent({
           </ul>
         </Section>
 
-        <Button asChild size="lg" className="text-center">
-          <Link
-            href="/signals/BTC-USD"
-            className="mt-2 w-full justify-center px-5 py-2.5 text-sm font-semibold"
-          >
-            Open dashboard
-          </Link>
-        </Button>
+        <div className="flex items-center flex-1 justify-center">
+          <Button asChild size="lg" className="text-center max-w-96">
+            <Link
+              href="/signals/BTC-USD"
+              className="mt-2 w-full justify-center px-5 py-2.5 text-sm font-semibold"
+            >
+              Open dashboard
+            </Link>
+          </Button>
+        </div>
 
         <Text className="text-xs leading-5 text-muted-foreground/80">
-          Alerts are powered by Resend. You can manage your notification
-          preferences or unsubscribe at any time from your account settings.
+          You can manage your notification preferences or unsubscribe at any
+          time.
         </Text>
       </div>
     </Section>

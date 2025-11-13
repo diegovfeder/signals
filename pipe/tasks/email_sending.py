@@ -17,7 +17,7 @@ import resend
 load_dotenv()
 
 DEFAULT_FROM_EMAIL = "Signals <onboarding@resend.dev>"
-DEFAULT_APP_URL = "https://signalsapp.dev"
+DEFAULT_APP_URL = "https://signals-dvf.vercel.app"
 
 try:
     from ..lib.explanation_generator import generate_explanation
@@ -213,5 +213,20 @@ def send_signal_notification(
         resend.Emails.send(params)
         return True
     except Exception as exc:
+        # Log error to PostHog for observability
+        capture_event(
+            distinct_id=signal.get("symbol", "unknown"),
+            event_name="resend_api_error",
+            properties={
+                "signal_id": signal.get("id"),
+                "symbol": signal.get("symbol"),
+                "error_type": type(exc).__name__,
+                "error_message": str(exc)[:200],  # Truncate long messages
+                "to_email_anonymized": to_email[:3] + "***" if to_email else "unknown",
+                "signal_type": signal.get("signal_type"),
+                "strength": signal.get("strength"),
+            },
+            groups={"symbol": signal.get("symbol", "unknown")},
+        )
         print(f"[email] Failed to send signal email to {to_email}: {exc}")
         return False

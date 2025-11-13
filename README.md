@@ -82,6 +82,7 @@ signals/
 ├── frontend/           # Next.js application
 ├── backend/            # FastAPI server
 ├── pipe/               # Prefect flows (data pipeline)
+├── lab/                # Marimo-powered research notebooks
 ├── db/                 # Database schemas and migrations
 └── docs/               # Documentation
     ├── MVP.md          # Project scope and goals
@@ -90,6 +91,40 @@ signals/
 ```
 
 Provider clients live under `pipe/lib/api/` (Yahoo Finance for daily OHLCV data).
+
+## Strategy Lab (Marimo)
+
+Explore indicator tweaks and new trading ideas in isolation before shipping them to Prefect flows.
+
+### Setup
+
+```bash
+cd lab
+uv sync
+```
+
+The lab shares the same `DATABASE_URL` used by the pipeline. Ensure `docker-compose up -d` (or Supabase) is running first.
+
+### Run the notebook
+
+```bash
+uv run marimo run notebooks/strategy_lab.py
+```
+
+This launches an interactive UI where you can:
+
+- Pick a symbol (BTC-USD, AAPL, or any others in `symbols` table).
+- Adjust lookback window and strategy-specific parameters (RSI thresholds, MACD triggers, etc.).
+- Fetch OHLCV + indicator history directly from Postgres.
+- Visualize price/EMA trends and inspect generated signals using the existing strategy registry.
+
+### Export results
+
+```bash
+uv run marimo export notebooks/strategy_lab.py --out outputs/strategy_lab.html
+```
+
+The exported HTML snapshot is perfect for sharing experimental findings without exposing the live database.
 
 ## Data Pipeline Workflow
 
@@ -240,7 +275,7 @@ DATABASE_URL=postgresql://...
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL="Signals Bot <onboarding@resend.dev>"
 SIGNAL_NOTIFY_THRESHOLD=60
-APP_BASE_URL=https://signalsapp.dev
+APP_BASE_URL=https://signals-dvf.vercel.app
 SIGNAL_SYMBOLS=AAPL,BTC-USD
 POSTHOG_API_KEY=phc_...
 ```

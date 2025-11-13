@@ -52,10 +52,7 @@ export default function FinalCTA() {
               variant="secondary"
               className="text-lg px-12 py-7 bg-white text-primary hover:bg-white/90 shadow-2xl border-0"
             >
-              <Link href="/signals">
-                View Live Signals
-                <ArrowRight className="ml-2 size-5" />
-              </Link>
+              <Link href="/signals">Get started now!</Link>
             </Button>
             <Button
               asChild
@@ -66,7 +63,7 @@ export default function FinalCTA() {
                 href="https://github.com/diegovfeder/signals"
                 target="_blank"
               >
-                View on GitHub
+                Check out GitHub
               </Link>
             </Button>
           </div>

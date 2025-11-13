@@ -11,11 +11,10 @@ import type { Metadata } from "next";
 
 import Hero from "@/components/sections/Hero";
 import HowItWorks from "@/components/sections/HowItWorks";
-import Pricing from "@/components/sections/Pricing";
+// import Pricing from "@/components/sections/Pricing";
 import FinalCTA from "@/components/sections/FinalCTA";
-// import SignalsPreview from "@/components/sections/SignalsPreview";
 // import ValueProps from "@/components/sections/ValueProps";
-// import Coverage from "@/components/sections/Coverage";
+import Coverage from "@/components/sections/Coverage";
 // import SocialProof from "@/components/sections/SocialProof";
 // import FinalCTA from "@/components/sections/FinalCTA";
 
@@ -33,7 +32,7 @@ export default function Home() {
         <HowItWorks />
         {/* <ValueProps /> */}
         {/*<Pricing />*/}
-        {/* <Coverage /> */}
+        <Coverage />
         {/* <SocialProof /> */}
         <FinalCTA />
       </main>
