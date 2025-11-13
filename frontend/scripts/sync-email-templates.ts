@@ -19,7 +19,7 @@
  */
 
 import { Resend } from "resend";
-import { EMAIL_TEMPLATES } from "../src/lib/email-templates";
+import { EMAIL_TEMPLATES } from "../src/lib/email";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
