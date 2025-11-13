@@ -63,12 +63,12 @@ function buildSignalNotificationHTML(): string {
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto;">
     <tr>
       <td>
-        <div style="background: ${EMAIL_THEME.card} !important; border: 1px solid ${EMAIL_THEME.cardBorder}; border-radius: 16px; padding: 40px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.17);">
+        <div style="background: ${EMAIL_THEME.card} !important; border: 1px solid ${EMAIL_THEME.cardBorder}; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.17);">
           <p style="margin: 0 0 20px 0; display: inline-block; padding: 6px 12px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText} !important; background: ${EMAIL_THEME.badgeBg} !important; border-radius: 999px; border: 1px solid ${EMAIL_THEME.divider};">Signal Alert</p>
           <h1 style="margin: 0 0 12px 0; font-size: 28px; color: ${EMAIL_THEME.textPrimary} !important;">New {{{SIGNAL_TYPE}}} signal for {{{SYMBOL}}}</h1>
           <p style="margin: 0 0 18px 0; font-size: 16px; line-height: 1.6; color: ${EMAIL_THEME.textSecondary};">Generated at {{{TIMESTAMP}}}</p>
 
-          <div style="margin: 24px 0; padding: 24px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border: 1px solid ${EMAIL_THEME.divider};">
+          <div style="margin: 16px 0; padding: 16px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border: 1px solid ${EMAIL_THEME.divider};">
             <p style="margin: 0 0 16px 0; font-size: 48px; font-weight: bold; color: ${EMAIL_THEME.badgeText}; text-align: center;">{{{SIGNAL_TYPE}}}</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div>
@@ -82,16 +82,16 @@ function buildSignalNotificationHTML(): string {
             </div>
           </div>
 
-          <div style="margin: 24px 0;">
-            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.muted};">Key Factors</p>
-            <ul style="margin: 0 0 16px 20px; padding: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.6;">
+          <div style="margin: 16px 0;">
+            <p style="margin: 0 0 8px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.muted};">Key Factors</p>
+            <ul style="margin: 0; padding: 0 0 0 20px; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.6;">
               {{{REASONING_HTML}}}
             </ul>
           </div>
 
           {{#EXPLANATION_TEXT}}
-          <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
-            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
+          <div style="margin: 16px 0; padding: 16px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
+            <p style="margin: 0 0 8px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
             <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7; white-space: pre-line;">
               {{{.}}}
             </div>
@@ -99,8 +99,8 @@ function buildSignalNotificationHTML(): string {
           {{/EXPLANATION_TEXT}}
           {{^EXPLANATION_TEXT}}
           {{#EXPLANATION_HTML}}
-          <div style="margin: 24px 0; padding: 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
-            <p style="margin: 0 0 12px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
+          <div style="margin: 16px 0; padding: 16px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid ${EMAIL_THEME.ring};">
+            <p style="margin: 0 0 8px 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: ${EMAIL_THEME.badgeText};">Analysis</p>
             <div style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 15px; line-height: 1.7;">
               {{{.}}}
             </div>
@@ -108,14 +108,14 @@ function buildSignalNotificationHTML(): string {
           {{/EXPLANATION_HTML}}
           {{/EXPLANATION_TEXT}}
 
-          <div style="text-align: center; margin: 32px 0 24px 0;">
-            <a href="{{{SIGNAL_URL}}}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient} !important; border: 1px solid ${EMAIL_THEME.ring}; color: ${EMAIL_THEME.primaryForeground} !important; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="text-align: center; margin: 20px 0 16px 0;">
+            <a href="{{{SIGNAL_URL}}}" style="display: inline-block; padding: 14px 32px; border-radius: 999px; background: ${EMAIL_THEME.buttonGradient} !important; border: 1px solid ${EMAIL_THEME.ring}; color: #ffffff !important; font-weight: 600; font-size: 16px; text-decoration: none; box-shadow: ${EMAIL_THEME.buttonShadow}; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               View Full Signal Details
             </a>
           </div>
 
-          <div style="margin: 24px 0; padding: 16px 20px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid #f59e0b;">
-            <p style="margin: 0 0 8px 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #fbbf24; font-weight: 600;">⚠ Risk Disclaimer</p>
+          <div style="margin: 16px 0; padding: 12px 16px; border-radius: 12px; background: ${EMAIL_THEME.badgeBg}; border-left: 3px solid #f59e0b;">
+            <p style="margin: 0 0 6px 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #fbbf24; font-weight: 600;">⚠ Risk Disclaimer</p>
             <p style="margin: 0; color: ${EMAIL_THEME.textSecondary}; font-size: 14px; line-height: 1.6;">
               This signal is for informational purposes only and does not constitute financial advice. Trading involves substantial risk of loss. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.
             </p>
