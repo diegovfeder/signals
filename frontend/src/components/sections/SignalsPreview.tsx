@@ -23,8 +23,9 @@ import { Button } from "@/components/ui/button";
 import { AnimatedPriceTicker } from "@/components/ui/animated-price-ticker";
 import { cn } from "@/lib/utils";
 import { formatPercentage, formatPrice } from "@/lib/utils/formatters";
-import { SignalPreviewEmailContent } from "@/emails/SignalPreview";
+import { SignalPreviewEmailContent } from "@/components/custom/SignalPreview";
 import Link from "next/link";
+import { MarketAnalysisExample } from "../custom/MarketAnalysisExample";
 
 ChartJS.register(
   CategoryScale,
@@ -58,14 +59,13 @@ const btcTwoYearSeries: BtcPoint[] = [
 
 const previewSignal = {
   symbol: "BTC-USD",
-  signalType: "BUY" as const,
+  signalType: "HOLD" as const,
   price: 48230.12,
   strength: 82,
   updatedAt: new Date("2025-02-12T12:15:00Z"),
   reasoning: [
     "RSI reclaimed 55 after cooling off from overbought levels.",
     "12/26 EMA crossover stays intact with widening spread.",
-    "Price continues to respect the 50-day support channel.",
   ],
 };
 
@@ -185,8 +185,10 @@ export default function SignalsPreview() {
           },
           backgroundColor: tooltipBackground,
           borderColor: gridColor,
-          titleColor: "var(--foreground)",
-          bodyColor: "var(--foreground)",
+          borderWidth: 1,
+          titleColor: "#e2e8f0",
+          bodyColor: "#f1f5f9",
+          padding: 12,
         },
       },
       scales: {
@@ -226,54 +228,20 @@ export default function SignalsPreview() {
   return (
     <section
       aria-labelledby="signals-preview-heading"
-      className="relative isolate mx-auto max-w-6xl px-4"
+      className="relative isolate mx-auto max-w-6xl px-2 md:px-4"
     >
-      <div className="rounded-4xl border border-border/60 bg-card/40 p-6 shadow-2xl backdrop-blur">
-        <div className="grid gap-6 sm:grid-cols-2 lg:auto-rows-fr md:grid-cols-5">
-          <div
-            role="group"
-            aria-labelledby="signals-preview-chart-heading"
-            className="flex h-fit flex-col border border-border/60 bg-card/80 p-6 sm:col-span-2 md:col-span-5"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  2-year snapshot
-                </p>
-                <h3
-                  id="signals-preview-chart-heading"
-                  className="mt-2 text-xl font-semibold text-foreground"
-                >
-                  BTC-USD performance
-                </h3>
-              </div>
-              <Badge className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200 shadow-sm">
-                {formatPercentage(gain)}
-              </Badge>
-            </div>
-            <div className="mt-6 h-72 lg:h-80">
-              <Line
-                data={chartData}
-                options={chartOptions}
-                aria-hidden="true"
-              />
-            </div>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Static illustration showing how we visualise long-term momentum
-              with our built-in chart tools.
-            </p>
-          </div>
-
+      <div className="rounded-4xl border border-border/60 bg-card/40 p-3 md:p-6 shadow-2xl backdrop-blur">
+        <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:auto-rows-fr md:grid-cols-5">
           <Card
             role="group"
             aria-labelledby="signals-preview-card-heading"
-            className="flex flex-col border border-border/60 bg-card/80 p-6 sm:col-span-1 md:col-span-2"
+            className="flex flex-col border border-border/60 bg-card/80 p-4 md:p-6 sm:col-span-1 md:col-span-2 justify-center"
           >
             <div className="flex flex-col gap-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Latest signal card
+                    Latest signal
                   </p>
                   <h3
                     id="signals-preview-card-heading"
@@ -297,10 +265,6 @@ export default function SignalsPreview() {
               </div>
 
               <div>
-                <p className="text-sm text-muted-foreground">Current price</p>
-                <p className="mt-1 text-3xl font-semibold text-foreground">
-                  {formatPrice(previewSignal.price)}
-                </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Updated {formatUpdated(previewSignal.updatedAt)}
                 </p>
@@ -364,26 +328,69 @@ export default function SignalsPreview() {
           <Card
             role="group"
             aria-labelledby="signals-preview-email-heading"
-            className="flex h-full flex-col border border-border/60 bg-card/80 p-6 sm:col-span-1 md:col-span-3"
+            className="hidden sm:flex h-full flex-col border border-border/60 bg-card/80 p-4 sm:p-6 sm:col-span-1 md:col-span-3 sm:justify-center"
           >
             <div className="mb-5">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Resend email alert
+                Email alert
               </p>
               <h3
                 id="signals-preview-email-heading"
                 className="mt-2 text-xl font-semibold text-foreground"
               >
-                Inbox preview
+                Inbound preview
               </h3>
               <p className="mt-2 text-xs text-muted-foreground">
                 Sent {formatUpdated(previewSignal.updatedAt)}
               </p>
             </div>
+
+            {/*FIXME: Might remove component below and use the Example*/}
             <div className="flex-1">
-              <SignalPreviewEmailContent className="border-0 bg-muted/30 p-4 shadow-none backdrop-blur-none" />
+              <MarketAnalysisExample />
             </div>
+            {/*<SignalPreviewEmailContent className="border-0 bg-muted/30" />*/}
           </Card>
+
+          <div
+            role="group"
+            aria-labelledby="signals-preview-chart-heading"
+            className="flex h-fit flex-col border border-border/60 bg-card/80 p-4 md:p-6 sm:col-span-2 md:col-span-5"
+          >
+            {/* Market Context Explanation - Hidden on lg+ breakpoint */}
+            {/*<MarketAnalysisExample />*/}
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  2-year snapshot
+                </p>
+                <h3
+                  id="signals-preview-chart-heading"
+                  className="mt-2 text-xl font-semibold text-foreground"
+                >
+                  BTC-USD performance
+                </h3>
+              </div>
+              <Badge
+                variant="metal"
+                className="px-3 py-1 text-xs uppercase tracking-wide"
+              >
+                {formatPercentage(gain)}
+              </Badge>
+            </div>
+            <div className="mt-6 h-72 lg:h-80">
+              <Line
+                data={chartData}
+                options={chartOptions}
+                aria-hidden="true"
+              />
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Static illustration showing how we visualise long-term momentum
+              with our built-in chart tools.
+            </p>
+          </div>
         </div>
       </div>
     </section>

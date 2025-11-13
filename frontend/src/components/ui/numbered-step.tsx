@@ -42,7 +42,7 @@ export function NumberedStep({
       </h3>
 
       {/* Description */}
-      <p className="max-w-sm text-lg text-muted-foreground/90 leading-relaxed">
+      <p className="max-w-sm text-lg text-muted-foreground/90 leading-relaxed whitespace-pre-line text-pretty">
         {description}
       </p>
     </div>

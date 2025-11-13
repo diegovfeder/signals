@@ -12,23 +12,23 @@ export default function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Sync",
+      title: "Track",
       description:
-        "Each evening Prefect ingests fresh Yahoo Finance OHLCV for your symbols, validates gaps, and stores everything in Supabase.",
+        "We watch the market 24/7 so you don't have to stare at charts all day.\n Fresh insights, zero effort",
       delay: 0,
     },
     {
       number: "02",
-      title: "Diagnose",
+      title: "Analyze",
       description:
-        "Signals runs RSI, EMA, and custom heuristics to produce a 0–100 confidence score plus bullet-point reasoning you can read.",
+        "We spot the best times to buy or sell by reading price patterns and momentum.\n Each signal gets a confidence score you can trust.",
       delay: 100,
     },
     {
       number: "03",
-      title: "Brief",
+      title: "Alert",
       description:
-        "Resend emails and the dashboard publish the same plain-English recap so you can act—or ignore—with full context in seconds.",
+        "You get a simple email explaining what's happening and whether it matters.\n No jargon, just clear guidance you can act on.",
       delay: 200,
     },
   ];
@@ -42,15 +42,15 @@ export default function HowItWorks() {
         <div className="mx-auto max-w-6xl">
           {/* Section header with green */}
           <div className="mb-20 flex flex-col items-center justify-center space-y-4 text-center">
-            <Badge className="mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm shadow-md bg-primary/20 text-ring border border-primary/40">
+            <Badge variant="metal" className="mb-8 gap-2 px-4 py-2 text-sm">
               <span className="text-ring">✦</span> How It Works
             </Badge>
             <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-              From nightly sync to inbox-ready briefings
+              From market chaos to clear decisions
             </h2>
             <p className="max-w-2xl text-muted-foreground/80 md:text-xl">
-              Three deliberate steps turn raw market data into human-language
-              signals you can trust every morning.
+              Three simple steps turn overwhelming price charts into actionable
+              signals you can understand in seconds.
             </p>
           </div>
 
