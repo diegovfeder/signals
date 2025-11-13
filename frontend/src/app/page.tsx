@@ -19,9 +19,9 @@ import Coverage from "@/components/sections/Coverage";
 // import FinalCTA from "@/components/sections/FinalCTA";
 
 export const metadata: Metadata = {
-  title: "SIGNALS — Automated Trading Signals (RSI & EMA)",
+  title: "Signals — Market insights made human",
   description:
-    "Daily multi-asset signals with plain-English explanations. Email alerts for high-confidence setups.",
+    "Turn market chaos into clear decisions. We analyze Apple and Bitcoin daily and send you confidence-scored signals you can understand in seconds. Zero effort, just results.",
 };
 
 export default function Home() {

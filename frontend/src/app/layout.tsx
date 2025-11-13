@@ -10,22 +10,27 @@ import Footer from "@/components/sections/Footer";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Trading Signals - Automated Technical Analysis",
+  title: "Signals — Market insights made human",
   description:
-    "Automated trading signals for crypto and stocks based on proven technical indicators. Get BUY/SELL alerts without the guesswork.",
+    "Stop staring at charts. We track Apple and Bitcoin 24/7 and email you only when something actually matters. Clear signals you can act on, not hype you have to decode.",
   keywords: [
+    "market insights",
     "trading signals",
-    "technical analysis",
-    "crypto",
-    "stocks",
-    "RSI",
-    "MACD",
+    "apple stock",
+    "bitcoin",
+    "AAPL",
+    "BTC",
+    "market timing",
+    "daily market brief",
+    "momentum analysis",
+    "investment signals",
+    "market alerts",
   ],
   authors: [{ name: "Diego Feder" }, { name: "Caue Feder" }],
   openGraph: {
-    title: "Trading Signals - Automated Technical Analysis",
+    title: "Signals — Market insights made human",
     description:
-      "Get automated BUY/SELL signals for Bitcoin, Ethereum, and Tesla.",
+      "We watch Apple and Bitcoin so you don't have to. One daily email with clear buy/hold/sell signals and the reasoning behind them. No jargon, just guidance you can trust.",
     type: "website",
   },
 };
