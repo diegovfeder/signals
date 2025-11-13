@@ -59,7 +59,7 @@ const btcTwoYearSeries: BtcPoint[] = [
 
 const previewSignal = {
   symbol: "BTC-USD",
-  signalType: "HOLD" as const,
+  signalType: "HOLD" as "BUY" | "SELL" | "HOLD",
   price: 48230.12,
   strength: 82,
   updatedAt: new Date("2025-02-12T12:15:00Z"),
