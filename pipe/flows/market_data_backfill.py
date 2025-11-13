@@ -35,14 +35,20 @@ except ImportError:
 def market_data_backfill_flow(
     symbols: list[str] | None = None,
     backfill_days: int | None = None,
-    backfill_range: str = "5y",
+    backfill_range: str = "10y",
 ):
     logger = get_run_logger()
 
     target_symbols = resolve_symbols(symbols)
-    days = backfill_days if backfill_days is not None else resolve_history_days(None, backfill_range)
+    days = (
+        backfill_days
+        if backfill_days is not None
+        else resolve_history_days(None, backfill_range)
+    )
     if days is None:
-        raise ValueError("Backfill requires --backfill-days or --backfill-range/BACKFILL_RANGE env var.")
+        raise ValueError(
+            "Backfill requires --backfill-days or --backfill-range/BACKFILL_RANGE env var."
+        )
 
     logger.info(
         "Starting historical backfill for %d symbol(s) over ~%d day window (range=%s).",
@@ -57,7 +63,11 @@ def market_data_backfill_flow(
             has_rows = history.height > 0
             inserted = upsert_market_data(history) if has_rows else 0
             calculate_and_upsert_indicators(symbol, window=None)
-            logger.info("Completed backfill for %s: inserted=%d rows, indicators refreshed.", symbol, inserted)
+            logger.info(
+                "Completed backfill for %s: inserted=%d rows, indicators refreshed.",
+                symbol,
+                inserted,
+            )
         except Exception as exc:
             logger.exception("Error backfilling %s: %s", symbol, exc)
 
@@ -65,7 +75,9 @@ def market_data_backfill_flow(
 
 
 def _parse_cli_args():
-    parser = argparse.ArgumentParser(description="Backfill multi-year market data for new symbols.")
+    parser = argparse.ArgumentParser(
+        description="Backfill multi-year market data for new symbols."
+    )
     parser.add_argument(
         "--symbols",
         type=str,
@@ -88,7 +100,9 @@ def _parse_cli_args():
     )
     args = parser.parse_args()
     resolved_symbols = (
-        [sym.strip() for sym in args.symbols.split(",") if sym.strip()] if args.symbols else None
+        [sym.strip() for sym in args.symbols.split(",") if sym.strip()]
+        if args.symbols
+        else None
     )
     resolved_days = resolve_history_days(args.backfill_days, args.backfill_range)
     return resolved_symbols, resolved_days, args.backfill_range
@@ -96,4 +110,6 @@ def _parse_cli_args():
 
 if __name__ == "__main__":
     cli_symbols, cli_days, cli_range = _parse_cli_args()
-    market_data_backfill_flow(symbols=cli_symbols, backfill_days=cli_days, backfill_range=cli_range)
+    market_data_backfill_flow(
+        symbols=cli_symbols, backfill_days=cli_days, backfill_range=cli_range
+    )

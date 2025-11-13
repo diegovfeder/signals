@@ -193,7 +193,7 @@ def main() -> None:
         name="manual-backfill",
         work_pool=args.work_pool,
         description="Manual trigger to load multi-year history for new symbols.",
-        parameters={"backfill_range": "5y"},
+        parameters={"backfill_range": "10y"},
         tags=["backfill", "manual", "onboarding"],
         dry_run=args.dry_run,
     )
