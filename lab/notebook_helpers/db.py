@@ -5,12 +5,30 @@ from __future__ import annotations
 import os
 from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Iterator
 
 import polars as pl
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
+
+# Ensure environment is loaded - check lab/.env first, then pipe/.env
+from dotenv import load_dotenv
+
+_LAB_ENV = Path(__file__).parent.parent / ".env"
+_PIPE_ENV = Path(__file__).parent.parent.parent / "pipe" / ".env"
+
+if _LAB_ENV.exists():
+    load_dotenv(_LAB_ENV, override=False)
+elif _PIPE_ENV.exists():
+    load_dotenv(_PIPE_ENV, override=False)
+else:
+    import warnings
+    warnings.warn(
+        "No .env file found. Copy lab/.env.example to lab/.env and configure it.",
+        RuntimeWarning
+    )
 
 
 _POOL: ConnectionPool | None = None

@@ -1,23 +1,56 @@
-"""Adapters around the shared strategy registry for the lab."""
+"""Adapters around the shared strategy registry for the lab.
+
+NOTE: This module auto-loads environment and pipe path, but you can also
+explicitly import `lab_init` first for clarity:
+    import lab_init  # Optional but recommended
+    from notebook_helpers.strategies import get_strategy
+"""
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import polars as pl
 
-from pipe.lib.strategies import (
-    Strategy,
-    StrategyInputs,
-    StrategyResult,
-    SignalType,
-    get_strategy as _pipeline_get_strategy,
-)
-from pipe.lib.strategies.crypto_momentum import CryptoMomentumStrategy
-from pipe.lib.strategies.default_hold import HoldStrategy
-from pipe.lib.strategies.stock_mean_reversion import StockMeanReversionStrategy
+# Ensure pipe is in sys.path and environment is loaded
+from dotenv import load_dotenv
+
+_PIPE_DIR = Path(__file__).parent.parent.parent / "pipe"
+if _PIPE_DIR.exists() and str(_PIPE_DIR) not in sys.path:
+    sys.path.insert(0, str(_PIPE_DIR))
+
+# Load environment - check lab/.env first, then pipe/.env
+_LAB_ENV = Path(__file__).parent.parent / ".env"
+_PIPE_ENV = _PIPE_DIR / ".env"
+
+if _LAB_ENV.exists():
+    load_dotenv(_LAB_ENV, override=False)
+elif _PIPE_ENV.exists():
+    load_dotenv(_PIPE_ENV, override=False)
+
+# Import from pipe
+try:
+    from lib.strategies import (
+        Strategy,
+        StrategyInputs,
+        StrategyResult,
+        SignalType,
+        get_strategy as _pipeline_get_strategy,
+    )
+    from lib.strategies.crypto_momentum import CryptoMomentumStrategy
+    from lib.strategies.default_hold import HoldStrategy
+    from lib.strategies.stock_mean_reversion import StockMeanReversionStrategy
+except ImportError as e:
+    raise ImportError(
+        f"Failed to import from pipe/lib/strategies: {e}\n\n"
+        "Make sure to import `lab_init` at the top of your notebook before importing this module:\n"
+        "    import lab_init\n"
+        "    from lib import strategies"
+    )
 
 
 @dataclass(frozen=True)

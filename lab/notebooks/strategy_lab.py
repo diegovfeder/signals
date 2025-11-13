@@ -11,13 +11,20 @@ app = mo.App(width="full")
 
 @app.cell
 def __():
+    import marimo as mo
+
+    return mo
+
+
+@app.cell
+def __():
     from datetime import datetime, timedelta, timezone
 
     import polars as pl
     import plotly.graph_objects as go
 
-    from lib.db import fetch_price_history, list_symbols
-    from lib.strategies import (
+    from notebook_helpers.db import fetch_price_history, list_symbols
+    from notebook_helpers.strategies import (
         available_strategy_keys,
         default_strategy_key_for_symbol,
         evaluate_strategy,
@@ -32,7 +39,6 @@ def __():
         fetch_price_history,
         get_strategy,
         list_symbols,
-        mo,
         parameters_for,
         pl,
         go,
