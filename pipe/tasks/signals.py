@@ -52,7 +52,6 @@ def generate_and_store_signal(
     idempotency_key = f"{symbol}:{strategy.name}:{ts.isoformat()}"
 
     # Check PostHog feature flag (with ENABLE_LLM_EXPLANATIONS env var as fallback)
-    print(f"[signals] Checking if LLM explanations enabled for symbol: {symbol}")
     is_llm_explanations_enabled = is_feature_enabled(
         flag_key="llm-signal-explanations",
         distinct_id=symbol,
@@ -61,7 +60,6 @@ def generate_and_store_signal(
 
     explanation = None
     if is_llm_explanations_enabled:
-        print(f"[signals] ✅ LLM explanations ENABLED for {symbol}, generating explanation...")
         try:
             signal_data = {
                 "symbol": symbol,
@@ -94,8 +92,6 @@ def generate_and_store_signal(
         except Exception as e:
             print(f"[explanation] Failed for {symbol}: {e}")
             # Continue without explanation - it's optional
-    else:
-        print(f"[signals] ❌ LLM explanations DISABLED for {symbol}, skipping generation")
 
     with get_db_conn() as conn, conn.cursor() as cur:
         cur.execute(
