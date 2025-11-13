@@ -220,8 +220,8 @@ def _parse_cli_args() -> tuple[float | None, int]:
     parser.add_argument(
         "--window-minutes",
         type=int,
-        default=60,
-        help="Lookback window for eligible signals (minutes, default 60).",
+        default=1440,
+        help="Lookback window for eligible signals (minutes, default 1440).",
     )
     args = parser.parse_args()
     return args.min_strength, args.window_minutes
