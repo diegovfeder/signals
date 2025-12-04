@@ -26,6 +26,8 @@ import { formatPercentage, formatPrice } from "@/lib/utils/formatters";
 import { SignalPreviewEmailContent } from "@/components/custom/SignalPreview";
 import Link from "next/link";
 import { MarketAnalysisExample } from "../custom/MarketAnalysisExample";
+import { BTC_TWO_YEAR_DATA } from "@/lib/data/btc-market-data";
+import { DEFAULT_SIGNAL_PREVIEW } from "@/lib/data/signal-preview-data";
 
 ChartJS.register(
   CategoryScale,
@@ -37,37 +39,8 @@ ChartJS.register(
   Filler,
 );
 
-type BtcPoint = {
-  date: string;
-  close: number;
-};
-
-const btcTwoYearSeries: BtcPoint[] = [
-  { date: "2023-02-01", close: 23482 },
-  { date: "2023-04-01", close: 28650 },
-  { date: "2023-06-01", close: 30510 },
-  { date: "2023-08-01", close: 29180 },
-  { date: "2023-10-01", close: 34015 },
-  { date: "2023-12-01", close: 42150 },
-  { date: "2024-02-01", close: 45120 },
-  { date: "2024-04-01", close: 59380 },
-  { date: "2024-06-01", close: 64350 },
-  { date: "2024-08-01", close: 58710 },
-  { date: "2024-10-01", close: 63985 },
-  { date: "2024-12-01", close: 48230 },
-];
-
-const previewSignal = {
-  symbol: "BTC-USD",
-  signalType: "HOLD" as "BUY" | "SELL" | "HOLD",
-  price: 48230.12,
-  strength: 82,
-  updatedAt: new Date("2025-02-12T12:15:00Z"),
-  reasoning: [
-    "RSI reclaimed 55 after cooling off from overbought levels.",
-    "12/26 EMA crossover stays intact with widening spread.",
-  ],
-};
+// Use realistic signal preview tied to latest BTC data
+const previewSignal = DEFAULT_SIGNAL_PREVIEW;
 
 const strengthLabel =
   previewSignal.strength >= 70
@@ -134,21 +107,21 @@ export default function SignalsPreview() {
     }, []);
 
   const gain = useMemo(() => {
-    if (!btcTwoYearSeries.length) {
+    if (!BTC_TWO_YEAR_DATA.length) {
       return 0;
     }
-    const start = btcTwoYearSeries[0].close;
-    const end = btcTwoYearSeries[btcTwoYearSeries.length - 1].close;
+    const start = BTC_TWO_YEAR_DATA[0].close;
+    const end = BTC_TWO_YEAR_DATA[BTC_TWO_YEAR_DATA.length - 1].close;
     return ((end - start) / start) * 100;
   }, []);
 
   const chartData = useMemo<ChartData<"line">>(() => {
     return {
-      labels: btcTwoYearSeries.map((point) => point.date),
+      labels: BTC_TWO_YEAR_DATA.map((point) => point.date),
       datasets: [
         {
           label: "BTC-USD",
-          data: btcTwoYearSeries.map((point) => point.close),
+          data: BTC_TWO_YEAR_DATA.map((point) => point.close),
           fill: {
             target: "origin",
             above: hexToRgba(chartColor, 0.12),

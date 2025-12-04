@@ -16,6 +16,7 @@ interface SignalCardProps {
   strength: number;
   reasoning: string[];
   price: number;
+  timestamp?: string;
 }
 
 export default function SignalCard({
@@ -24,6 +25,7 @@ export default function SignalCard({
   strength,
   reasoning,
   price,
+  timestamp,
 }: SignalCardProps): JSX.Element {
   // Determine signal badge variant and color
   const getBadgeVariant = () => {
@@ -59,16 +61,31 @@ export default function SignalCard({
   const confidenceLabel =
     confidence >= 70 ? "Strong" : confidence >= 40 ? "Moderate" : "Weak";
 
+  // Format timestamp to show only time
+  const formattedTime = timestamp
+    ? new Date(timestamp).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
     <Card className="p-6 animate-fade-in group h-full flex flex-col justify-between border-2 border-border hover:border-primary transition-all duration-300 hover:shadow-lg">
       {/* Header with symbol and price */}
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="text-xl font-semibold text-foreground group-hover:text-ring transition-colors">
-          {symbol}
-        </h2>
-        <span className="text-sm text-muted-foreground font-mono">
-          ${price?.toFixed(2) ?? "-"}
-        </span>
+      <div className="mb-4">
+        <div className="flex items-baseline justify-between mb-1">
+          <h2 className="text-xl font-semibold text-foreground group-hover:text-ring transition-colors">
+            {symbol}
+          </h2>
+          <span className="text-sm text-muted-foreground font-mono">
+            ${price?.toFixed(2) ?? "-"}
+          </span>
+        </div>
+        {formattedTime && (
+          <p className="text-xs text-muted-foreground font-mono">
+            {formattedTime}
+          </p>
+        )}
       </div>
 
       {/* Signal type badge and strength */}
