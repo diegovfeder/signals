@@ -35,18 +35,55 @@ export default function SignalsPage(): JSX.Element {
   const [sortKey, setSortKey] = useState<SortKey>("timestamp");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
-  // For card view: get latest signal per symbol
-  const latestSignals = useMemo<Signal[]>(() => {
-    const map = new Map<string, Signal>();
-    for (const signal of signals) {
-      if (!map.has(signal.symbol)) {
-        map.set(signal.symbol, signal);
-      }
-    }
-    return Array.from(map.values()).sort(
+  // Helper to format date headers
+  const formatDateHeader = (date: Date): string => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Compare dates without time
+    const isSameDay = (d1: Date, d2: Date) =>
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+
+    if (isSameDay(date, today)) return "TODAY";
+    if (isSameDay(date, yesterday)) return "YESTERDAY";
+
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // For card view: group all signals by date
+  const signalsByDate = useMemo<Map<string, Signal[]>>(() => {
+    const groups = new Map<string, Signal[]>();
+
+    // Sort signals by timestamp descending (newest first)
+    const sortedSignals = [...signals].sort(
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
+
+    for (const signal of sortedSignals) {
+      const date = new Date(signal.timestamp);
+      // Use date string as key (YYYY-MM-DD)
+      const dateKey = date.toISOString().split("T")[0];
+
+      if (!groups.has(dateKey)) {
+        groups.set(dateKey, []);
+      }
+      groups.get(dateKey)!.push(signal);
+    }
+
+    // Sort signals within each date group alphabetically by symbol
+    for (const [_, signalsInDate] of groups) {
+      signalsInDate.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    }
+
+    return groups;
   }, [signals]);
 
   // For table view: filter and sort all signals
@@ -82,10 +119,29 @@ export default function SignalsPage(): JSX.Element {
   }, [signals, filterType, sortKey, sortOrder]);
 
   // Apply filter to card view as well
-  const filteredLatestSignals = useMemo<Signal[]>(() => {
-    if (filterType === "ALL") return latestSignals;
-    return latestSignals.filter((s) => s.signal_type === filterType);
-  }, [latestSignals, filterType]);
+  const filteredSignalsByDate = useMemo<Map<string, Signal[]>>(() => {
+    if (filterType === "ALL") return signalsByDate;
+
+    const filtered = new Map<string, Signal[]>();
+    for (const [dateKey, signalsInDate] of signalsByDate) {
+      const filteredSignals = signalsInDate.filter(
+        (s) => s.signal_type === filterType,
+      );
+      if (filteredSignals.length > 0) {
+        filtered.set(dateKey, filteredSignals);
+      }
+    }
+    return filtered;
+  }, [signalsByDate, filterType]);
+
+  // Count total signals in filtered card view
+  const filteredCardsCount = useMemo(() => {
+    let count = 0;
+    for (const signalsInDate of filteredSignalsByDate.values()) {
+      count += signalsInDate.length;
+    }
+    return count;
+  }, [filteredSignalsByDate]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -114,13 +170,11 @@ export default function SignalsPage(): JSX.Element {
   };
 
   const placeholders = Array.from({
-    length: Math.max(filteredLatestSignals.length || 0, PLACEHOLDER_COUNT),
+    length: PLACEHOLDER_COUNT,
   });
 
   const displayCount =
-    viewMode === "cards"
-      ? filteredLatestSignals.length
-      : filteredAndSortedSignals.length;
+    viewMode === "cards" ? filteredCardsCount : filteredAndSortedSignals.length;
 
   return (
     <main className="min-h-screen py-10 px-4">
@@ -244,23 +298,59 @@ export default function SignalsPage(): JSX.Element {
         {/* Cards View */}
         {!isLoading && !isError && viewMode === "cards" && (
           <>
-            {filteredLatestSignals.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {filteredLatestSignals.map((signal, idx) => (
-                  <div
-                    key={`${signal.symbol}-${signal.id}`}
-                    className="animate-slide-up"
-                    style={{ animationDelay: `${idx * 50}ms` }}
-                  >
-                    <SignalCard
-                      symbol={signal.symbol}
-                      signalType={signal.signal_type || "HOLD"}
-                      strength={signal.strength ?? 0}
-                      reasoning={signal.reasoning ?? []}
-                      price={signal.price_at_signal ?? 0}
-                    />
-                  </div>
-                ))}
+            {filteredCardsCount > 0 ? (
+              <div className="space-y-10">
+                {Array.from(filteredSignalsByDate.entries()).map(
+                  ([dateKey, signalsInDate], dateIdx) => {
+                    const date = new Date(dateKey + "T00:00:00");
+                    const dateHeader = formatDateHeader(date);
+
+                    return (
+                      <div
+                        key={dateKey}
+                        className="animate-slide-up"
+                        style={{ animationDelay: `${dateIdx * 100}ms` }}
+                      >
+                        {/* Date Header */}
+                        <div className="flex items-center gap-3 mb-6">
+                          <h2 className="text-2xl font-bold text-foreground">
+                            {dateHeader}
+                          </h2>
+                          <div className="h-px flex-1 bg-border" />
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-mono"
+                          >
+                            {signalsInDate.length} signal
+                            {signalsInDate.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+
+                        {/* Cards Grid for this date */}
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                          {signalsInDate.map((signal, idx) => (
+                            <div
+                              key={`${signal.symbol}-${signal.id}`}
+                              className="animate-slide-up"
+                              style={{
+                                animationDelay: `${dateIdx * 100 + idx * 50}ms`,
+                              }}
+                            >
+                              <SignalCard
+                                symbol={signal.symbol}
+                                signalType={signal.signal_type || "HOLD"}
+                                strength={signal.strength ?? 0}
+                                reasoning={signal.reasoning ?? []}
+                                price={signal.price_at_signal ?? 0}
+                                timestamp={signal.timestamp}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
               </div>
             ) : (
               <div className="card-premium p-6 text-center animate-fade-in">
@@ -422,7 +512,7 @@ export default function SignalsPage(): JSX.Element {
         {!isLoading &&
           !isError &&
           viewMode === "cards" &&
-          filteredLatestSignals.length > 0 && <DailySignalsBadge />}
+          filteredCardsCount > 0 && <DailySignalsBadge />}
       </div>
 
       {/* Subscribe Form */}
