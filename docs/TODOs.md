@@ -1,7 +1,7 @@
 # Task Tracking & Project Board
 
-> **Last Updated**: 2025-11-09  
-> **Status**: Backlog now lives in GitHub Issues + the "Signals – Tasks" project board.
+> **Last Updated**: 2025-11-25  
+> **Status**: Backlog now lives in GitHub Issues + the "Signals – Tasks" project board (Project #4).
 
 Old sprint checklists have been archived to `docs/archive/TODOs-2025-11-05.md`. From now on we open GitHub issues for every change, track them on a shared board, and keep this page as the lightweight process reference.
 
@@ -10,7 +10,7 @@ Old sprint checklists have been archived to `docs/archive/TODOs-2025-11-05.md`. 
 ## 1. Where Work Lives
 
 - **Issues**: https://github.com/diegovfeder/signals/issues (use the "Task" template).
-- **Project Board**: `Signals – Tasks` (GitHub Projects Beta). URL: https://github.com/users/diegovfeder/projects/4/views/1
+- **Project Board**: [Signals – Tasks (Project #4)](https://github.com/users/diegovfeder/projects/4/views/1) – GitHub Projects Beta Kanban board.
 - **Docs Archive**: Anything that used to be a TODO list stays in `docs/archive/` for historical context only.
 
 ---
@@ -79,3 +79,42 @@ View the board: https://github.com/users/diegovfeder/projects/4/views/1
 4. **Close the issue only after validation steps pass.** For now we rely on manual verification: run the affected Prefect flow(s), hit key API endpoints (e.g., `/health`, `/api/signals`), and test the impacted frontend routes after `bun run lint && bun run type-check`.
 
 This page should rarely change; update it when the process or board structure shifts.
+
+---
+
+## 6. Future Work Areas
+
+The following areas need attention and should be tracked as issues on the project board:
+
+### Model Refinement
+- Review and tune signal generation strategies in `pipe/lib/signals/strategies/`
+- Optimize indicator calculation thresholds (RSI, EMA, MACD)
+- Improve signal strength scoring algorithm in `pipe/lib/signals/signal_scorer.py`
+- Backtest strategy performance across different market conditions
+
+### Testing & Validation
+- **AI Agents**: Test and validate any AI-powered features or reasoning components
+- **Databases**: 
+  - Test database migrations and schema changes
+  - Validate data integrity and constraint enforcement
+  - Performance testing for large datasets
+  - Connection pooling and query optimization
+- **Pipelines**: 
+  - End-to-end testing of Prefect flows
+  - Error handling and retry logic validation
+  - Data provider failure scenarios (Yahoo Finance downtime)
+  - Idempotency testing for signal generation
+
+### Infrastructure & Operations
+- Monitor pipeline reliability (target: 95%+)
+- Set up alerting for pipeline failures
+- Database backup and recovery procedures
+- Performance monitoring and optimization
+
+### Code Quality
+- Review and refactor complex modules
+- Improve error handling and logging
+- Add type hints and documentation
+- Code review and pair programming sessions
+
+**Note**: Open GitHub issues for each of these items using the task template, and move them through the board columns as work progresses.

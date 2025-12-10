@@ -74,5 +74,14 @@ logs/
 # OS
 Thumbs.db
 
+# Bash files
+setup-and-start.sh
+test-local.sh
+start-servers.sh
+run-commands.sh
+
+
 # IMPORTANT: do not ignore app source 'lib' directories
 # (avoid patterns like 'lib/' that hide frontend/src/lib or others)
+
+
