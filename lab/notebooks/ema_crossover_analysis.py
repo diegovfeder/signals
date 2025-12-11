@@ -346,6 +346,14 @@ def run_multi_asset_analysis(assets=['SPY', 'QQQ', 'DIA'], start_date='2023-01-0
 
 @app.cell
 def __():
+    import marimo as mo
+    import pandas as pd
+
+    return mo, pd
+
+
+@app.cell
+def __(mo):
     """Notebook title and description."""
     mo.md(
         "# EMA Crossover Trading Strategy Analysis\n"
@@ -355,7 +363,7 @@ def __():
 
 
 @app.cell
-def __():
+def __(pd):
     """Configuration for the analysis window and capital."""
     asset = "BTC-USD"
     start_date = "2023-01-01"
@@ -367,13 +375,13 @@ def __():
 @app.cell
 def __(asset):
     """Section 1: basic EMA crossover signal visualization."""
-    generate_signals(asset=asset)
+    __import__(__name__).generate_signals(asset=asset)
 
 
 @app.cell
 def __(asset, start_date, end_date, initial_capital):
     """Section 2: single-asset backtest vs. buy & hold."""
-    run_single_asset_analysis(
+    __import__(__name__).run_single_asset_analysis(
         asset=asset,
         start_date=start_date,
         end_date=end_date,
@@ -386,7 +394,7 @@ def __(asset, start_date, end_date, initial_capital):
     """Section 3: multi-asset analysis for a small ETF basket."""
     assets = ["SPY", "QQQ", "DIA"]
     # Reuse the same window and capital for each asset
-    run_multi_asset_analysis(
+    __import__(__name__).run_multi_asset_analysis(
         assets=assets,
         start_date=start_date,
         end_date=end_date,

@@ -327,6 +327,13 @@ def visualize_top_performers(df_comparison, start_date="2020-01-01", interval="1
 
 @app.cell
 def __():
+    import marimo as mo
+
+    return mo
+
+
+@app.cell
+def __(mo):
     """Notebook title and description."""
     mo.md(
         "# Multi-Asset EMA Crossover Trading Strategy Analysis\n"
@@ -336,27 +343,29 @@ def __():
 
 
 @app.cell
-def __():
+def __(mo):
     """Show the configured asset universe and analysis window."""
+    mod = __import__(__name__)
     mo.md(
-        f"**Assets:** {', '.join(ASSETS_TO_ANALYZE)}\\n"
-        f"**Start date:** {START_DATE}\\n"
-        f"**End date:** {END_DATE}\\n"
-        f"**Initial capital:** ${INITIAL_CAPITAL:,}"
+        f"**Assets:** {', '.join(mod.ASSETS_TO_ANALYZE)}\\n"
+        f"**Start date:** {mod.START_DATE}\\n"
+        f"**End date:** {mod.END_DATE}\\n"
+        f"**Initial capital:** ${mod.INITIAL_CAPITAL:,}"
     )
 
 
 @app.cell
 def __():
     """Run the multi-asset backtest using the current configuration."""
-    run_multi_asset_analysis()
+    __import__(__name__).run_multi_asset_analysis()
 
 
 @app.cell
-def __():
+def __(mo):
     """Visualize EMA 8/200 crossover signals for each configured asset."""
-    for asset in ASSETS_TO_ANALYZE:
-        plot_strategy_signals(
+    mod = __import__(__name__)
+    for asset in mod.ASSETS_TO_ANALYZE:
+        mod.plot_strategy_signals(
             asset,
             start_date="2020-01-01",
             interval="1d",
