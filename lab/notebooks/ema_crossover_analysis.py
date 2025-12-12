@@ -349,7 +349,13 @@ def __():
     import marimo as mo
     import pandas as pd
 
-    return mo, pd
+    from notebook_helpers.ema_crossover_notebook import (
+        generate_signals,
+        run_multi_asset_analysis,
+        run_single_asset_analysis,
+    )
+
+    return mo, pd, generate_signals, run_multi_asset_analysis, run_single_asset_analysis
 
 
 @app.cell
@@ -373,15 +379,15 @@ def __(pd):
 
 
 @app.cell
-def __(asset):
+def __(asset, generate_signals):
     """Section 1: basic EMA crossover signal visualization."""
-    __import__(__name__).generate_signals(asset=asset)
+    generate_signals(asset=asset)
 
 
 @app.cell
-def __(asset, start_date, end_date, initial_capital):
+def __(asset, start_date, end_date, initial_capital, run_single_asset_analysis):
     """Section 2: single-asset backtest vs. buy & hold."""
-    __import__(__name__).run_single_asset_analysis(
+    run_single_asset_analysis(
         asset=asset,
         start_date=start_date,
         end_date=end_date,
@@ -390,11 +396,11 @@ def __(asset, start_date, end_date, initial_capital):
 
 
 @app.cell
-def __(asset, start_date, end_date, initial_capital):
+def __(asset, start_date, end_date, initial_capital, run_multi_asset_analysis):
     """Section 3: multi-asset analysis for a small ETF basket."""
     assets = ["SPY", "QQQ", "DIA"]
     # Reuse the same window and capital for each asset
-    __import__(__name__).run_multi_asset_analysis(
+    run_multi_asset_analysis(
         assets=assets,
         start_date=start_date,
         end_date=end_date,

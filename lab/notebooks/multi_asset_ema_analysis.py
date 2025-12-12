@@ -329,7 +329,12 @@ def visualize_top_performers(df_comparison, start_date="2020-01-01", interval="1
 def __():
     import marimo as mo
 
-    return mo
+    from notebook_helpers.multi_asset_ema_notebook import (
+        plot_strategy_signals,
+        run_multi_asset_analysis,
+    )
+
+    return mo, plot_strategy_signals, run_multi_asset_analysis
 
 
 @app.cell
@@ -343,29 +348,44 @@ def __(mo):
 
 
 @app.cell
-def __(mo):
+def __():
+    """Configuration for assets, analysis window, and capital."""
+    import pandas as pd
+
+    assets_to_analyze = ["SPY", "QQQ", "DIA"]
+    start_date = "2023-01-01"
+    end_date = pd.Timestamp.today().strftime("%Y-%m-%d")
+    initial_capital = 10_000
+    return assets_to_analyze, start_date, end_date, initial_capital
+
+
+@app.cell
+def __(mo, assets_to_analyze, start_date, end_date, initial_capital):
     """Show the configured asset universe and analysis window."""
-    mod = __import__(__name__)
     mo.md(
-        f"**Assets:** {', '.join(mod.ASSETS_TO_ANALYZE)}\\n"
-        f"**Start date:** {mod.START_DATE}\\n"
-        f"**End date:** {mod.END_DATE}\\n"
-        f"**Initial capital:** ${mod.INITIAL_CAPITAL:,}"
+        f"**Assets:** {', '.join(assets_to_analyze)}\\n"
+        f"**Start date:** {start_date}\\n"
+        f"**End date:** {end_date}\\n"
+        f"**Initial capital:** ${initial_capital:,}"
     )
 
 
 @app.cell
-def __():
+def __(assets_to_analyze, start_date, end_date, initial_capital, run_multi_asset_analysis):
     """Run the multi-asset backtest using the current configuration."""
-    __import__(__name__).run_multi_asset_analysis()
+    run_multi_asset_analysis(
+        assets=assets_to_analyze,
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=initial_capital,
+    )
 
 
 @app.cell
-def __(mo):
+def __(assets_to_analyze, plot_strategy_signals):
     """Visualize EMA 8/200 crossover signals for each configured asset."""
-    mod = __import__(__name__)
-    for asset in mod.ASSETS_TO_ANALYZE:
-        mod.plot_strategy_signals(
+    for asset in assets_to_analyze:
+        plot_strategy_signals(
             asset,
             start_date="2020-01-01",
             interval="1d",
