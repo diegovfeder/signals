@@ -165,7 +165,7 @@ export function SubscribeForm({
   // Show minimized state
   if (isMinimized) {
     return (
-      <div className={cx("flex justify-center", className)}>
+      <div className={cx("min-h-[220px] flex items-center justify-center", className)}>
         <Button
           onClick={handleRestore}
           variant="outline"
@@ -182,6 +182,7 @@ export function SubscribeForm({
   return (
     <div
       className={cx(
+        "min-h-[220px]",
         showCardChrome
           ? "card p-8 flex flex-col gap-4 text-left relative max-w-2xl mx-auto"
           : "flex flex-col gap-3 relative max-w-2xl mx-auto",
